@@ -1,0 +1,555 @@
+@import 'tailwindcss';
+
+/*
+ * BuildKart storefront design tokens.
+ *
+ * Two sources, deliberately separated:
+ *
+ *   - The **scale** — type ramp, radii, density — is Zepto's, read off
+ *     `extra/sample/styles.css`. It is tuned for dense product grids on a phone
+ *     and there is no reason to re-derive it badly.
+ *   - The **colour** is BuildKart's, from PLAN.md §2. Zepto's magenta and
+ *     purple do not survive the trip; a construction-materials shop that looks
+ *     like a grocery app has borrowed the wrong trust signal.
+ *
+ * Rules for anyone adding tokens here:
+ *   - Yellow marks price and primary action. It is not a decoration, and the
+ *     more surfaces it covers the less any of them mean.
+ *
+ *     The announcement bar is the one deliberate exception, at the owner's
+ *     request: it is a single 32px strip above the header that scrolls away and
+ *     never returns, so it competes with the ADD button for about one screen.
+ *     Anything else considering a yellow background should read this line as a
+ *     no.
+ *   - Nothing takes white text on yellow. #faae0a carries white at 1.89:1;
+ *     charcoal is 6.76:1 and is what `--brand-foreground` exists for.
+ *   - Every value is defined on :root. A token whose only definition lives
+ *     inside a media query breaks the default theme.
+ *   - Tap targets are 48px, not Zepto's 40. The audience is contractors on a
+ *     building site, often with gloves on. This is the one place the reference
+ *     is deliberately overridden.
+ */
+
+:root {
+  /* --- surfaces ---------------------------------------------------------- */
+  --surface: #ffffff;
+  /* Warm off-white, not grey: the ground behind card rows. */
+  --surface-warm: #faf9f6;
+  --surface-muted: #f4f4f4;
+
+  /*
+   * --- ink -----------------------------------------------------------------
+   *
+   * Three greys, and the split is the page's hierarchy:
+   *
+   *   --ink        charcoal. Headings, prices, the thing being decided on.
+   *   --ink-muted  #666. Body copy, labels, the second line of a card.
+   *   --ink-faint  the quietest legible step — timestamps, helper text.
+   *
+   * `--ink-muted` used to be #757c8d, a blue-grey, and at 4.18:1 on white it
+   * **failed AA for body text** wherever it was used as one — which is most
+   * places. The neutral #666 asked for here is 5.74:1 on white and clears AA on
+   * every ground in this palette, so the change fixes an accessibility defect
+   * as well as matching the reference.
+   */
+  --ink: #2d333a;
+  --ink-muted: #666666;
+  --ink-faint: #9aa1a9;
+  --ink-inverted: #ffffff;
+  /*
+   * The watermark grey, for the oversized tagline above the footer.
+   *
+   * The lightest value that still clears 3:1 on the warm page — the floor WCAG
+   * sets for large text, which that tagline is at every breakpoint. The
+   * reference it copies is paler still, and `--ink-faint` at 2.48:1 would match
+   * it more closely, but this is the shop's own sentence rather than decoration
+   * and it should be readable by someone who has to squint at it.
+   */
+  --ink-watermark: #8a9199;
+
+  /*
+   * --- brand --------------------------------------------------------------
+   *
+   * One hue, hsl(41, 96%, …), at three lightnesses. They are not
+   * interchangeable and the split is what keeps the palette accessible:
+   *
+   *   --brand       51%  the fill. Buttons, the ADD pill, the price.
+   *   --brand-dark  35%  the *hover* fill only. Never text.
+   *   --brand-text  29%  text on a light ground. Never a fill.
+   *
+   * `--brand-dark` used to do both jobs and could not do the second: at 3.06:1
+   * on white it failed AA for body text everywhere it was used as a link
+   * colour. A hover fill wants a small step down from the brand; readable text
+   * wants a large one, and no single value is both.
+   */
+  --brand: #faae0a;
+  --brand-dark: #cd8d04;
+  /* 4.61:1 at worst, against the muted grey — clears AA on every ground it
+     lands on: white, the tint, the warm page and the muted panel. */
+  --brand-text: #936603;
+  /* The wash behind a badge or an offer strip. Never behind body text. */
+  --brand-tint: #fef7e7;
+  /* Charcoal, not white: #faae0a carries white at only 1.89:1. Charcoal is
+     6.76:1 and passes. */
+  --brand-foreground: #2d333a;
+
+  /* --- lines ------------------------------------------------------------- */
+  --hairline: #eaeaea;
+  --hairline-strong: #d8d8d8;
+
+  /* --- status ------------------------------------------------------------ */
+  --success: #128942;
+  --success-bg: #daf4e5;
+  --error: #d90000;
+  --error-bg: #ffeded;
+  --warning: #fa875c;
+  --warning-bg: #fff1ea;
+  --info: #005bd3;
+  --info-bg: #e3effd;
+
+  /*
+   * Text on a tone's own tint.
+   *
+   * `--success` and `--warning` are *fills* — a tick, a bar, a dot — and they
+   * were never dark enough to be read as words on their own backgrounds:
+   * #128942 on the green tint is 3.86:1 and #fa875c on the amber is 2.19:1,
+   * both under the 4.5:1 AA needs for text this size. A badge is text, so it
+   * takes these instead. Same hue and saturation, dropped in lightness until
+   * they clear AA on the tint *and* on white.
+   *
+   * `--error` (4.71:1) and `--info` (5.25:1) already passed, so they have no
+   * variant — an unused token is one more thing to keep in step.
+   */
+  --success-fg: #107b3b;
+  --warning-fg: #c93b06;
+
+  /* --- layout ------------------------------------------------------------ */
+  --tap: 48px;
+  --header-h: 64px;
+  --page-max: 1280px;
+}
+
+/*
+ * Static scales live in a plain `@theme`, not `@theme inline`.
+ *
+ * The difference matters: `inline` substitutes the value into the utility and
+ * emits no custom property, which is what you want when the value is itself a
+ * `var()` pointing somewhere else (the colours below, the font next/font
+ * injects). These have no indirection to preserve and are wanted at runtime
+ * too, so they are declared here once and are readable as `var(--radius-card)`.
+ */
+@theme {
+  --radius-box: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  /*
+   * Elevation: a hairline plus a short drop. Product cards sit on the page,
+   * they do not float above it; a soft ambient blur at this density reads as
+   * mud.
+   */
+  --shadow-card: 0 1px 2px rgb(19 0 34 / 0.06);
+  --shadow-raised: 0 2px 8px rgb(19 0 34 / 0.08);
+  --shadow-sheet: 0 -2px 16px rgb(19 0 34 / 0.12);
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-warm: var(--surface-warm);
+  --color-surface-muted: var(--surface-muted);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-watermark: var(--ink-watermark);
+  --color-ink-inverted: var(--ink-inverted);
+
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-text: var(--brand-text);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-foreground: var(--brand-foreground);
+
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-fg: var(--success-fg);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+
+  /*
+   * Okra first, Helvetica behind it — and **Noto Devanagari after both**.
+   *
+   * That last entry is not decoration. Font fallback in CSS is per character,
+   * not per element: Latin resolves to Okra or Helvetica, and every Devanagari
+   * character falls through to Noto, because neither of the first two contains
+   * a single Devanagari glyph. Drop it and half a bilingual shop renders as
+   * tofu boxes.
+   *
+   * Okra is Zepto's own face and is not a public webfont — there are no files
+   * for it in `public/` and none are licensed here. Until some are added and
+   * an `@font-face` declares them, this entry matches only a machine that
+   * happens to have Okra installed, and everyone else gets Helvetica. On
+   * Windows that substitutes to Arial and on Android to Roboto, so Latin text
+   * always lands somewhere sensible.
+   */
+  --font-sans:
+    Okra, Helvetica, var(--font-noto-devanagari), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+@theme {
+  /*
+   * --- type ramp ---------------------------------------------------------
+   * Zepto's, verbatim: nine heading steps and six body steps. Nine looks
+   * excessive until you lay out a product card, where the name, the unit label,
+   * the price and the strike-through all need to differ by one notch each
+   * inside 40px of vertical space.
+   *
+   * Weights: 450 normal · 500 medium · 600 demibold · 700 bold · 800 extrabold.
+   * 450 rather than 400 is intentional — it holds up on the cheap LCD panels
+   * this audience reads on.
+   */
+  --text-heading1: 30px;
+  --text-heading1--line-height: 38px;
+  --text-heading1--font-weight: 700;
+  --text-heading1--letter-spacing: -0.5px;
+
+  --text-heading2: 24px;
+  --text-heading2--line-height: 30px;
+  --text-heading2--font-weight: 700;
+  --text-heading2--letter-spacing: -0.5px;
+
+  --text-heading3: 20px;
+  --text-heading3--line-height: 24px;
+  --text-heading3--font-weight: 700;
+  --text-heading3--letter-spacing: -0.5px;
+
+  --text-heading4: 18px;
+  --text-heading4--line-height: 20px;
+  --text-heading4--font-weight: 600;
+  --text-heading4--letter-spacing: -0.3px;
+
+  --text-heading5: 16px;
+  --text-heading5--line-height: 20px;
+  --text-heading5--font-weight: 600;
+  --text-heading5--letter-spacing: -0.2px;
+
+  --text-heading6: 14px;
+  --text-heading6--line-height: 18px;
+  --text-heading6--font-weight: 600;
+  --text-heading6--letter-spacing: 0px;
+
+  --text-heading7: 13px;
+  --text-heading7--line-height: 15px;
+  --text-heading7--font-weight: 600;
+  --text-heading7--letter-spacing: -0.2px;
+
+  --text-heading8: 12px;
+  --text-heading8--line-height: 14px;
+  --text-heading8--font-weight: 600;
+  --text-heading8--letter-spacing: -0.2px;
+
+  --text-heading9: 11px;
+  --text-heading9--line-height: 14px;
+  --text-heading9--font-weight: 600;
+  --text-heading9--letter-spacing: -0.2px;
+
+  --text-body1: 16px;
+  --text-body1--line-height: 20px;
+  --text-body1--font-weight: 450;
+
+  --text-body2: 14px;
+  --text-body2--line-height: 18px;
+  --text-body2--font-weight: 450;
+
+  --text-body3: 13px;
+  --text-body3--line-height: 15px;
+  --text-body3--font-weight: 450;
+
+  --text-body4: 12px;
+  --text-body4--line-height: 16px;
+  --text-body4--font-weight: 450;
+
+  --text-body5: 11px;
+  --text-body5--line-height: 15px;
+  --text-body5--font-weight: 450;
+  --text-body5--letter-spacing: 0.1px;
+
+  --text-body6: 10px;
+  --text-body6--line-height: 12px;
+  --text-body6--font-weight: 450;
+  --text-body6--letter-spacing: -0.1px;
+
+  /* Button labels are their own ramp — always bold, never the body weight. */
+  --text-cta1: 16px;
+  --text-cta1--line-height: 20px;
+  --text-cta1--font-weight: 700;
+
+  --text-cta2: 14px;
+  --text-cta2--line-height: 18px;
+  --text-cta2--font-weight: 700;
+
+  --text-cta3: 12px;
+  --text-cta3--line-height: 16px;
+  --text-cta3--font-weight: 700;
+  --text-cta3--letter-spacing: 0.1px;
+
+  /* Overlay artwork: the word on a banner, the "20% OFF" on a tile. */
+  --text-banner1: 20px;
+  --text-banner1--line-height: 24px;
+  --text-banner1--font-weight: 800;
+  --text-banner1--letter-spacing: -0.2px;
+
+  --text-banner2: 10px;
+  --text-banner2--line-height: 14px;
+  --text-banner2--font-weight: 800;
+  --text-banner2--letter-spacing: 0.7px;
+}
+
+@layer base {
+  html {
+    /*
+     * Anchors land below the sticky header rather than under it. Set here
+     * rather than per-section so a new page cannot forget it.
+     */
+    scroll-padding-top: calc(var(--header-h) + 8px);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--surface-warm);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    /* Zepto's: kills the grey flash on every tap on Android Chrome. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * The storefront is a document, not an app shell — the page scrolls
+   * normally. This is the opposite of the admin, which clamps the document and
+   * scrolls one column, and the difference is deliberate: a product grid wants
+   * the browser's own momentum scrolling and its address-bar collapse.
+   */
+
+  * {
+    border-color: var(--hairline);
+  }
+
+  /*
+   * Focus is visible and it is charcoal, not yellow. Yellow on a yellow ADD
+   * button is not a focus ring.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  /* The page gutter, used by every section band. */
+  .page-x {
+    padding-inline: 16px;
+  }
+
+  @media (min-width: 768px) {
+    .page-x {
+      padding-inline: 24px;
+    }
+  }
+
+  .page-w {
+    max-width: var(--page-max);
+    margin-inline: auto;
+  }
+
+  /*
+   * A horizontal scroller with snap and no visible scrollbar — the carousel
+   * shape used by the category strip and every product row.
+   *
+   * It deliberately does **not** set `display`; callers pass `flex` themselves.
+   *
+   * It used to, and that silently broke every caller that wanted to become a
+   * grid further up: this rule is hand-written into `@layer utilities`, so it
+   * lands *after* Tailwind's generated `md:grid` in the same layer at the same
+   * specificity, and `display: flex` won. The banner strip and the category
+   * strip both asked for a grid and both stayed rails at every width — the
+   * banner cards, freed of their `w-[280px]` by `md:w-auto`, then sized to the
+   * artwork's own 1600-odd pixels and overflowed the page.
+   *
+   * Leaving `display` to the caller puts both values in Tailwind's hands, where
+   * a variant reliably beats the base utility.
+   */
+  .rail {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+
+    /*
+     * Snapping has to be told about the rail's own padding, or it scrolls it
+     * away.
+     *
+     * `scroll-snap-align: start` aligns a card's edge to the *snapport*, and
+     * the snapport is the scroll container's padding box — not its content box.
+     * On a bleed rail (`-mx-4 px-4`, the full-width-scroll/inset-at-rest idiom)
+     * the first card therefore sits 16px inside a snapport whose edge is at the
+     * screen edge, so `mandatory` immediately scrolls those 16px away and the
+     * card lands flush against the side of the phone. The gutter is still in the
+     * CSS; it is just never on screen.
+     *
+     * `scroll-padding-inline` shrinks the snapport to match, putting the resting
+     * position back inside the gutter. It is driven by a variable, defaulting to
+     * zero, for two reasons: a rail with no padding of its own — the hero, the
+     * gallery, the sort chips — must not gain a phantom offset, and a rail that
+     * drops its padding at a breakpoint can clear this in the same variant.
+     *
+     * Whenever a caller sets inline padding on a rail it must set `--rail-pad`
+     * to the same value. The two are one decision written twice, and the failure
+     * when they drift is silent.
+     */
+    scroll-padding-inline: var(--rail-pad, 0px);
+  }
+
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .rail > * {
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+  }
+
+  /* Product names are always two lines. A third breaks the grid's rhythm. */
+  .clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/*
+ * Respect the system setting. A price ticking up under a reduce-motion user is
+ * still an animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Admin-authored product descriptions.
+ *
+ * The HTML comes from the rich-text editor in the admin and is sanitised on
+ * write, so the tags that survive are a small, known set. Styling them here
+ * rather than pulling in a typography plugin keeps the rules visible and the
+ * bundle unchanged.
+ */
+.prose-bk :where(p, ul, ol) {
+  margin-block: 0.5rem;
+}
+
+.prose-bk :where(ul, ol) {
+  padding-inline-start: 1.25rem;
+}
+
+.prose-bk ul {
+  list-style: disc;
+}
+
+.prose-bk ol {
+  list-style: decimal;
+}
+
+.prose-bk :where(h2, h3, h4) {
+  margin-block: 0.75rem 0.25rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.prose-bk a {
+  color: var(--brand-dark);
+  text-decoration: underline;
+}
+
+.prose-bk :where(strong, b) {
+  font-weight: 600;
+}
+
+/*
+ * --- print ----------------------------------------------------------------
+ *
+ * The storefront has exactly one printable page: the tax invoice. Everything
+ * else on screen is navigation, and a customer who chose "Download invoice"
+ * and got a PDF of the whole website — announcement strip, header, footer,
+ * tagline and all — has been handed a screenshot rather than a document.
+ *
+ * The chrome carries `print:hidden` at each component. These rules handle what
+ * a utility class cannot: the page box itself, and the backgrounds the browser
+ * would otherwise drop or waste ink on.
+ */
+@media print {
+  @page {
+    size: A4;
+    /* The invoice draws its own rules; the margin is the paper's. */
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    /* The warm page tint is a screen affordance. On paper it is a full-bleed
+       block of ink most printers will refuse to lay down anyway. */
+    background: #ffffff;
+  }
+
+  body {
+    /* Points, not pixels: a print stylesheet that thinks in px is at the mercy
+       of the driver's DPI guess. */
+    font-size: 10pt;
+  }
+
+  /* `pb-24` exists to clear the fixed mobile cart bar, which does not print. */
+  main {
+    padding-bottom: 0 !important;
+  }
+
+  /*
+   * Never split a row of the items table, the GST summary, or the totals
+   * across two sheets. An invoice whose tax line lands alone on page two is
+   * one an accountant will send back.
+   */
+  tr,
+  dl > div {
+    break-inside: avoid;
+  }
+
+  /* Keep the tinted blocks readable if the driver honours backgrounds, and
+     legible if it does not. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
