@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Check } from 'lucide-react';
-import { formatINR, type StorefrontFacetsDto } from '@buildkart/contract';
+import { formatINR, type StorefrontFacetsDto } from '@StrikerStore/contract';
 import { activeFilterCount, buildHref, type SearchParams } from '@/lib/list-query';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Banknote, CreditCard, Loader2, MapPin, Plus } from 'lucide-react';
-import { formatINR, type CartDto, type MyAddressDto } from '@buildkart/contract';
+import { formatINR, type CartDto, type MyAddressDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { MapPicker } from '@/components/location/map-picker';
 import { useLocationSheet } from '@/components/location/location-provider';

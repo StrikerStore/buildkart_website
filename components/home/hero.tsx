@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { StorefrontBannerDto } from '@buildkart/contract';
+import type { StorefrontBannerDto } from '@StrikerStore/contract';
 import { imageSrcSet, imageUrl, IMAGE, SRCSET } from '@/lib/media';
 import type { Locale } from '@/lib/i18n';
 

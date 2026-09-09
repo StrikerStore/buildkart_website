@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { ActionResult, CustomerSessionDto, OtpRequestDto } from '@buildkart/contract';
+import type { ActionResult, CustomerSessionDto, OtpRequestDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { SESSION_COOKIE } from '@/lib/session';
 

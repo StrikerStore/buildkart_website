@@ -1,5 +1,5 @@
-import { formatINR, splitGst, type MyInvoiceDto } from '@buildkart/contract';
-import type { SettingValue } from '@buildkart/contract';
+import { formatINR, splitGst, type MyInvoiceDto } from '@StrikerStore/contract';
+import type { SettingValue } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 
 /** dd/mm/yyyy — how a date is written on a document in India. */

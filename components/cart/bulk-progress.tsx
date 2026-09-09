@@ -1,5 +1,5 @@
 import { Check, TrendingDown } from 'lucide-react';
-import { formatINR, type BulkNudgeDto } from '@buildkart/contract';
+import { formatINR, type BulkNudgeDto } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 
 /**

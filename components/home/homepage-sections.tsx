@@ -1,4 +1,4 @@
-import type { StorefrontSectionDto } from '@buildkart/contract';
+import type { StorefrontSectionDto } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 import { SectionHeader } from '@/components/ui/section-header';
 import { CategoryTile } from '@/components/catalog/category-tile';

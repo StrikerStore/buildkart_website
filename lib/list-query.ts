@@ -1,4 +1,4 @@
-import { STOREFRONT_SORTS, type StorefrontListQuery } from '@buildkart/contract';
+import { STOREFRONT_SORTS, type StorefrontListQuery } from '@StrikerStore/contract';
 
 /**
  * The URL is the state.

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import type { UploadFailureReason } from '@buildkart/contract';
+import type { UploadFailureReason } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentCustomer } from '@/lib/session';
 

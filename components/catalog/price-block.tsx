@@ -1,4 +1,4 @@
-import { formatINR, type StorefrontCardDto } from '@buildkart/contract';
+import { formatINR, type StorefrontCardDto } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 

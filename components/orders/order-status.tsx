@@ -1,5 +1,5 @@
 import { Check, Circle } from 'lucide-react';
-import type { OrderStatus } from '@buildkart/contract';
+import type { OrderStatus } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 

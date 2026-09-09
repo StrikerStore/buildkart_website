@@ -1,5 +1,5 @@
 import { SlidersHorizontal } from 'lucide-react';
-import type { StorefrontListResultDto } from '@buildkart/contract';
+import type { StorefrontListResultDto } from '@StrikerStore/contract';
 import { activeFilterCount, buildHref, type SearchParams } from '@/lib/list-query';
 import type { Locale } from '@/lib/i18n';
 import { EmptyState } from '@/components/ui/empty-state';

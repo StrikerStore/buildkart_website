@@ -1,6 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
-import { buildMediaUrl, type MediaTransform } from '@buildkart/contract';
+import { buildMediaUrl, type MediaTransform } from '@StrikerStore/contract';
 import { api } from './api/server';
 
 /**

@@ -1,11 +1,11 @@
-import { DEFAULT_LOCALE, type Locale } from '@buildkart/contract';
+import { DEFAULT_LOCALE, type Locale } from '@StrikerStore/contract';
 
 export type { Locale };
 
 /**
  * The storefront's own strings — chrome, labels, empty states.
  *
- * Deliberately **not** named `t`. `@buildkart/contract` already exports a `t`,
+ * Deliberately **not** named `t`. `@StrikerStore/contract` already exports a `t`,
  * and it does something different: it reads a translated *column pair* off a
  * database row (`t(product, 'name', locale)`). Two functions called `t` with
  * different signatures, both importable into the same file, is exactly the bug

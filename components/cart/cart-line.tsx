@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { AlertTriangle, X } from 'lucide-react';
-import { formatINR, type CartLineDto } from '@buildkart/contract';
+import { formatINR, type CartLineDto } from '@StrikerStore/contract';
 import { imageUrl, IMAGE } from '@/lib/media';
 import type { Locale } from '@/lib/i18n';
 import { CartQuantity } from './cart-quantity';

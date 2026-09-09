@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Info, X } from 'lucide-react';
-import { formatINR } from '@buildkart/contract';
+import { formatINR } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 
 /**

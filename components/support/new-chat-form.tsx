@@ -7,7 +7,7 @@ import {
   SUPPORT_TOPICS,
   supportTopicLabel,
   type SupportTopic,
-} from '@buildkart/contract';
+} from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import { tr, type Locale } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';

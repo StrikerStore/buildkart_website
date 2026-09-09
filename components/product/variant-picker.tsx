@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { ChevronRight, TrendingDown } from 'lucide-react';
-import { formatINR, type StorefrontVariantDto } from '@buildkart/contract';
+import { formatINR, type StorefrontVariantDto } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import { Stepper } from '@/components/catalog/stepper';

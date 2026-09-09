@@ -1,5 +1,5 @@
 import { BadgeCheck, Banknote, TrendingUp, Zap } from 'lucide-react';
-import type { TrustMarker } from '@buildkart/contract';
+import type { TrustMarker } from '@StrikerStore/contract';
 import { tr, type Locale, type StringKey } from '@/lib/i18n';
 
 /**

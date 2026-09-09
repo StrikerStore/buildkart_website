@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { AlertTriangle, Check, Loader2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
-import type { DeviceLocationDto, MyAddressDto } from '@buildkart/contract';
+import type { DeviceLocationDto, MyAddressDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { MapPicker, type ConfirmedPin } from '@/components/location/map-picker';
 import { cn } from '@/lib/cn';

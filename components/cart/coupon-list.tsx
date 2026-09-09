@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronRight, Loader2, Tag, X } from 'lucide-react';
-import { formatINR, type CartCouponDto, type CartDiscountDto } from '@buildkart/contract';
+import { formatINR, type CartCouponDto, type CartDiscountDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';

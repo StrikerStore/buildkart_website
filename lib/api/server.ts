@@ -3,7 +3,7 @@ import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 import { apiClient } from './client';
 import { SESSION_COOKIE } from '../session';
-import type { MenuHandle, StorefrontAnnouncementsDto } from '@buildkart/contract';
+import type { MenuHandle, StorefrontAnnouncementsDto } from '@StrikerStore/contract';
 
 /**
  * Railway terminates TLS at its proxy, so the socket address is always the

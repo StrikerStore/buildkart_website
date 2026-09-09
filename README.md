@@ -30,7 +30,7 @@ the way the admin used to. It cannot: `backend/api` is the only service holding
 
 The pattern is already here in `lib/api/`, copied from the admin:
 
-- `AppRouter` is imported from `@buildkart/contract` as a **type only**. No API
+- `AppRouter` is imported from `@StrikerStore/contract` as a **type only**. No API
   code is bundled, but every procedure keeps its signature — a changed argument
   breaks the build rather than a request.
 - **One client per request**, cached, so `httpBatchLink` collapses everything a
@@ -39,10 +39,10 @@ The pattern is already here in `lib/api/`, copied from the admin:
 - Prefer procedures modelled on **pages, not tables** — `catalog.productList`
   already returns rows, totals and filter options together.
 - The shared vocabulary — money formatting, the en/hi locale fallback, media
-  URLs, `priceOrder()` — comes from `@buildkart/contract` too. It is pure, has
+  URLs, `priceOrder()` — comes from `@StrikerStore/contract` too. It is pure, has
   no database, and is meant to be used from both apps.
 
-`@buildkart/contract` is published from the backend repository. Installing it
+`@StrikerStore/contract` is published from the backend repository. Installing it
 needs `NODE_AUTH_TOKEN` set to a GitHub token with `read:packages`; see
 `.npmrc`.
 

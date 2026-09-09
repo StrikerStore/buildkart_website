@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { Check, Crosshair, Loader2, MapPin, Search, X } from 'lucide-react';
-import { formatINR, type DeviceLocationDto, type PlaceSuggestionDto } from '@buildkart/contract';
+import { formatINR, type DeviceLocationDto, type PlaceSuggestionDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';

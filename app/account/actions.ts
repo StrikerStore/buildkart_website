@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import type { ActionResult, MyAddressDto, MyProfileDto } from '@buildkart/contract';
+import type { ActionResult, MyAddressDto, MyProfileDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { LOCALE_COOKIE, LOCALE_MAX_AGE } from '@/lib/locale-shared';
 

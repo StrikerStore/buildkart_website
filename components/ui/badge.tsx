@@ -1,4 +1,4 @@
-import type { TagTone } from '@buildkart/contract';
+import type { TagTone } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 
 /**

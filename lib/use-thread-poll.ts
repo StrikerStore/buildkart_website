@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { SupportMessageDto, SupportThreadDto } from '@buildkart/contract';
+import type { SupportMessageDto, SupportThreadDto } from '@StrikerStore/contract';
 
 /**
  * Adaptive polling, in place of a socket.
@@ -19,7 +19,7 @@ import type { SupportMessageDto, SupportThreadDto } from '@buildkart/contract';
  * makes this affordable on the connections this audience actually has.
  *
  * The admin holds a near-identical copy. They are separate repositories and
- * `@buildkart/contract` carries types and schemas only — no React — so the
+ * `@StrikerStore/contract` carries types and schemas only — no React — so the
  * duplication is the cost of that boundary rather than an oversight.
  */
 const FOCUSED_MS = 4_000;

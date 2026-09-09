@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { formatINR, type StorefrontCardDto } from '@buildkart/contract';
+import { formatINR, type StorefrontCardDto } from '@StrikerStore/contract';
 import { imageSrcSet, imageUrl, IMAGE, SRCSET } from '@/lib/media';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';

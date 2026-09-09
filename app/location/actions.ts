@@ -7,7 +7,7 @@ import type {
   DeviceLocationDto,
   MyAddressDto,
   PlaceSuggestionDto,
-} from '@buildkart/contract';
+} from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import {
   LOCATION_COOKIE,

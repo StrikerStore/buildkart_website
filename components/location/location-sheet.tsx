@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { Loader2, X } from 'lucide-react';
-import type { MyAddressDto } from '@buildkart/contract';
+import type { MyAddressDto } from '@StrikerStore/contract';
 import type { StoredLocation } from '@/lib/location-shared';
 import { LocationPicker } from '@/app/location/location-picker';
 import { loadLocationSheet } from '@/app/location/actions';

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
-import { formatINR, type CartDto } from '@buildkart/contract';
+import { formatINR, type CartDto } from '@StrikerStore/contract';
 import { buttonClass } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
 

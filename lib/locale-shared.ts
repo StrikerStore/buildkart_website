@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, isLocale, LOCALES, type Locale } from '@buildkart/contract';
+import { DEFAULT_LOCALE, isLocale, LOCALES, type Locale } from '@StrikerStore/contract';
 
 export type { Locale };
 export { DEFAULT_LOCALE, isLocale, LOCALES };

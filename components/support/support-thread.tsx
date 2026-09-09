@@ -6,7 +6,7 @@ import {
   SUPPORT_MESSAGE_MAX,
   type SupportMessageDto,
   type SupportThreadDto,
-} from '@buildkart/contract';
+} from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import { tr, type Locale } from '@/lib/i18n';
 import { useThreadPoll } from '@/lib/use-thread-poll';

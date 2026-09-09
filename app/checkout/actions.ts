@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import type { ActionResult, PlacedOrderDto } from '@buildkart/contract';
+import type { ActionResult, PlacedOrderDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentCart, currentPromo } from '@/lib/cart';
 import { CART_COOKIE, PROMO_COOKIE } from '@/lib/cart-shared';

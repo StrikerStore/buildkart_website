@@ -1,4 +1,4 @@
-import type { StorefrontCardDto } from '@buildkart/contract';
+import type { StorefrontCardDto } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 import { ProductCard } from './product-card';
 

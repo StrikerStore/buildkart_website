@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import type { SupportAttachmentInput } from '@buildkart/contract';
+import type { SupportAttachmentInput } from '@StrikerStore/contract';
 
 export type AttachmentState = {
   /** What the message will carry, once the bytes are actually in the bucket. */

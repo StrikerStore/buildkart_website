@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
-import { supportTopicLabel } from '@buildkart/contract';
+import { supportTopicLabel } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';

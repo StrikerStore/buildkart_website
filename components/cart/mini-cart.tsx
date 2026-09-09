@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { Loader2, ShoppingCart, X } from 'lucide-react';
-import { formatINR, type CartDto } from '@buildkart/contract';
+import { formatINR, type CartDto } from '@StrikerStore/contract';
 import { buttonClass } from '@/components/ui/button';
 import { CartQuantity } from './cart-quantity';
 import { cn } from '@/lib/cn';
