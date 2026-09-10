@@ -39,7 +39,6 @@ export function VariantPicker({
   productName,
   bulkUnlockCutoff,
   specs,
-  hsnCode,
   description,
   suggestions,
 }: {
@@ -55,11 +54,10 @@ export function VariantPicker({
   /**
    * The specifications table, rendered here rather than by the page.
    *
-   * It carries the selected variant's SKU, and only this component knows which
-   * variant that is.
+   * It sits directly below the description block, which this component already
+   * owns, so keeping the pair together is what keeps them in that order.
    */
   specs: Array<{ key: string; label: string; value: string }>;
-  hsnCode: string | null;
   /**
    * The description block, rendered between the price card and the specs.
    *
@@ -318,7 +316,7 @@ export function VariantPicker({
 
       {description}
 
-      <SpecsTable specs={specs} hsnCode={hsnCode} sku={selected?.sku ?? null} locale={locale} />
+      <SpecsTable specs={specs} locale={locale} />
 
       {selected?.bulkPrice && (
         <BulkPriceSheet

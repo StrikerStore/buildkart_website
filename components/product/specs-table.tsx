@@ -10,31 +10,20 @@ import type { Locale } from '@/lib/i18n';
  * The rows are whatever metafields the owner defined — grade, thickness, gauge,
  * coverage. Nothing here knows what a construction material has; the admin
  * decides and this renders it.
+ *
+ * HSN and SKU are deliberately **not** here. They are warehouse and accounting
+ * references, not something a shopper chooses on, and the HSN still reaches the
+ * customer where it is actually needed — on the GST invoice, which renders it
+ * per line from the order itself.
  */
 export function SpecsTable({
   specs,
-  hsnCode,
-  sku,
   locale,
 }: {
   specs: Array<{ key: string; label: string; value: string }>;
-  hsnCode: string | null;
-  /**
-   * The selected variant's SKU, or null.
-   *
-   * Passed in rather than read from the product, because it belongs to the
-   * *variant* and changes as the shopper switches size — which is also why this
-   * table is now rendered from inside `VariantPicker`, the only thing that
-   * knows which variant is selected.
-   *
-   * It used to sit under the price. Nobody buys on an SKU; they quote it when
-   * ordering by phone or checking a delivery note, and that is reference
-   * material — which is what this table is for.
-   */
-  sku: string | null;
   locale: Locale;
 }) {
-  if (specs.length === 0 && !hsnCode && !sku) return null;
+  if (specs.length === 0) return null;
 
   return (
     <section className="mt-8">
@@ -49,23 +38,6 @@ export function SpecsTable({
             <dd className="text-body2 text-ink">{spec.value}</dd>
           </div>
         ))}
-
-        {/* HSN and SKU last, and only when set. Contractors ask for the HSN on
-            the GST bill and quote the SKU down the phone, so both belong on the
-            page rather than only on the invoice. */}
-        {hsnCode && (
-          <div className="flex gap-4 px-4 py-2.5">
-            <dt className="w-2/5 shrink-0 text-body3 text-ink-muted">HSN</dt>
-            <dd className="text-body2 text-ink">{hsnCode}</dd>
-          </div>
-        )}
-
-        {sku && (
-          <div className="flex gap-4 px-4 py-2.5">
-            <dt className="w-2/5 shrink-0 text-body3 text-ink-muted">SKU</dt>
-            <dd className="text-body2 text-ink">{sku}</dd>
-          </div>
-        )}
       </dl>
     </section>
   );

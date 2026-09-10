@@ -138,6 +138,19 @@ export async function ProductCard({
           {locale === 'hi' ? 'बल्क' : 'Bulk'}: {formatINR(product.bulkPrice)}
         </p>
       )}
+
+      {/*
+        * Free delivery, on every tile.
+        *
+        * Last in the card and in its own row rather than up in the tag strip:
+        * the strip is the product's own tags and a line that never varies would
+        * take a slot from one that does.
+        */}
+      <p className="pt-1.5">
+        <Badge tone="SUCCESS">
+          {locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}
+        </Badge>
+      </p>
     </article>
   );
 }

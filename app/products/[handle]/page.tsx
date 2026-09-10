@@ -133,7 +133,6 @@ export default async function ProductPage({ params }: Props) {
               productName={name}
               bulkUnlockCutoff={settings.commerce.bulkUnlockCutoff}
               specs={product.specs}
-              hsnCode={product.hsnCode}
               description={
                 body ? (
                   <section className="mt-8">
