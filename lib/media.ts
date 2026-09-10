@@ -108,13 +108,13 @@ export async function imageSrcSet(
  *
  * `sizes` has to be a media-query expression rather than a CSS width because
  * the browser chooses the image while the HTML is still parsing — it does not
- * yet know the grid resolved to 168px. These mirror the breakpoints in
+ * yet know the grid resolved to 235px. These mirror the breakpoints in
  * `ProductGrid` and `Gallery`; a change there wants a change here.
  */
 export const SRCSET = {
   card: {
-    widths: [160, 200, 280, 400] as const,
-    sizes: '(min-width: 1280px) 200px, (min-width: 1024px) 22vw, (min-width: 640px) 30vw, 45vw',
+    widths: [160, 240, 320, 480, 640] as const,
+    sizes: '(min-width: 1280px) 240px, (min-width: 1024px) 25vw, (min-width: 640px) 30vw, 45vw',
   },
   tile: {
     widths: [88, 120, 200] as const,

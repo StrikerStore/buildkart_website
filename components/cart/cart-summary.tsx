@@ -11,10 +11,18 @@ import type { Locale } from '@/lib/i18n';
  * browser. That is not a style preference — it is what stops the summary and
  * the order disagreeing when a rate changes between the two.
  *
- * The GST line says **"included"** when tax sat inside the prices, because
- * repeating an amount that is already in the subtotal reads as a second charge.
- * `taxAddedTotal` is the only part that moves the total, so it is the only part
- * shown as an addition.
+ * The GST line appears **only when tax is added to the prices**.
+ *
+ * When a product's rate already includes GST, the subtotal above is the price
+ * the customer pays and the tax inside it changes nothing about the total. A
+ * line reading "GST ₹19.52 (included)" then invites the only question it cannot
+ * answer — "so am I paying this or not?" — and every figure in this block is
+ * supposed to be one the customer can add up. The tax is still on the invoice,
+ * where it is a legal requirement and where the buyer is looking for it.
+ *
+ * `taxAddedTotal` rather than the cart's `taxInclusive` flag, because a cart
+ * can hold both kinds at once: it is precisely the tax that moves the total, so
+ * it is right for a mixed basket as well as a simple one.
  */
 export function CartSummary({
   cart,
@@ -25,7 +33,6 @@ export function CartSummary({
   locale: Locale;
   showCheckout?: boolean;
 }) {
-  const taxIncluded = cart.taxAddedTotal === '0.00' && cart.taxTotal !== '0.00';
   const blocked = !cart.meetsMinimum || cart.delivery?.serviced === false;
 
   return (
@@ -61,16 +68,10 @@ export function CartSummary({
           tone={cart.deliveryCharge === '0.00' ? 'success' : undefined}
         />
 
-        {cart.taxTotal !== '0.00' && (
+        {cart.taxAddedTotal !== '0.00' && (
           <Row
             label={locale === 'hi' ? 'जीएसटी' : 'GST'}
-            value={
-              taxIncluded
-                ? locale === 'hi'
-                  ? `${formatINR(cart.taxTotal)} (शामिल)`
-                  : `${formatINR(cart.taxTotal)} (included)`
-                : formatINR(cart.taxAddedTotal)
-            }
+            value={formatINR(cart.taxAddedTotal)}
             muted
           />
         )}
