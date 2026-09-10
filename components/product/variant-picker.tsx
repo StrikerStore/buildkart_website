@@ -7,7 +7,6 @@ import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import { Stepper } from '@/components/catalog/stepper';
 import { BulkPriceSheet } from './bulk-price-sheet';
-import { SpecsTable } from './specs-table';
 
 type Axis = { name: string; position: number; values: string[] };
 
@@ -38,8 +37,7 @@ export function VariantPicker({
   locale,
   productName,
   bulkUnlockCutoff,
-  specs,
-  description,
+  details,
   suggestions,
 }: {
   options: Axis[];
@@ -52,21 +50,15 @@ export function VariantPicker({
   /** Cart subtotal at which bulk rates unlock, from the shop's settings. */
   bulkUnlockCutoff: string;
   /**
-   * The specifications table, rendered here rather than by the page.
+   * The disclosure stack: description, specifications, FAQs, return terms.
    *
-   * It sits directly below the description block, which this component already
-   * owns, so keeping the pair together is what keeps them in that order.
+   * Rendered here rather than by the page so it stays between the price card
+   * and the suggestions rail — the order is the design: price, then everything
+   * a shopper might want to read about it, then alternatives. Built on the page
+   * because none of the four depends on the selected variant, and passed
+   * through as one node so the four cannot drift apart.
    */
-  specs: Array<{ key: string; label: string; value: string }>;
-  /**
-   * The description block, rendered between the price card and the specs.
-   *
-   * Passed through rather than left on the page because the specs table had to
-   * move in here — it carries the selected variant's SKU — and leaving the
-   * description outside would have silently swapped the two on the page. The
-   * order is the design: price, then what it is, then the numbers.
-   */
-  description?: React.ReactNode;
+  details?: React.ReactNode;
   /**
    * "You may also like", revealed after the first add.
    *
@@ -314,9 +306,7 @@ export function VariantPicker({
         </p>
       )}
 
-      {description}
-
-      <SpecsTable specs={specs} locale={locale} />
+      {details}
 
       {selected?.bulkPrice && (
         <BulkPriceSheet

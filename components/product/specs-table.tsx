@@ -1,5 +1,3 @@
-import type { Locale } from '@/lib/i18n';
-
 /**
  * The specifications table.
  *
@@ -15,30 +13,26 @@ import type { Locale } from '@/lib/i18n';
  * references, not something a shopper chooses on, and the HSN still reaches the
  * customer where it is actually needed — on the GST invoice, which renders it
  * per line from the order itself.
+ *
+ * No heading of its own: this renders inside an accordion whose summary is
+ * already the heading, and a second "Specifications" under the bar that says
+ * the same word reads as a mistake.
  */
 export function SpecsTable({
   specs,
-  locale,
 }: {
   specs: Array<{ key: string; label: string; value: string }>;
-  locale: Locale;
 }) {
   if (specs.length === 0) return null;
 
   return (
-    <section className="mt-8">
-      <h2 className="mb-3 text-heading4 text-ink">
-        {locale === 'hi' ? 'जानकारी' : 'Specifications'}
-      </h2>
-
-      <dl className="divide-y divide-hairline rounded-card border border-hairline bg-surface">
-        {specs.map((spec) => (
-          <div key={spec.key} className="flex gap-4 px-4 py-2.5">
-            <dt className="w-2/5 shrink-0 text-body3 text-ink-muted">{spec.label}</dt>
-            <dd className="text-body2 text-ink">{spec.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    <dl className="divide-y divide-hairline">
+      {specs.map((spec) => (
+        <div key={spec.key} className="flex gap-4 py-2.5 first:pt-0 last:pb-0">
+          <dt className="w-2/5 shrink-0 text-body3 text-ink-muted">{spec.label}</dt>
+          <dd className="text-body2 text-ink">{spec.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

@@ -81,6 +81,21 @@ export async function ProductCard({
         )}
       </div>
 
+      {/*
+        * Free delivery, on every tile.
+        *
+        * Directly under the photo and above everything variable, because the
+        * price row is pinned to the bottom by `mt-auto`: anything placed after
+        * it lands at a different height on every card, depending on whether
+        * that card carries a bulk rate. Here it sits on a fixed line and the
+        * grid keeps its rhythm.
+        */}
+      <p className="mb-2">
+        <Badge tone="SUCCESS">
+          {locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}
+        </Badge>
+      </p>
+
       {product.badges.length > 0 && (
         <div className="mb-1 flex flex-wrap gap-1">
           {/* Two at most. A card carrying four badges has told the shopper
@@ -138,19 +153,6 @@ export async function ProductCard({
           {locale === 'hi' ? 'बल्क' : 'Bulk'}: {formatINR(product.bulkPrice)}
         </p>
       )}
-
-      {/*
-        * Free delivery, on every tile.
-        *
-        * Last in the card and in its own row rather than up in the tag strip:
-        * the strip is the product's own tags and a line that never varies would
-        * take a slot from one that does.
-        */}
-      <p className="pt-1.5">
-        <Badge tone="SUCCESS">
-          {locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}
-        </Badge>
-      </p>
     </article>
   );
 }
