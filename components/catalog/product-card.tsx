@@ -125,8 +125,12 @@ export async function ProductCard({
       )}
 
       {/* mt-auto pins the price row to the bottom, so cards in a row line up
-          however many lines their names took. */}
-      <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+          however many lines their names took.
+
+          `items-center`, not `items-end`: the stepper is 40px and the price is
+          a single 20px line, so bottom-aligning them left the price sitting
+          under the button's lower half instead of beside it. */}
+      <div className="mt-auto flex items-center justify-between gap-2 pt-2">
         <PriceBlock
           price={product.price}
           compareAtPrice={product.compareAtPrice}

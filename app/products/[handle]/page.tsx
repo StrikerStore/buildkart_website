@@ -98,7 +98,11 @@ export default async function ProductPage({ params }: Props) {
         <div className="mt-5 min-w-0 flex-1 lg:mt-0">
           {/* Above the brand: delivery is what this audience checks first. */}
           <div className="mb-2">
-            <DeliveryLine fallbackHours={settings.commerce.promiseHours} locale={locale} />
+            <DeliveryLine
+              fallbackHours={settings.commerce.promiseHours}
+              codEnabled={settings.commerce.codEnabled}
+              locale={locale}
+            />
           </div>
 
           {product.brandName && (
@@ -121,14 +125,6 @@ export default async function ProductPage({ params }: Props) {
 
           {product.isRateVolatile && newestPrice && (
             <RateStamp updatedAt={newestPrice} locale={locale} />
-          )}
-
-          {/* The delivery promise moved up to `DeliveryLine`; what is left here
-              is the payment method, which is a different fact. */}
-          {settings.commerce.codEnabled && (
-            <p className="mt-3 text-body3 text-success">
-              {locale === 'hi' ? 'कैश ऑन डिलीवरी' : 'Cash on delivery available'}
-            </p>
           )}
 
           <div className="mt-5">

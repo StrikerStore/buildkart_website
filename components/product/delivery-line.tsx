@@ -6,7 +6,9 @@ import type { Locale } from '@/lib/i18n';
  * The delivery promise, at the top of the product page.
  *
  * Above the brand and the name because it answers the question this audience
- * asks before the price: *will you bring it to my site, and when*.
+ * asks before the price: *will you bring it to my site, when, and can I pay the
+ * driver*. One line, read left to right — the promise in a capsule, then the
+ * condition on it, then the time, then the payment.
  *
  * The terms are the **chosen area's**, not the shop's defaults — every
  * `ServiceablePincode` carries its own charge, free-delivery threshold and
@@ -20,10 +22,18 @@ import type { Locale } from '@/lib/i18n';
  */
 export async function DeliveryLine({
   fallbackHours,
+  codEnabled,
   locale,
 }: {
   /** The shop-wide promise, used until the customer has chosen an area. */
   fallbackHours: number;
+  /**
+   * Whether cash on delivery is on.
+   *
+   * Shop-wide, from the `payments.cod` setting — the schema has no per-product
+   * COD flag, so this segment is on every product or on none.
+   */
+  codEnabled: boolean;
   locale: Locale;
 }) {
   const hi = locale === 'hi';
@@ -39,28 +49,54 @@ export async function DeliveryLine({
   const alwaysFree = charge === '0.00';
   const isFree = !serviced || alwaysFree || freeAbove !== null;
 
-  const qualifier = (() => {
+  const threshold = (() => {
     if (!isFree) return hi ? `डिलीवरी ${formatINR(charge!)}` : `Delivery ${formatINR(charge!)}`;
     if (alwaysFree || freeAbove === null) return null;
-    return hi ? `${formatINR(freeAbove)} से ऊपर के ऑर्डर पर` : `on orders above ${formatINR(freeAbove)}`;
+    return hi
+      ? `${formatINR(freeAbove)} से ऊपर के ऑर्डर पर`
+      : `on orders above ${formatINR(freeAbove)}`;
   })();
 
+  /*
+   * Everything after the capsule, in reading order.
+   *
+   * A list rather than three spans with pipes written between them, so a
+   * missing segment — a free area with no threshold, a shop with COD off —
+   * takes its separator with it instead of leaving a stranded "| |".
+   */
+  const segments = [
+    threshold,
+    hi ? `${hours} घंटे में डिलीवरी` : `Delivery in ${hours} hours`,
+    codEnabled ? (hi ? 'कैश ऑन डिलीवरी' : 'Cash on Delivery') : null,
+  ].filter((segment): segment is string => segment !== null);
+
   return (
-    <p className="flex flex-wrap items-baseline gap-1.5">
-      {/* `text-heading7` rather than a raw weight: this ramp carries weight with
-          size, and 13px/600 is the emphasis step beside `text-body3`. */}
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
       {isFree && (
-        <span className="text-heading7 text-success">
+        /*
+         * `Badge`'s shape, a step up the ramp.
+         *
+         * Not the `Badge` component itself: that is 11px, sized to sit on a
+         * product tile, and here — under a 24px product name — it read as an
+         * afterthought rather than as the page's promise.
+         */
+        <span className="inline-flex shrink-0 items-center rounded-pill bg-success-bg px-2.5 py-1 text-heading6 text-success-fg">
           {hi ? 'फ़्री डिलीवरी' : 'Free delivery'}
         </span>
       )}
 
-      {qualifier && <span className="text-body5 text-ink-muted">{qualifier}</span>}
-
-      <span className="text-body5 text-ink-muted">
-        {isFree || qualifier ? '· ' : ''}
-        {hi ? `${hours} घंटे में डिलीवरी` : `Delivery in ${hours} hours`}
-      </span>
+      {segments.map((segment, index) => (
+        <span key={segment} className="flex items-center gap-x-2 text-body3 text-ink-muted">
+          {/* Decoration between two facts, not a word — announcing "vertical
+              line" between them helps nobody. */}
+          {index > 0 && (
+            <span aria-hidden className="text-hairline-strong">
+              |
+            </span>
+          )}
+          {segment}
+        </span>
+      ))}
     </p>
   );
 }
