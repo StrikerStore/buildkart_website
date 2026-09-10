@@ -17,6 +17,13 @@
  * No heading of its own: this renders inside an accordion whose summary is
  * already the heading, and a second "Specifications" under the bar that says
  * the same word reads as a mistake.
+ *
+ * Ruled like a table — boxed, with a divider under every row and a tinted
+ * label column — because that is how a spec sheet is read: down one column to
+ * find the property, across to the value. Still a `<dl>` underneath, so a
+ * screen reader announces each value as belonging to its label rather than as
+ * a cell at some grid coordinate, and so the two columns can stack on a narrow
+ * phone where a real `<table>` would force a sideways scroll.
  */
 export function SpecsTable({
   specs,
@@ -26,13 +33,17 @@ export function SpecsTable({
   if (specs.length === 0) return null;
 
   return (
-    <dl className="divide-y divide-hairline">
-      {specs.map((spec) => (
-        <div key={spec.key} className="flex gap-4 py-2.5 first:pt-0 last:pb-0">
-          <dt className="w-2/5 shrink-0 text-body3 text-ink-muted">{spec.label}</dt>
-          <dd className="text-body2 text-ink">{spec.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="overflow-hidden rounded-card border border-hairline">
+      <dl className="divide-y divide-hairline">
+        {specs.map((spec) => (
+          <div key={spec.key} className="flex items-stretch">
+            <dt className="w-2/5 shrink-0 border-r border-hairline bg-surface-muted px-3 py-2.5 text-body3 text-ink-muted">
+              {spec.label}
+            </dt>
+            <dd className="min-w-0 flex-1 px-3 py-2.5 text-body2 text-ink">{spec.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
