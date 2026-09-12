@@ -239,64 +239,87 @@ export function VariantPicker({
           </div>
 
           {/*
-            * The bulk offer, as a banded row rather than a text link.
+            * Add control and bulk offer, side by side on desktop.
             *
-            * It is the strongest commercial argument on the page for this
-            * shop's actual customer — a contractor buying forty bags, not a
-            * homeowner buying one — and as an underlined sentence it read as a
-            * footnote. The tint and the full-width band give it the weight of
-            * an offer while staying clearly secondary to the price above it.
+            * Two equal halves: the action leads, the offer sits beside it
+            * explaining what a larger number would be worth. Stacked full-width
+            * they read as two competing banners, and a stepper does not need
+            * 600px to hold `− 1 +`.
             *
-            * Still tappable, because "bulk price ₹415" raises a question the
-            * row itself cannot answer: how many, and by when.
+            * Equal rather than sized to their contents, because the two are a
+            * pair — one asks for a decision and the other argues for it, and a
+            * green band twice the width of the button it sits next to makes the
+            * argument look like the primary action.
+            *
+            * A column on phones, where the stepper is not here at all: it lives
+            * in the sticky buy bar, so this collapses to the bulk band alone
+            * and the mobile layout is unchanged.
             */}
-          {selected.bulkPrice && (
-            <button
-              type="button"
-              onClick={() => setBulkOpen(true)}
-              className="mt-3 flex w-full items-center gap-2 rounded-box border border-success/25 bg-success-bg px-3 py-2.5 text-left"
-            >
-              <TrendingDown className="size-5 shrink-0 text-success-fg" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block text-heading6 text-success-fg">
-                  {locale === 'hi'
-                    ? `बल्क भाव ${formatINR(selected.bulkPrice)}`
-                    : `Bulk price ${formatINR(selected.bulkPrice)}`}
+          {/* The gap is on the children, not here: with no bulk price this row
+              renders nothing on a phone, and a margin would still show. */}
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            {/* `flex-1` on both halves, so the control and the offer are the
+                same width whatever either one contains. */}
+            <div className="mt-3 hidden md:block md:min-w-0 md:flex-1">
+              {selected.inStock ? (
+                <Stepper
+                  variantId={selected.id}
+                  quantity={quantities[selected.id] ?? 0}
+                  locale={locale}
+                  size="lg"
+                  label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
+                  onChanged={reveal}
+                />
+              ) : (
+                <p className="rounded-box bg-surface-muted py-3 text-center text-cta2 text-ink-muted">
+                  {locale === 'hi' ? 'यह साइज़ अभी नहीं है' : 'This option is out of stock'}
+                </p>
+              )}
+            </div>
+
+            {/*
+              * The bulk offer, as a banded row rather than a text link.
+              *
+              * It is the strongest commercial argument on the page for this
+              * shop's actual customer — a contractor buying forty bags, not a
+              * homeowner buying one — and as an underlined sentence it read as
+              * a footnote. The tint and the band give it the weight of an offer
+              * while staying clearly secondary to the price above it.
+              *
+              * Still tappable, because "bulk price ₹415" raises a question the
+              * row itself cannot answer: how many, and by when.
+              */}
+            {selected.bulkPrice && (
+              <button
+                type="button"
+                onClick={() => setBulkOpen(true)}
+                className="mt-3 flex w-full items-center gap-2 rounded-box border border-success/25 bg-success-bg px-3 py-2.5 text-left md:w-auto md:min-w-0 md:flex-1"
+              >
+                <TrendingDown className="size-5 shrink-0 text-success-fg" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-heading6 text-success-fg">
+                    {locale === 'hi'
+                      ? `बल्क भाव ${formatINR(selected.bulkPrice)}`
+                      : `Bulk price ${formatINR(selected.bulkPrice)}`}
+                  </span>
+                  <span className="block text-body5 text-success-fg/80">
+                    {locale === 'hi' ? 'बड़े ऑर्डर पर — कैसे?' : 'On large orders — see how'}
+                  </span>
                 </span>
-                <span className="block text-body5 text-success-fg/80">
-                  {locale === 'hi' ? 'बड़े ऑर्डर पर — कैसे?' : 'On large orders — see how'}
-                </span>
-              </span>
-              <ChevronRight className="size-5 shrink-0 text-success-fg" aria-hidden />
-            </button>
-          )}
+                <ChevronRight className="size-5 shrink-0 text-success-fg" aria-hidden />
+              </button>
+            )}
+          </div>
 
           {/* Only when it is genuinely low. A count on every variant trains
               people to ignore it, and then it cannot do its one job. */}
           {lowStock && (
-            <p className="mt-1 text-body3 text-warning">
+            <p className="mt-2 text-body3 text-warning">
               {locale === 'hi'
                 ? `सिर्फ़ ${selected.stockQty} बचे`
                 : `Only ${selected.stockQty} left`}
             </p>
           )}
-
-          <div className="mt-4 hidden md:block">
-            {selected.inStock ? (
-              <Stepper
-                variantId={selected.id}
-                quantity={quantities[selected.id] ?? 0}
-                locale={locale}
-                size="lg"
-                label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
-                onChanged={reveal}
-              />
-            ) : (
-              <p className="rounded-box bg-surface-muted py-3 text-center text-cta2 text-ink-muted">
-                {locale === 'hi' ? 'यह साइज़ अभी नहीं है' : 'This option is out of stock'}
-              </p>
-            )}
-          </div>
         </div>
       ) : (
         <p className="rounded-card border border-hairline bg-surface p-4 text-body2 text-ink-muted">

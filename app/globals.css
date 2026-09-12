@@ -126,6 +126,16 @@
   /* --- layout ------------------------------------------------------------ */
   --tap: 48px;
   --header-h: 64px;
+  /*
+   * The product page's sticky buy bar: `p-3` twice over, the 52px stepper
+   * inside it, and its top hairline.
+   *
+   * Here because two components need the same number and neither owns it — the
+   * buy bar in `variant-picker.tsx` occupies this height, and the cart capsule
+   * has to sit clear above it. A literal in both places would drift the first
+   * time the stepper changed size.
+   */
+  --buy-bar-h: 76px;
   --page-max: 1280px;
 }
 
@@ -443,6 +453,32 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+}
+
+/*
+ * The cart capsule arriving.
+ *
+ * It mounts the moment the cart stops being empty, so the entry animation is
+ * the whole "pops up from the bottom" behaviour — no state, no transition
+ * library, and nothing to reset when it unmounts again. Short and slightly
+ * overshooting, because the capsule is small and a slow linear rise on a
+ * 48px pill reads as lag rather than motion.
+ *
+ * The reduce-motion block below neutralises this along with everything else.
+ */
+@keyframes cart-capsule-rise {
+  from {
+    opacity: 0;
+    transform: translateY(calc(100% + 1rem));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cart-capsule {
+  animation: cart-capsule-rise 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /*

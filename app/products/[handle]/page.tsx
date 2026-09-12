@@ -74,7 +74,14 @@ export default async function ProductPage({ params }: Props) {
     .at(-1);
 
   return (
-    <div className="page-w page-x py-5">
+    /*
+     * Extra bottom room on phones, because this is the one route with two
+     * stacked fixed bars: the sticky buy bar, and the cart capsule above it.
+     * The layout's own `pb-24` clears a single bar, which is right everywhere
+     * else — widening it globally would leave every other page with a gap that
+     * nothing occupies.
+     */
+    <div className="page-w page-x pt-5 pb-[calc(var(--buy-bar-h)+5rem)] md:pb-5">
       <Breadcrumb
         trail={
           product.category

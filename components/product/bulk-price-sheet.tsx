@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Info, X } from 'lucide-react';
-import { formatINR } from '@StrikerStore/contract';
+import { discountPercent, formatINR, subtractMoney } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -51,8 +51,19 @@ export function BulkPriceSheet({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const saving = Number(listPrice) - Number(bulkPrice);
-  const percent = Number(listPrice) > 0 ? Math.round((saving / Number(listPrice)) * 100) : 0;
+  /*
+   * Both figures come from the money helpers, which work in integer paise.
+   *
+   * Doing it in floats is what `Number(listPrice) - Number(bulkPrice)` used to
+   * do, and `413.30 - 410.00` is `3.299999999999997` in IEEE 754 — a value that
+   * is not a money string, so `formatINR` threw and took the whole product page
+   * down with it. Money never goes through a float.
+   *
+   * `discountPercent` returns null when there is no saving to show, which is
+   * the same condition the block below used to test for.
+   */
+  const saving = subtractMoney(listPrice, bulkPrice);
+  const percent = discountPercent(bulkPrice, listPrice);
 
   return (
     <dialog
@@ -115,11 +126,11 @@ export function BulkPriceSheet({
           </span>
         </p>
 
-        {saving > 0 && (
+        {percent !== null && (
           <p className="px-3 text-body4 text-ink-muted">
             {hi
-              ? `इस सामान पर ${formatINR(String(saving))} प्रति यूनिट की बचत (${percent}%).`
-              : `That is ${formatINR(String(saving))} off each unit on this item — about ${percent}%.`}
+              ? `इस सामान पर ${formatINR(saving)} प्रति यूनिट की बचत (${percent}%).`
+              : `That is ${formatINR(saving)} off each unit on this item — about ${percent}%.`}
           </p>
         )}
       </div>
