@@ -18,7 +18,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
   "dependencies": {
-    "@StrikerStore/contract": "0.2.1",
+    "@StrikerStore/contract": "0.3.0",
     "@trpc/client": "11.18.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

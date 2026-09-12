@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { Search, User } from 'lucide-react';
-import { publishedMenu, storeSettings } from '@/lib/api/server';
+import { User } from 'lucide-react';
+import { categoryNav, publishedMenu, storeSettings } from '@/lib/api/server';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentCustomer } from '@/lib/session';
 import { tr, type Locale } from '@/lib/i18n';
@@ -9,6 +9,7 @@ import { LocationButton } from './location-button';
 import { MainNav } from './main-nav';
 import { MobileMenu } from './mobile-menu';
 import { MiniCart } from '@/components/cart/mini-cart';
+import { SearchBox, type SearchCategory } from './search-box';
 import { WalletPill } from './wallet-pill';
 
 /**
@@ -30,12 +31,13 @@ import { WalletPill } from './wallet-pill';
  * in a side panel behind the mark left of the logo.
  */
 export async function SiteHeader({ locale }: { locale: Locale }) {
-  const [settings, cart, customer, headerMenu, mobileMenu] = await Promise.all([
+  const [settings, cart, customer, headerMenu, mobileMenu, categories] = await Promise.all([
     storeSettings(),
     currentCart(),
     currentCustomer(),
     publishedMenu('header'),
     publishedMenu('mobile'),
+    searchCategories(locale),
   ]);
   const count = cartCount(cart);
   const name = settings.store.nameEn;
@@ -76,7 +78,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             role="search"
             className="ml-auto hidden min-w-0 flex-1 md:block md:max-w-md"
           >
-            <SearchField locale={locale} />
+            <SearchBox categories={categories} locale={locale} />
           </form>
 
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
@@ -109,7 +111,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
 
         {/* --- row two: search, on phones only ---------------------------- */}
         <form action="/search" role="search" className="pb-3 md:hidden">
-          <SearchField locale={locale} />
+          <SearchBox categories={categories} locale={locale} />
         </form>
 
         {/* --- row three: the owner's menu, on desktop only ---------------- */}
@@ -120,27 +122,27 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
 }
 
 /**
- * A GET form, not a controlled input.
+ * The categories behind the search box, or none.
  *
- * Submitting navigates to `/search?q=…`, which means the results page is a real
- * URL: shareable over WhatsApp, back-button-able, and rendered on the server.
- * An input that filters a client-side list would be none of those.
+ * Swallowing, like `publishedMenu` and unlike `categoryNav` itself, which
+ * throws. The search box is an enhancement: it rotates category names in the
+ * placeholder and offers them on focus, and neither is worth taking the header
+ * — and therefore every page on the site — down for. With an empty list the
+ * box falls back to the static placeholder it always had.
+ *
+ * Flattened to roots only. A dropdown offering "Cement" and then "OPC Cement"
+ * under it is answering a question the shopper has not asked yet; the category
+ * page itself is where children belong.
  */
-function SearchField({ locale }: { locale: Locale }) {
-  return (
-    <div className="relative">
-      <Search
-        className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-ink-faint"
-        aria-hidden
-      />
-      <input
-        type="search"
-        name="q"
-        autoComplete="off"
-        placeholder={tr(locale, 'header.searchPlaceholder')}
-        aria-label={tr(locale, 'header.search')}
-        className="h-[var(--tap)] w-full rounded-box border border-hairline-strong bg-surface-warm pl-11 pr-3 text-body1 text-ink placeholder:text-ink-faint focus:border-ink focus:bg-surface focus:outline-none"
-      />
-    </div>
-  );
+async function searchCategories(locale: Locale): Promise<SearchCategory[]> {
+  try {
+    const tree = await categoryNav();
+    return tree.slice(0, 8).map((category) => ({
+      slug: category.slug,
+      name: (locale === 'hi' && category.nameHi) || category.nameEn,
+      productCount: category.productCount,
+    }));
+  } catch {
+    return [];
+  }
 }

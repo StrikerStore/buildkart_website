@@ -68,9 +68,35 @@ export async function CartLine({ line, locale }: { line: CartLineDto; locale: Lo
           )}
         </p>
 
-        {line.wasBulkPrice && (
+        {/* Which rung is paying off, not just that one is. */}
+        {line.appliedTier && (
           <p className="mt-0.5 text-body5 text-success">
-            {locale === 'hi' ? 'बल्क भाव लगा' : 'Bulk price applied'}
+            {line.appliedTier.minQuantity !== null
+              ? locale === 'hi'
+                ? `${line.appliedTier.minQuantity}+ का बल्क भाव`
+                : `Bulk rate · ${line.appliedTier.minQuantity}+`
+              : locale === 'hi'
+                ? `${formatINR(line.appliedTier.minAmount!)} से ऊपर का भाव`
+                : `Bulk rate · over ${formatINR(line.appliedTier.minAmount!)}`}
+          </p>
+        )}
+
+        {/*
+          * The nudge, on the row rather than the cart.
+          *
+          * "Three more bags" is only actionable next to the control that adds
+          * the third bag, which is two lines below this. The old cart-wide
+          * progress bar pointed at a store-wide cutoff that no longer exists.
+          */}
+        {line.nextTier && (
+          <p className="mt-0.5 text-body5 text-brand-text">
+            {line.nextTier.quantityShort !== null
+              ? locale === 'hi'
+                ? `${line.nextTier.quantityShort} और लें — ${formatINR(line.nextTier.unitPrice)} प्रति, ${formatINR(line.nextTier.saving)} बचत`
+                : `${line.nextTier.quantityShort} more → ${formatINR(line.nextTier.unitPrice)} each, save ${formatINR(line.nextTier.saving)}`
+              : locale === 'hi'
+                ? `${formatINR(line.nextTier.amountShort!)} और — ${formatINR(line.nextTier.unitPrice)} प्रति`
+                : `${formatINR(line.nextTier.amountShort!)} more of this → ${formatINR(line.nextTier.unitPrice)} each`}
           </p>
         )}
 

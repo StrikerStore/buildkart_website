@@ -3,7 +3,6 @@ import { AlertTriangle } from 'lucide-react';
 import { pricedCart } from '@/lib/cart';
 import { currentLocale } from '@/lib/locale';
 import { EmptyState } from '@/components/ui/empty-state';
-import { BulkProgress } from '@/components/cart/bulk-progress';
 import { CartLine } from '@/components/cart/cart-line';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { CouponList } from '@/components/cart/coupon-list';
@@ -84,12 +83,12 @@ export default async function CartPage() {
       ) : (
         <div className="mt-5 gap-8 lg:flex lg:items-start">
           <div className="min-w-0 flex-1">
-            {cart.bulk && (
-              <div className="mb-4">
-                <BulkProgress bulk={cart.bulk} locale={locale} />
-              </div>
-            )}
-
+            {/*
+              * The cart-wide bulk progress bar is gone with the store-wide
+              * cutoff it measured. Bulk is per line now, so the nudge lives on
+              * each row — beside the quantity control that acts on it — and the
+              * total saved is a line in the bill summary.
+              */}
             {/* Edge-to-edge on a phone: 16px of gutter either side of a 360px
                 screen is 9% of the width spent on nothing. */}
             <ul className="-mx-4 divide-y divide-hairline border-y border-hairline bg-surface px-4 sm:mx-0 sm:rounded-card sm:border">

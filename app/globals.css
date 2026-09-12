@@ -466,19 +466,52 @@
  *
  * The reduce-motion block below neutralises this along with everything else.
  */
-@keyframes cart-capsule-rise {
-  from {
+/*
+ * The cart capsule arriving and leaving.
+ *
+ * A transition rather than a keyframe, because a keyframe can only play on the
+ * way in. The bar used to be unmounted the moment the cart emptied, so it had
+ * 240ms to arrive and vanished between two frames on the way out. It now stays
+ * mounted and `data-hidden` drives it, which is what gives the exit somewhere
+ * to run.
+ *
+ * Two modern pieces do the work a JS animation library would otherwise be
+ * needed for:
+ *
+ *   - `display` is in the transition list with `allow-discrete`, so the capsule
+ *     keeps its box for the length of the exit and only then leaves the layout.
+ *     Without it `display: none` lands on the first frame and there is nothing
+ *     left to animate.
+ *   - `@starting-style` supplies the frame *before* entry, which a plain
+ *     transition has no way to express — an element appearing from `none` has
+ *     no previous value to move from.
+ *
+ * Where a browser supports neither, the capsule appears and disappears
+ * instantly, which is exactly what it did before.
+ */
+.cart-capsule {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    display 260ms allow-discrete;
+}
+
+@starting-style {
+  .cart-capsule {
     opacity: 0;
     transform: translateY(calc(100% + 1rem));
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
-.cart-capsule {
-  animation: cart-capsule-rise 240ms cubic-bezier(0.16, 1, 0.3, 1);
+.cart-capsule[data-hidden='true'] {
+  display: none;
+  opacity: 0;
+  /* A shorter drop than the rise: leaving should read as quicker than
+     arriving, and the capsule is on its way out of the shopper's attention. */
+  transform: translateY(calc(100% + 0.5rem));
+  pointer-events: none;
 }
 
 /*

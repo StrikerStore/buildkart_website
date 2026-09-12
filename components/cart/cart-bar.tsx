@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
@@ -51,15 +52,35 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
   const matches = (paths: string[]) =>
     paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
-  if (count === 0) return null;
-  if (matches(HIDE_ON)) return null;
+  /*
+   * Always rendered, hidden by attribute rather than by returning null.
+   *
+   * An unmounted element cannot animate out — React removes it between two
+   * frames and the capsule that took 240ms to rise simply blinks away. Keeping
+   * it mounted and letting CSS own the visibility is what makes the exit
+   * possible; `display: none` in the hidden state keeps it out of the layout,
+   * the tab order and the accessibility tree once it has gone.
+   */
+  const hidden = count === 0 || matches(HIDE_ON);
 
-  const items = locale === 'hi' ? 'सामान' : count === 1 ? 'item' : 'items';
+  /*
+   * The last count worth showing, held through the exit.
+   *
+   * The capsule spends about a quarter-second leaving, and it is still on
+   * screen for all of it — reading the live count would flip the label to
+   * "View cart · 0 items" for exactly as long as the shopper can still see it.
+   */
+  const [lastCount, setLastCount] = useState(count);
+  if (count > 0 && count !== lastCount) setLastCount(count);
+  const shown = count > 0 ? count : lastCount;
+
+  const items = locale === 'hi' ? 'सामान' : shown === 1 ? 'item' : 'items';
 
   return (
     <div
+      data-hidden={hidden}
       className={cn(
-        'fixed inset-x-0 z-30 flex justify-center px-3 md:hidden print:hidden',
+        'cart-capsule fixed inset-x-0 z-30 flex justify-center px-3 md:hidden print:hidden',
         // `--buy-bar-h` is defined once in globals.css and is the buy bar's
         // height; keeping the number there stops the two drifting apart.
         matches(ABOVE_BUY_BAR) ? 'bottom-[calc(var(--buy-bar-h)+0.75rem)]' : 'bottom-3',
@@ -67,19 +88,24 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
     >
       <Link
         href="/cart"
+        // Unreachable while it is leaving. `display: none` handles this once the
+        // exit finishes, but for those few frames the link is still laid out,
+        // and a capsule on its way out should not be tabbable or announced.
+        tabIndex={hidden ? -1 : undefined}
+        aria-hidden={hidden || undefined}
         // The arrow replaced the words, so the link needs its name back —
         // without this a screen reader announces a chevron and nothing else.
         aria-label={
-          locale === 'hi' ? `कार्ट देखें, ${count} सामान` : `View cart, ${count} ${items}`
+          locale === 'hi' ? `कार्ट देखें, ${shown} सामान` : `View cart, ${shown} ${items}`
         }
-        className="cart-capsule inline-flex h-12 max-w-full items-center gap-2.5 rounded-pill bg-ink py-1.5 pr-1.5 pl-2 text-ink-inverted shadow-sheet"
+        className="inline-flex h-12 max-w-full items-center gap-2.5 rounded-pill bg-ink py-1.5 pr-1.5 pl-2 text-ink-inverted shadow-sheet"
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground">
           <ShoppingCart className="size-[18px]" aria-hidden />
         </span>
 
         <span className="min-w-0 truncate text-heading6">
-          {locale === 'hi' ? `कार्ट देखें · ${count} ${items}` : `View cart · ${count} ${items}`}
+          {locale === 'hi' ? `कार्ट देखें · ${shown} ${items}` : `View cart · ${shown} ${items}`}
         </span>
 
         {/* The one spot of brand colour on a charcoal pill, which is what makes

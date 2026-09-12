@@ -25,6 +25,17 @@ const STRINGS = {
     en: 'Search for cement, sariya, plywood…',
     hi: 'सीमेंट, सरिया, प्लाईवुड खोजें…',
   },
+  /*
+   * The search box's dropdown. `search.forTerm` is the rotating placeholder,
+   * whose {term} is a real category name off `categoryNav` — so it advertises
+   * what the yard actually stocks rather than a list that drifts from it.
+   */
+  'search.forTerm': { en: 'Search for {term}', hi: '{term} खोजें' },
+  'search.categories': { en: 'Categories', hi: 'श्रेणियाँ' },
+  'search.products': { en: 'Products', hi: 'सामान' },
+  'search.seeAll': { en: 'See all results for "{q}"', hi: '"{q}" के सारे नतीजे देखें' },
+  'search.noMatches': { en: 'Nothing matched "{q}"', hi: '"{q}" से कुछ नहीं मिला' },
+  'search.searching': { en: 'Searching…', hi: 'खोज रहे हैं…' },
   'header.deliverTo': { en: 'Delivery to', hi: 'डिलीवरी' },
   'header.setLocation': { en: 'Set your location', hi: 'अपना पता चुनें' },
   'header.language': { en: 'Language', hi: 'भाषा' },

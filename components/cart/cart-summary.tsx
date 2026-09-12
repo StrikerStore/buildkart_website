@@ -82,6 +82,20 @@ export function CartSummary({
         </div>
       </dl>
 
+      {/*
+        * What the bulk ladders took off, separate from the MRP saving above it.
+        * They are different claims — one is a discount off the list price the
+        * shop advertises, the other is off the manufacturer's MRP — and adding
+        * them together would overstate both.
+        */}
+      {cart.bulkSavings !== '0.00' && (
+        <p className="mt-3 rounded-box bg-success-bg px-3 py-2 text-center text-heading7 text-success">
+          {locale === 'hi'
+            ? `बल्क भाव से ${formatINR(cart.bulkSavings)} की बचत`
+            : `Bulk rates saved you ${formatINR(cart.bulkSavings)}`}
+        </p>
+      )}
+
       {cart.savings !== '0.00' && (
         <p className="mt-3 rounded-box bg-success-bg px-3 py-2 text-center text-heading7 text-success">
           {locale === 'hi'

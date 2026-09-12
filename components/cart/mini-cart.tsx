@@ -29,6 +29,16 @@ export function MiniCart({ count, locale }: { count: number; locale: Locale }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [cart, setCart] = useState<CartDto | null>(null);
+
+  /** The line whose next rung is worth the most — see the note where it renders. */
+  const bestNudge = (cart?.lines ?? []).reduce<CartDto['lines'][number]['nextTier']>(
+    (best, line) => {
+      const next = line.nextTier;
+      if (!next) return best;
+      return !best || Number(next.saving) > Number(best.saving) ? next : best;
+    },
+    null,
+  );
   const [pending, startTransition] = useTransition();
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -190,11 +200,22 @@ export function MiniCart({ count, locale }: { count: number; locale: Locale }) {
               </ul>
 
               <div className="border-t border-hairline p-4">
-                {cart.bulk && !cart.bulk.unlocked && (
+                {/*
+                  * The single best nudge across the cart's lines.
+                  *
+                  * Choosing which one to show is presentation, so it happens
+                  * here rather than in the DTO: the panel has room for one line
+                  * of persuasion, and the largest saving is the one worth it.
+                  */}
+                {bestNudge && (
                   <p className="mb-2 text-body4 text-brand-text">
-                    {locale === 'hi'
-                      ? `${formatINR(cart.bulk.remaining)} और — ${formatINR(cart.bulk.saving)} बचाएँ`
-                      : `${formatINR(cart.bulk.remaining)} more to save ${formatINR(cart.bulk.saving)}`}
+                    {bestNudge.quantityShort !== null
+                      ? locale === 'hi'
+                        ? `${bestNudge.quantityShort} और — ${formatINR(bestNudge.saving)} बचाएँ`
+                        : `${bestNudge.quantityShort} more to save ${formatINR(bestNudge.saving)}`
+                      : locale === 'hi'
+                        ? `${formatINR(bestNudge.amountShort!)} और — ${formatINR(bestNudge.saving)} बचाएँ`
+                        : `${formatINR(bestNudge.amountShort!)} more to save ${formatINR(bestNudge.saving)}`}
                   </p>
                 )}
 

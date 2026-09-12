@@ -2,11 +2,15 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { ChevronRight, TrendingDown } from 'lucide-react';
-import { formatINR, type StorefrontVariantDto } from '@StrikerStore/contract';
+import {
+  formatINR,
+  type BulkTierBasis,
+  type StorefrontVariantDto,
+} from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import { Stepper } from '@/components/catalog/stepper';
-import { BulkPriceSheet } from './bulk-price-sheet';
+import { PriceLadderSheet } from './price-ladder-sheet';
 
 type Axis = { name: string; position: number; values: string[] };
 
@@ -36,7 +40,7 @@ export function VariantPicker({
   quantities,
   locale,
   productName,
-  bulkUnlockCutoff,
+  bulkTierBasis,
   details,
   suggestions,
 }: {
@@ -47,8 +51,8 @@ export function VariantPicker({
   locale: Locale;
   /** For the bulk sheet's subtitle — it opens over the page, not beside it. */
   productName: string;
-  /** Cart subtotal at which bulk rates unlock, from the shop's settings. */
-  bulkUnlockCutoff: string;
+  /** How this product's rungs read, so the ladder is worded once. */
+  bulkTierBasis: BulkTierBasis;
   /**
    * The disclosure stack: description, specifications, FAQs, return terms.
    *
@@ -145,13 +149,16 @@ export function VariantPicker({
   const showCompare =
     selected?.compareAtPrice && Number(selected.compareAtPrice) > Number(selected.price);
 
+  /** The first rung, which is the one the band advertises. */
+  const firstTier = selected?.tiers[0] ?? null;
+
   const lowStock =
     selected?.inStock === true && selected.stockQty !== null && selected.stockQty <= 10;
   /**
    * What the card still carries on a phone once price, ADD and the SKU have all
    * moved out — the bulk offer and the low-stock nudge, and nothing else.
    */
-  const hasMobileDetail = Boolean(selected?.bulkPrice) || lowStock;
+  const hasMobileDetail = (selected?.tiers.length ?? 0) > 0 || lowStock;
 
   return (
     <div className="space-y-5">
@@ -239,87 +246,73 @@ export function VariantPicker({
           </div>
 
           {/*
-            * Add control and bulk offer, side by side on desktop.
+            * The bulk offer, as a banded row rather than a text link.
             *
-            * Two equal halves: the action leads, the offer sits beside it
-            * explaining what a larger number would be worth. Stacked full-width
-            * they read as two competing banners, and a stepper does not need
-            * 600px to hold `− 1 +`.
+            * It is the strongest commercial argument on the page for this
+            * shop's actual customer — a contractor buying forty bags, not a
+            * homeowner buying one — and as an underlined sentence it read as a
+            * footnote. The tint and the full-width band give it the weight of
+            * an offer while staying clearly secondary to the price above it.
             *
-            * Equal rather than sized to their contents, because the two are a
-            * pair — one asks for a decision and the other argues for it, and a
-            * green band twice the width of the button it sits next to makes the
-            * argument look like the primary action.
-            *
-            * A column on phones, where the stepper is not here at all: it lives
-            * in the sticky buy bar, so this collapses to the bulk band alone
-            * and the mobile layout is unchanged.
+            * Still tappable, because "bulk price ₹415" raises a question the
+            * row itself cannot answer: how many, and by when.
             */}
-          {/* The gap is on the children, not here: with no bulk price this row
-              renders nothing on a phone, and a margin would still show. */}
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            {/* `flex-1` on both halves, so the control and the offer are the
-                same width whatever either one contains. */}
-            <div className="mt-3 hidden md:block md:min-w-0 md:flex-1">
-              {selected.inStock ? (
-                <Stepper
-                  variantId={selected.id}
-                  quantity={quantities[selected.id] ?? 0}
-                  locale={locale}
-                  size="lg"
-                  label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
-                  onChanged={reveal}
-                />
-              ) : (
-                <p className="rounded-box bg-surface-muted py-3 text-center text-cta2 text-ink-muted">
-                  {locale === 'hi' ? 'यह साइज़ अभी नहीं है' : 'This option is out of stock'}
-                </p>
-              )}
-            </div>
-
-            {/*
-              * The bulk offer, as a banded row rather than a text link.
-              *
-              * It is the strongest commercial argument on the page for this
-              * shop's actual customer — a contractor buying forty bags, not a
-              * homeowner buying one — and as an underlined sentence it read as
-              * a footnote. The tint and the band give it the weight of an offer
-              * while staying clearly secondary to the price above it.
-              *
-              * Still tappable, because "bulk price ₹415" raises a question the
-              * row itself cannot answer: how many, and by when.
-              */}
-            {selected.bulkPrice && (
-              <button
-                type="button"
-                onClick={() => setBulkOpen(true)}
-                className="mt-3 flex w-full items-center gap-2 rounded-box border border-success/25 bg-success-bg px-3 py-2.5 text-left md:w-auto md:min-w-0 md:flex-1"
-              >
-                <TrendingDown className="size-5 shrink-0 text-success-fg" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-heading6 text-success-fg">
-                    {locale === 'hi'
-                      ? `बल्क भाव ${formatINR(selected.bulkPrice)}`
-                      : `Bulk price ${formatINR(selected.bulkPrice)}`}
-                  </span>
-                  <span className="block text-body5 text-success-fg/80">
-                    {locale === 'hi' ? 'बड़े ऑर्डर पर — कैसे?' : 'On large orders — see how'}
-                  </span>
+          {selected.tiers.length > 0 && firstTier && (
+            <button
+              type="button"
+              onClick={() => setBulkOpen(true)}
+              className="mt-3 flex w-full items-center gap-2 rounded-box border border-success/25 bg-success-bg px-3 py-2.5 text-left"
+            >
+              <TrendingDown className="size-5 shrink-0 text-success-fg" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-heading6 text-success-fg">
+                  {locale === 'hi'
+                    ? `बल्क भाव ${formatINR(firstTier.unitPrice)} से`
+                    : `Bulk from ${formatINR(firstTier.unitPrice)}`}
+                  {firstTier.minQuantity !== null
+                    ? ` · ${firstTier.minQuantity}+`
+                    : ` · ${locale === 'hi' ? 'ऊपर' : 'above'} ${formatINR(firstTier.minAmount!)}`}
                 </span>
-                <ChevronRight className="size-5 shrink-0 text-success-fg" aria-hidden />
-              </button>
-            )}
-          </div>
+                <span className="block text-body5 text-success-fg/80">
+                  {selected.tiers.length === 1
+                    ? locale === 'hi'
+                      ? 'बड़े ऑर्डर पर — कैसे?'
+                      : 'On large orders — see how'
+                    : locale === 'hi'
+                      ? `${selected.tiers.length} भाव — सब देखें`
+                      : `${selected.tiers.length} price breaks — see all`}
+                </span>
+              </span>
+              <ChevronRight className="size-5 shrink-0 text-success-fg" aria-hidden />
+            </button>
+          )}
 
           {/* Only when it is genuinely low. A count on every variant trains
               people to ignore it, and then it cannot do its one job. */}
           {lowStock && (
-            <p className="mt-2 text-body3 text-warning">
+            <p className="mt-1 text-body3 text-warning">
               {locale === 'hi'
                 ? `सिर्फ़ ${selected.stockQty} बचे`
                 : `Only ${selected.stockQty} left`}
             </p>
           )}
+
+          <div className="mt-4 hidden md:block">
+            {selected.inStock ? (
+              <Stepper
+                variantId={selected.id}
+                quantity={quantities[selected.id] ?? 0}
+                locale={locale}
+                size="lg"
+                label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
+                onChanged={reveal}
+              />
+            ) : (
+              <p className="rounded-box bg-surface-muted py-3 text-center text-cta2 text-ink-muted">
+                {locale === 'hi' ? 'यह साइज़ अभी नहीं है' : 'This option is out of stock'}
+              </p>
+            )}
+          </div>
         </div>
       ) : (
         <p className="rounded-card border border-hairline bg-surface p-4 text-body2 text-ink-muted">
@@ -331,14 +324,14 @@ export function VariantPicker({
 
       {details}
 
-      {selected?.bulkPrice && (
-        <BulkPriceSheet
+      {selected && selected.tiers.length > 0 && (
+        <PriceLadderSheet
           open={bulkOpen}
           onClose={() => setBulkOpen(false)}
           productName={productName}
           listPrice={selected.price}
-          bulkPrice={selected.bulkPrice}
-          unlockCutoff={bulkUnlockCutoff}
+          tiers={selected.tiers}
+          basis={bulkTierBasis}
           unit={unit}
           locale={locale}
         />

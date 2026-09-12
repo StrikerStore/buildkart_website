@@ -150,11 +150,20 @@ export async function ProductCard({
         </div>
       </div>
 
-      {/* The bulk rate, advertised on the card rather than only in the cart —
-          PLAN.md 6.6 wants the offer pulling the order upward from the start. */}
-      {product.bulkPrice && (
+      {/*
+        * The best bulk rate, and what it takes to get it.
+        *
+        * The condition is not decoration: a bare "Bulk: ₹365" is a price the
+        * product page will refuse to honour until forty bags are on the line,
+        * and a card that quotes an unreachable number is worse than one that
+        * quotes none.
+        */}
+      {product.bestBulkPrice && product.bulkFrom && (
         <p className="pt-1 text-body6 text-success">
-          {locale === 'hi' ? 'बल्क' : 'Bulk'}: {formatINR(product.bulkPrice)}
+          {locale === 'hi' ? 'बल्क' : 'Bulk'}: {formatINR(product.bestBulkPrice)}
+          {product.bulkFrom.minQuantity !== null
+            ? ` · ${product.bulkFrom.minQuantity}+`
+            : ` · ${locale === 'hi' ? 'ऊपर' : 'above'} ${formatINR(product.bulkFrom.minAmount!)}`}
         </p>
       )}
     </article>

@@ -141,7 +141,7 @@ export default async function ProductPage({ params }: Props) {
               quantities={quantities}
               locale={locale}
               productName={name}
-              bulkUnlockCutoff={settings.commerce.bulkUnlockCutoff}
+              bulkTierBasis={product.bulkTierBasis}
               details={
                 /*
                   * Everything worth reading about this product, as one closed
