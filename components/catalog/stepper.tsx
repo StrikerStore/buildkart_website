@@ -1,6 +1,6 @@
 'use client';
 
-import { Minus, Plus } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Minus, Plus } from 'lucide-react';
 import { useOptimistic, useTransition } from 'react';
 import { setCartQuantity } from '@/app/cart/actions';
 import { cn } from '@/lib/cn';
@@ -20,11 +20,17 @@ import type { Locale } from '@/lib/i18n';
  * `size` is fixed rather than hugging its content so a card's price row does not
  * reflow the moment ADD becomes a stepper.
  *
- * **Solid brand, everywhere.** It used to be a tint on a product card and solid
- * only in the product page's buy bar, on the reasoning that a grid of twenty
- * yellow pills is a wall of colour. In practice the tint read as disabled — a
+ * **Solid, everywhere.** It used to be a tint on a product card and solid only
+ * in the product page's buy bar, on the reasoning that a grid of twenty filled
+ * pills is a wall of colour. In practice the tint read as disabled — a
  * washed-out primary usually does — and the one action on a card is worth the
  * colour. There is no variant now, which is also one fewer thing to get wrong.
+ *
+ * **The ±5 jumps are `lg` only.** A contractor orders forty bags, not one, so
+ * stepping by five is worth a control of its own — but five controls need about
+ * 132px, and on a phone's two-up grid a product card is 159px wide with a price
+ * to fit beside them. The buy bar and anywhere else `lg` renders has the room;
+ * a card does not.
  */
 export function Stepper({
   variantId,
@@ -50,6 +56,9 @@ export function Stepper({
   const [pending, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(quantity);
 
+  /** What `«` and `»` move by. Five is half a common pack order. */
+  const JUMP = 5;
+
   function change(next: number) {
     startTransition(async () => {
       setShown(next);
@@ -61,6 +70,7 @@ export function Stepper({
   }
 
   const height = size === 'lg' ? 'h-[52px]' : 'h-10';
+  const jumps = size === 'lg';
 
   if (shown === 0) {
     return (
@@ -70,8 +80,8 @@ export function Stepper({
         disabled={pending}
         className={cn(
           height,
-          'inline-flex w-[84px] items-center justify-center rounded-box border border-brand',
-          'bg-brand text-cta3 text-brand-foreground hover:bg-brand-dark disabled:opacity-60',
+          'inline-flex w-[84px] items-center justify-center rounded-box border border-buy',
+          'bg-buy text-cta3 text-buy-foreground hover:bg-buy-dark disabled:opacity-60',
           size === 'lg' && 'w-full text-cta1',
         )}
       >
@@ -84,16 +94,36 @@ export function Stepper({
     <div
       className={cn(
         height,
-        'inline-flex w-[84px] items-center justify-between rounded-box bg-brand text-brand-foreground',
+        'inline-flex w-[84px] items-center justify-between rounded-box bg-buy text-buy-foreground',
         size === 'lg' && 'w-full',
       )}
     >
+      {/*
+       * Clamped to one, not zero: `−` is how a line is removed, and a coarse
+       * control that can empty the cart in a mistap is a different promise
+       * from "five fewer".
+       */}
+      {jumps && (
+        <button
+          type="button"
+          onClick={() => change(Math.max(1, shown - JUMP))}
+          disabled={pending || shown <= 1}
+          aria-label={locale === 'hi' ? `${JUMP} कम करें` : `Decrease by ${JUMP}`}
+          className="grid h-full w-10 place-items-center rounded-l-box hover:bg-buy-dark disabled:opacity-40"
+        >
+          <ChevronsLeft className="size-4" aria-hidden />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={() => change(shown - 1)}
         disabled={pending}
         aria-label={locale === 'hi' ? 'एक कम करें' : 'Decrease quantity'}
-        className="grid h-full w-9 place-items-center rounded-l-box hover:bg-brand-dark disabled:opacity-60"
+        className={cn(
+          'grid h-full w-9 place-items-center hover:bg-buy-dark disabled:opacity-60',
+          !jumps && 'rounded-l-box',
+        )}
       >
         <Minus className="size-4" aria-hidden />
       </button>
@@ -109,10 +139,25 @@ export function Stepper({
         onClick={() => change(shown + 1)}
         disabled={pending}
         aria-label={locale === 'hi' ? 'एक और जोड़ें' : 'Increase quantity'}
-        className="grid h-full w-9 place-items-center rounded-r-box hover:bg-brand-dark disabled:opacity-60"
+        className={cn(
+          'grid h-full w-9 place-items-center hover:bg-buy-dark disabled:opacity-60',
+          !jumps && 'rounded-r-box',
+        )}
       >
         <Plus className="size-4" aria-hidden />
       </button>
+
+      {jumps && (
+        <button
+          type="button"
+          onClick={() => change(shown + JUMP)}
+          disabled={pending}
+          aria-label={locale === 'hi' ? `${JUMP} और जोड़ें` : `Increase by ${JUMP}`}
+          className="grid h-full w-10 place-items-center rounded-r-box hover:bg-buy-dark disabled:opacity-40"
+        >
+          <ChevronsRight className="size-4" aria-hidden />
+        </button>
+      )}
     </div>
   );
 }

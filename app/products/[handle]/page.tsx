@@ -112,13 +112,11 @@ export default async function ProductPage({ params }: Props) {
             />
           </div>
 
-          {product.brandName && (
-            <p className="text-body4 uppercase tracking-wide text-ink-faint">
-              {product.brandName}
-            </p>
-          )}
-
-          <h1 className="mt-0.5 text-heading2 text-ink">{name}</h1>
+          {/* The brand no longer sits above the name: every product name here
+              already opens with it ("UltraTech Cement OPC 53 Grade"), so the
+              line was the same word twice in two type sizes. It still reaches a
+              crawler through the JSON-LD below. */}
+          <h1 className="text-heading2 text-ink">{name}</h1>
 
           {product.badges.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">

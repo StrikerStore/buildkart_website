@@ -141,7 +141,7 @@ export function CartSummary({
             <span
               aria-disabled="true"
               className={buttonClass({
-                variant: 'brand',
+                variant: 'buy',
                 size: 'lg',
                 block: true,
                 className: 'mt-4 pointer-events-none opacity-50',
@@ -153,7 +153,7 @@ export function CartSummary({
             <Link
               href="/checkout"
               className={buttonClass({
-                variant: 'brand',
+                variant: 'buy',
                 size: 'lg',
                 block: true,
                 className: 'mt-4',

@@ -13,8 +13,9 @@
  *     like a grocery app has borrowed the wrong trust signal.
  *
  * Rules for anyone adding tokens here:
- *   - Yellow marks price and primary action. It is not a decoration, and the
- *     more surfaces it covers the less any of them mean.
+ *   - Yellow marks price. It is not a decoration, and the more surfaces it
+ *     covers the less any of them mean. It used to mark the primary action too;
+ *     commercial actions are green now (`--buy`), which leaves yellow one job.
  *
  *     The announcement bar is the one deliberate exception, at the owner's
  *     request: it is a single 32px strip above the header that scrolls away and
@@ -89,6 +90,24 @@
   --brand-text: #936603;
   /* The wash behind a badge or an offer strip. Never behind body text. */
   --brand-tint: #fef7e7;
+
+  /*
+   * The buy green.
+   *
+   * Every commercial control wears this: ADD, the stepper, Proceed to checkout,
+   * Place order. Green rather than the brand yellow at the owner's request, and
+   * it takes "primary action" away from yellow — see the note at the top of this
+   * file, which used to say yellow marked both price and action. Yellow now
+   * marks price, and only price, which is arguably a cleaner split than it had.
+   *
+   * #107b3b rather than the lighter --success (#128942): a button label is
+   * 14px bold, which is not "large text" under WCAG, so it needs 4.5:1 against
+   * white. --success manages 4.54:1 — passing, but with nothing to spare on a
+   * cheap panel in daylight. This is 5.42:1.
+   */
+  --buy: #107b3b;
+  --buy-dark: #0c5f2e;
+  --buy-foreground: #ffffff;
   /* Charcoal, not white: #faae0a carries white at only 1.89:1. Charcoal is
      6.76:1 and passes. */
   --brand-foreground: #2d333a;
@@ -179,6 +198,10 @@
   --color-brand-text: var(--brand-text);
   --color-brand-tint: var(--brand-tint);
   --color-brand-foreground: var(--brand-foreground);
+
+  --color-buy: var(--buy);
+  --color-buy-dark: var(--buy-dark);
+  --color-buy-foreground: var(--buy-foreground);
 
   --color-hairline: var(--hairline);
   --color-hairline-strong: var(--hairline-strong);

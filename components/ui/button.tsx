@@ -23,7 +23,16 @@ const button = cva(
   {
     variants: {
       variant: {
-        /* The one primary action on a screen: ADD, Place Order, Verify. */
+        /*
+         * Money changing hands: ADD, Proceed to checkout, Place order.
+         *
+         * Its own variant rather than a recolour of `brand`, because the two
+         * now mean different things — yellow marks price, green means "this
+         * button spends money". Unlike `brand` it carries white, which #107b3b
+         * holds at 5.42:1.
+         */
+        buy: 'bg-buy text-buy-foreground hover:bg-buy-dark',
+        /* The primary action on a screen that is not a purchase: Verify, Save. */
         brand: 'bg-brand text-brand-foreground hover:bg-brand-dark',
         /* Charcoal. For actions that are primary but not commercial. */
         solid: 'bg-ink text-ink-inverted hover:bg-ink/90',

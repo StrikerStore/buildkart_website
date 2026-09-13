@@ -610,6 +610,7 @@ export function CheckoutForm({
 
           <Button
             type="submit"
+            variant="buy"
             size="lg"
             block
             disabled={pending || methods.length === 0 || !orderPin}
