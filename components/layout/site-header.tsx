@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { User } from 'lucide-react';
 import { categoryNav, publishedMenu, storeSettings } from '@/lib/api/server';
+import { imageUrl, IMAGE } from '@/lib/media';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentCustomer } from '@/lib/session';
 import { tr, type Locale } from '@/lib/i18n';
@@ -137,11 +138,22 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
 async function searchCategories(locale: Locale): Promise<SearchCategory[]> {
   try {
     const tree = await categoryNav();
-    return tree.slice(0, 8).map((category) => ({
-      slug: category.slug,
-      name: (locale === 'hi' && category.nameHi) || category.nameEn,
-      productCount: category.productCount,
-    }));
+
+    /*
+     * Image URLs are resolved here, not in the search box.
+     *
+     * `lib/media.ts` is `server-only` — it needs the media config — so a Client
+     * Component cannot turn an `imageKey` into a URL. The same reason
+     * `/api/suggest` resolves its thumbnails before answering.
+     */
+    return await Promise.all(
+      tree.slice(0, 8).map(async (category) => ({
+        slug: category.slug,
+        name: (locale === 'hi' && category.nameHi) || category.nameEn,
+        productCount: category.productCount,
+        imageSrc: await imageUrl(category.imageKey, IMAGE.tile),
+      })),
+    );
   } catch {
     return [];
   }

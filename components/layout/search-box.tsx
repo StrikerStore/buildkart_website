@@ -9,7 +9,13 @@ import { tr, type Locale } from '@/lib/i18n';
 import type { SuggestionRow } from '@/app/api/suggest/route';
 
 /** A category, reduced to what the panel and the placeholder need. */
-export type SearchCategory = { slug: string; name: string; productCount: number };
+export type SearchCategory = {
+  slug: string;
+  name: string;
+  productCount: number;
+  /** Resolved by the header, because `lib/media.ts` is server-only. */
+  imageSrc: string | null;
+};
 
 /** Matches `storefrontSuggestSchema`'s floor — "ppc" and "10mm" are real searches. */
 const MIN_CHARS = 2;
@@ -275,7 +281,24 @@ export function SearchBox({
             {tr(locale, typing ? 'search.products' : 'search.categories')}
           </p>
 
-          <ul id={listId} role="listbox" aria-label={tr(locale, 'header.search')}>
+          {/*
+           * Two shapes in one listbox.
+           *
+           * Empty: the tiles from the home page's category grid, picture over
+           * label. PLAN.md section 2 asks for images over words because a
+           * thekedar recognises a cement bag faster than they read a grade
+           * name, and a shopper who opened the box with no word in mind is
+           * exactly who that applies to.
+           *
+           * Typing: a list, because a suggestion carries a brand and a price
+           * to read and a grid has nowhere to put them.
+           */}
+          <ul
+            id={listId}
+            role="listbox"
+            aria-label={tr(locale, 'header.search')}
+            className={cn(!typing && 'grid grid-cols-3 gap-1 px-2 pb-1 sm:grid-cols-4')}
+          >
             {items.map((item, index) => {
               const row = typing ? rows[index] : null;
               const category = typing ? null : categories[index];
@@ -289,8 +312,10 @@ export function SearchBox({
                     href={item.href}
                     onMouseEnter={() => setActive(index)}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2 text-left',
-                      index === active && 'bg-surface-muted',
+                      category
+                        ? 'flex w-full flex-col items-center gap-2 rounded-card p-2 text-center'
+                        : 'flex items-center gap-3 px-3 py-2 text-left',
+                      index === active && (category ? 'bg-brand-tint' : 'bg-surface-muted'),
                     )}
                   >
                     {row && (
@@ -325,12 +350,28 @@ export function SearchBox({
 
                     {category && (
                       <>
-                        <span className="clamp-1 min-w-0 flex-1 text-body2 text-ink">
-                          {category.name}
+                        <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-card bg-brand-tint">
+                          {category.imageSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={category.imageSrc}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            // The initial, not a generic icon: with no artwork
+                            // uploaded it at least tells one tile from the next.
+                            <span className="text-heading2 text-brand-text">
+                              {category.name.charAt(0)}
+                            </span>
+                          )}
                         </span>
-                        <span className="shrink-0 text-body5 text-ink-faint">
-                          {category.productCount}
-                        </span>
+
+                        {/* Never clamped to one line. A two-line category name
+                            is fine; a name cut mid-word is what gets noticed. */}
+                        <span className="text-heading8 text-ink">{category.name}</span>
                       </>
                     )}
                   </a>
