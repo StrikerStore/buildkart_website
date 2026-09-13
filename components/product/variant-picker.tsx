@@ -2,11 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { ChevronRight, TrendingDown } from 'lucide-react';
-import {
-  formatINR,
-  type BulkTierBasis,
-  type StorefrontVariantDto,
-} from '@StrikerStore/contract';
+import { formatINR, type BulkTierBasis, type StorefrontVariantDto } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import { Stepper } from '@/components/catalog/stepper';
@@ -143,9 +139,7 @@ export function VariantPicker({
     return matches.some((variant) => variant.inStock) ? 'sellable' : 'out';
   }
 
-  const unit = selected
-    ? (locale === 'hi' && selected.unitLabelHi) || selected.unitLabelEn
-    : null;
+  const unit = selected ? (locale === 'hi' && selected.unitLabelHi) || selected.unitLabelEn : null;
   const showCompare =
     selected?.compareAtPrice && Number(selected.compareAtPrice) > Number(selected.price);
 
@@ -230,11 +224,11 @@ export function VariantPicker({
           )}
         >
           {/*
-            * Desktop only. On a phone the price and the add control live in the
-            * sticky bar at the bottom of the screen and nowhere else — showing
-            * them twice on one short screen is the same decision offered twice,
-            * and the copy that scrolls away is the one that gets tapped least.
-            */}
+           * Desktop only. On a phone the price and the add control live in the
+           * sticky bar at the bottom of the screen and nowhere else — showing
+           * them twice on one short screen is the same decision offered twice,
+           * and the copy that scrolls away is the one that gets tapped least.
+           */}
           <div className="hidden flex-wrap items-baseline gap-x-2 md:flex">
             <span className="text-heading2 text-ink">{formatINR(selected.price)}</span>
             {unit && <span className="text-body2 text-ink-muted">{unit}</span>}
@@ -246,17 +240,17 @@ export function VariantPicker({
           </div>
 
           {/*
-            * The bulk offer, as a banded row rather than a text link.
-            *
-            * It is the strongest commercial argument on the page for this
-            * shop's actual customer — a contractor buying forty bags, not a
-            * homeowner buying one — and as an underlined sentence it read as a
-            * footnote. The tint and the full-width band give it the weight of
-            * an offer while staying clearly secondary to the price above it.
-            *
-            * Still tappable, because "bulk price ₹415" raises a question the
-            * row itself cannot answer: how many, and by when.
-            */}
+           * The bulk offer, as a banded row rather than a text link.
+           *
+           * It is the strongest commercial argument on the page for this
+           * shop's actual customer — a contractor buying forty bags, not a
+           * homeowner buying one — and as an underlined sentence it read as a
+           * footnote. The tint and the full-width band give it the weight of
+           * an offer while staying clearly secondary to the price above it.
+           *
+           * Still tappable, because "bulk price ₹415" raises a question the
+           * row itself cannot answer: how many, and by when.
+           */}
           {selected.tiers.length > 0 && firstTier && (
             <button
               type="button"
@@ -316,9 +310,7 @@ export function VariantPicker({
         </div>
       ) : (
         <p className="rounded-card border border-hairline bg-surface p-4 text-body2 text-ink-muted">
-          {locale === 'hi'
-            ? 'ऊपर से एक विकल्प चुनें।'
-            : 'Choose an option above to see the price.'}
+          {locale === 'hi' ? 'ऊपर से एक विकल्प चुनें।' : 'Choose an option above to see the price.'}
         </p>
       )}
 
@@ -338,14 +330,14 @@ export function VariantPicker({
       )}
 
       {/*
-        * "You may also like", after the first add.
-        *
-        * Hidden until then on purpose. Before the add, the shopper is deciding
-        * about *this* product and a shelf of alternatives is an argument
-        * against the decision they are making; after it, the same shelf is the
-        * next thing they need. It is also where the eye already is, because the
-        * add they just made was at the bottom of the screen.
-        */}
+       * "You may also like", after the first add.
+       *
+       * Hidden until then on purpose. Before the add, the shopper is deciding
+       * about *this* product and a shelf of alternatives is an argument
+       * against the decision they are making; after it, the same shelf is the
+       * next thing they need. It is also where the eye already is, because the
+       * add they just made was at the bottom of the screen.
+       */}
       {added && suggestions && (
         <div ref={suggestionsRef} className="scroll-mt-20 pt-2">
           {suggestions}
@@ -353,22 +345,22 @@ export function VariantPicker({
       )}
 
       {/*
-        * The sticky buy bar — phones only.
-        *
-        * The price and the add control follow the shopper down a long product
-        * page, which is the quick-commerce pattern and the reason this screen
-        * converts on a phone at all: the description, the specs and the FAQs
-        * are all worth reading, and every one of them pushes the ADD button off
-        * the screen.
-        *
-        * It duplicates the price shown in the card above rather than replacing
-        * it. That is the reference behaviour and it is right — the card's price
-        * belongs beside the variant buttons that change it.
-        *
-        * `CartBar` is suppressed on product routes so the two fixed bars cannot
-        * stack; the header keeps a cart icon, so the way to the cart is not
-        * lost.
-        */}
+       * The sticky buy bar — phones only.
+       *
+       * The price and the add control follow the shopper down a long product
+       * page, which is the quick-commerce pattern and the reason this screen
+       * converts on a phone at all: the description, the specs and the FAQs
+       * are all worth reading, and every one of them pushes the ADD button off
+       * the screen.
+       *
+       * It duplicates the price shown in the card above rather than replacing
+       * it. That is the reference behaviour and it is right — the card's price
+       * belongs beside the variant buttons that change it.
+       *
+       * `CartBar` is suppressed on product routes so the two fixed bars cannot
+       * stack; the header keeps a cart icon, so the way to the cart is not
+       * lost.
+       */}
       {selected && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-surface p-3 shadow-sheet md:hidden">
           <div className="flex items-center gap-3">
@@ -388,14 +380,17 @@ export function VariantPicker({
             </div>
 
             {/*
-              * A fixed width, not `shrink-0` around a `w-full` button.
-              *
-              * `size="lg"` makes the stepper fill its parent, and a
-              * shrink-to-fit parent collapsed it to a stub — which is why the
-              * button read as a small faded box rather than the primary action
-              * on the screen.
-              */}
-            <div className="w-[150px] shrink-0">
+             * A fixed width, not `shrink-0` around a `w-full` button.
+             *
+             * `size="lg"` makes the stepper fill its parent, and a
+             * shrink-to-fit parent collapsed it to a stub — which is why the
+             * button read as a small faded box rather than the primary action
+             * on the screen.
+             *
+             * 210px, not 150: the stepper carries five controls now, and at
+             * 150 they came out 29px wide each.
+             */}
+            <div className="w-[210px] shrink-0">
               {selected.inStock ? (
                 <Stepper
                   variantId={selected.id}

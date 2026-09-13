@@ -94,25 +94,52 @@ export function Stepper({
     <div
       className={cn(
         height,
-        'inline-flex w-[84px] items-center justify-between rounded-box bg-buy text-buy-foreground',
-        size === 'lg' && 'w-full',
+        'inline-flex items-center rounded-box bg-buy text-buy-foreground',
+        /*
+         * Centred when the jumps are present, not spread edge to edge.
+         *
+         * The buy bar is the full width of the column, and `justify-between`
+         * threw four similar glyphs into four corners of it — nothing read as
+         * one control, and the two that mattered most were the furthest apart.
+         * Centring keeps the cluster under one thumb.
+         */
+        size === 'lg' ? 'w-full justify-center' : 'w-[84px] justify-between',
       )}
     >
       {/*
+       * The double chevrons carry the jump, and the hairlines either side of
+       * the `− n +` core are what make them legible: without that grouping the
+       * row was four similar glyphs with no structure, spread to the corners of
+       * a 654px bar. The count in the middle is the only thing that has to be
+       * read at a glance, so it sits between them with the coarse controls
+       * outboard.
+       *
+       * They `flex-1` rather than taking a fixed width, so the whole outer end
+       * of the bar is tappable instead of a 44px square adrift in green — with
+       * a `min-w-11` floor, because on the phone's buy bar this row is 210px
+       * and five fixed controls would have squeezed each to 29px, under half
+       * the 48px target PLAN.md sets for a gloved hand. The `md` cap stops the
+       * chevrons stranding themselves at the ends of a wide desktop card.
+       *
        * Clamped to one, not zero: `−` is how a line is removed, and a coarse
        * control that can empty the cart in a mistap is a different promise
        * from "five fewer".
        */}
       {jumps && (
-        <button
-          type="button"
-          onClick={() => change(Math.max(1, shown - JUMP))}
-          disabled={pending || shown <= 1}
-          aria-label={locale === 'hi' ? `${JUMP} कम करें` : `Decrease by ${JUMP}`}
-          className="grid h-full w-10 place-items-center rounded-l-box hover:bg-buy-dark disabled:opacity-40"
-        >
-          <ChevronsLeft className="size-4" aria-hidden />
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => change(Math.max(1, shown - JUMP))}
+            disabled={pending || shown <= 1}
+            aria-label={locale === 'hi' ? `${JUMP} कम करें` : `Decrease by ${JUMP}`}
+            className="grid h-full min-w-11 flex-1 place-items-center rounded-l-box hover:bg-buy-dark disabled:opacity-40 md:max-w-20"
+          >
+            <ChevronsLeft className="size-4" aria-hidden />
+          </button>
+
+          {/* The hairline is what groups the pair inside it as "by one". */}
+          <span aria-hidden className="h-5 w-px shrink-0 bg-buy-foreground/30" />
+        </>
       )}
 
       <button
@@ -121,8 +148,8 @@ export function Stepper({
         disabled={pending}
         aria-label={locale === 'hi' ? 'एक कम करें' : 'Decrease quantity'}
         className={cn(
-          'grid h-full w-9 place-items-center hover:bg-buy-dark disabled:opacity-60',
-          !jumps && 'rounded-l-box',
+          'grid h-full w-11 place-items-center hover:bg-buy-dark disabled:opacity-60',
+          !jumps && 'w-9 rounded-l-box',
         )}
       >
         <Minus className="size-4" aria-hidden />
@@ -130,7 +157,10 @@ export function Stepper({
 
       {/* aria-live so a screen reader hears the new count without the whole
           control being re-announced on every tap. */}
-      <span aria-live="polite" className="text-cta3 tabular-nums">
+      <span
+        aria-live="polite"
+        className={cn('text-cta3 tabular-nums', jumps && 'min-w-8 text-center')}
+      >
         {shown}
       </span>
 
@@ -140,23 +170,27 @@ export function Stepper({
         disabled={pending}
         aria-label={locale === 'hi' ? 'एक और जोड़ें' : 'Increase quantity'}
         className={cn(
-          'grid h-full w-9 place-items-center hover:bg-buy-dark disabled:opacity-60',
-          !jumps && 'rounded-r-box',
+          'grid h-full w-11 place-items-center hover:bg-buy-dark disabled:opacity-60',
+          !jumps && 'w-9 rounded-r-box',
         )}
       >
         <Plus className="size-4" aria-hidden />
       </button>
 
       {jumps && (
-        <button
-          type="button"
-          onClick={() => change(shown + JUMP)}
-          disabled={pending}
-          aria-label={locale === 'hi' ? `${JUMP} और जोड़ें` : `Increase by ${JUMP}`}
-          className="grid h-full w-10 place-items-center rounded-r-box hover:bg-buy-dark disabled:opacity-40"
-        >
-          <ChevronsRight className="size-4" aria-hidden />
-        </button>
+        <>
+          <span aria-hidden className="h-5 w-px shrink-0 bg-buy-foreground/30" />
+
+          <button
+            type="button"
+            onClick={() => change(shown + JUMP)}
+            disabled={pending}
+            aria-label={locale === 'hi' ? `${JUMP} और जोड़ें` : `Increase by ${JUMP}`}
+            className="grid h-full min-w-11 flex-1 place-items-center rounded-r-box hover:bg-buy-dark disabled:opacity-40 md:max-w-20"
+          >
+            <ChevronsRight className="size-4" aria-hidden />
+          </button>
+        </>
       )}
     </div>
   );
