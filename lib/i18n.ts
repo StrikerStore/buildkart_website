@@ -114,6 +114,24 @@ const STRINGS = {
     hi: 'सवाल पूछें, जवाब ऐप में ही मिलेगा',
   },
 
+  /*
+   * Customer reviews on the home page. "सत्यापित ग्राहक" rather than a
+   * transliterated "वेरिफाइड": the badge is a claim, and it should read as one.
+   */
+  'reviews.verified': { en: 'Verified customer', hi: 'सत्यापित ग्राहक' },
+  'reviews.rated': { en: 'Rated {n} out of 5', hi: '5 में से {n} रेटिंग' },
+  'reviews.average': { en: '{n} out of 5', hi: '5 में से {n}' },
+  'reviews.count': { en: '{n} reviews', hi: '{n} रिव्यू' },
+  'reviews.countOne': { en: '1 review', hi: '1 रिव्यू' },
+  'reviews.readMore': { en: 'Read more', hi: 'और पढ़ें' },
+  'reviews.readLess': { en: 'Show less', hi: 'कम दिखाएँ' },
+  'reviews.openPhoto': { en: 'Open photo {n}', hi: 'फोटो {n} खोलें' },
+  'reviews.playVideo': { en: 'Play video {n}', hi: 'वीडियो {n} चलाएँ' },
+  'reviews.previous': { en: 'Previous', hi: 'पिछला' },
+  'reviews.next': { en: 'Next', hi: 'अगला' },
+  'reviews.close': { en: 'Close', hi: 'बंद करें' },
+  'reviews.mediaFrom': { en: 'From {name}', hi: '{name} की ओर से' },
+
   'trust.fastDelivery': { en: '{hours}-hour delivery', hi: '{hours} घंटे में डिलीवरी' },
   'trust.cod': { en: 'Cash on delivery', hi: 'कैश ऑन डिलीवरी' },
   'trust.genuine': { en: 'Genuine brands', hi: 'असली ब्रांड' },

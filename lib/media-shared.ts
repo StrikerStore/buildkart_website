@@ -41,6 +41,8 @@ export const IMAGE = {
   stripCard: { w: 840, q: 75 } satisfies MediaTransform,
   /** Cart and order lines. */
   thumb: { w: 120, q: 75 } satisfies MediaTransform,
+  /** A photo in a review card's strip: 64px, so 160 covers it at 2x. */
+  reviewThumb: { w: 160, q: 75 } satisfies MediaTransform,
 } as const;
 
 /**

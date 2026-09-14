@@ -4,6 +4,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { CategoryTile } from '@/components/catalog/category-tile';
 import { ProductCard } from '@/components/catalog/product-card';
 import { BannerStrip } from './banner-strip';
+import { CustomerReviews } from './customer-reviews';
 import { TrustStrip } from './trust-strip';
 
 /**
@@ -87,6 +88,19 @@ export function HomepageSections({
                 />
                 <BannerStrip banners={section.banners} locale={locale} />
               </section>
+            );
+
+          case 'CUSTOMER_REVIEWS':
+            return (
+              <CustomerReviews
+                key={section.id}
+                titleEn={section.titleEn}
+                titleHi={section.titleHi}
+                reviews={section.reviews}
+                averageRating={section.averageRating}
+                reviewCount={section.reviewCount}
+                locale={locale}
+              />
             );
 
           /*
