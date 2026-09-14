@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Minus, Plus, Trash2 } from 'lucide-react';
 import { setCartQuantity } from '@/app/cart/actions';
 import { MAX_QTY_PER_LINE } from '@/lib/cart-shared';
 import { cn } from '@/lib/cn';
@@ -23,17 +23,26 @@ import type { Locale } from '@/lib/i18n';
  *     line, but nothing said so: a shopper looking for a way to remove an item
  *     should see a bin, not deduce it. Below one there is nothing to decrement,
  *     so the slot is free.
+ *
+ * And, with `jumps`, the `«` `»` pair that moves by five — the same glyphs and
+ * the same outboard placement as the product page's buy bar, so the control is
+ * learned once. Opt-in because the mini cart's 380px panel stacks this beside a
+ * product name, and 72px more there costs the name its second line; the cart
+ * page has the room.
  */
 export function CartQuantity({
   variantId,
   quantity,
   locale,
   onChanged,
+  jumps = false,
 }: {
   variantId: string;
   quantity: number;
   locale: Locale;
   onChanged?: () => void;
+  /** Adds `«` and `»`, stepping by `JUMP`. */
+  jumps?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(quantity);
@@ -71,6 +80,9 @@ export function CartQuantity({
 
   const removing = shown <= 1;
 
+  /** What `«` and `»` move by — matches the buy bar's `Stepper`. */
+  const JUMP = 5;
+
   return (
     <div
       className={cn(
@@ -78,6 +90,23 @@ export function CartQuantity({
         pending && 'opacity-60',
       )}
     >
+      {/*
+        * Clamped to one, never zero. The bin a slot inboard is how a line is
+        * removed; a coarse control that can empty a line of forty bags in one
+        * mistap is a different promise from "five fewer".
+        */}
+      {jumps && (
+        <button
+          type="button"
+          onClick={() => commit(Math.max(1, shown - JUMP))}
+          disabled={pending || shown <= 1}
+          aria-label={locale === 'hi' ? `${JUMP} कम करें` : `Decrease by ${JUMP}`}
+          className="grid w-9 place-items-center border-r border-brand/40 text-brand-text transition-colors hover:bg-brand disabled:opacity-40 disabled:hover:bg-transparent"
+        >
+          <ChevronsLeft className="size-4" aria-hidden />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={() => commit(shown - 1)}
@@ -128,6 +157,18 @@ export function CartQuantity({
       >
         <Plus className="size-4" aria-hidden />
       </button>
+
+      {jumps && (
+        <button
+          type="button"
+          onClick={() => commit(shown + JUMP)}
+          disabled={pending || shown >= MAX_QTY_PER_LINE}
+          aria-label={locale === 'hi' ? `${JUMP} और जोड़ें` : `Increase by ${JUMP}`}
+          className="grid w-9 place-items-center border-l border-brand/40 text-brand-text transition-colors hover:bg-brand disabled:opacity-40 disabled:hover:bg-transparent"
+        >
+          <ChevronsRight className="size-4" aria-hidden />
+        </button>
+      )}
     </div>
   );
 }

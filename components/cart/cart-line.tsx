@@ -110,9 +110,15 @@ export async function CartLine({ line, locale }: { line: CartLineDto; locale: Lo
           </p>
         )}
 
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <CartQuantity variantId={line.variantId} quantity={line.quantity} locale={locale} />
-          <span className="text-heading6 text-ink">{formatINR(line.lineTotal)}</span>
+        {/*
+          * Wraps rather than squeezes. With the ±5 jumps the control is about
+          * 196px, and on a 360px phone this column is 244px — a five-figure
+          * total beside it would overflow, so it drops under the control there
+          * and stays level with it everywhere wider.
+          */}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <CartQuantity variantId={line.variantId} quantity={line.quantity} locale={locale} jumps />
+          <span className="ml-auto text-heading6 text-ink">{formatINR(line.lineTotal)}</span>
         </div>
       </div>
     </li>
