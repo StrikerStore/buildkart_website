@@ -74,6 +74,19 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description,
     applicationName: name,
+    /*
+     * Static files in `public/`, from BuildKart_Professional_Logo_Pack. The
+     * `.ico` answers the bare `/favicon.ico` request every browser makes on its
+     * own; the PNG is the crisper choice where it is honoured. The Apple icon
+     * sits on white because iOS renders a transparent touch icon on black.
+     */
+    icons: {
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/favicon-32.png', type: 'image/png', sizes: '32x32' },
+      ],
+      apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+    },
     formatDetection: { telephone: true },
     // One switch closes the whole site to crawlers while the catalogue is
     // still being entered.

@@ -61,6 +61,18 @@ export function InvoiceDocument({
         </div>
 
         <div className="text-right text-body4 text-ink-muted">
+          {/*
+            * Decorative: the seller's legal name follows as text, and on a tax
+            * invoice that name — not a picture of it — is what has to be there.
+            */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo.png"
+            alt=""
+            width={321}
+            height={96}
+            className="mb-2 ml-auto h-10 w-auto"
+          />
           <p className="text-heading6 text-ink">{seller}</p>
           {store.addressLines.map((line) => (
             <p key={line}>{line}</p>

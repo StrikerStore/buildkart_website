@@ -50,7 +50,18 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                * two is in the accessibility tree at any width rather than the
                * name being announced twice.
                */}
-              <h2 className="hidden text-heading4 text-ink md:block">{name}</h2>
+              <h2 className="hidden md:block">
+                {/* The logo carries the heading; its alt is the heading's text. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/logo.png"
+                  alt={name}
+                  width={321}
+                  height={96}
+                  loading="lazy"
+                  className="h-10 w-auto"
+                />
+              </h2>
 
               {store.addressLines.length > 0 && (
                 <address className="mt-2 not-italic text-body3 text-ink-muted">

@@ -30,11 +30,15 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     theme_color: '#2d333a',
     categories: ['shopping', 'business'],
     /*
-     * The logo is not in the media library yet, so there is nothing to point a
-     * real icon at. Rather than reference files that would 404 — which makes
-     * the install prompt fail silently on Android — the icons list stays empty
-     * until `public/icon-192.png` and `icon-512.png` exist.
+     * The BuildKart mark, from the logo pack. 192 and 512 are the two sizes
+     * Android's install prompt requires — with either missing it fails
+     * silently rather than saying why. `any`, not `maskable`: the mark sits on
+     * a transparent square with no safe-zone padding, so a launcher cropping it
+     * to a circle would clip the cart's wheels.
      */
-    icons: [],
+    icons: [
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+    ],
   };
 }

@@ -62,12 +62,29 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             className="flex shrink-0 items-center gap-2"
             aria-label={tr(locale, 'header.home')}
           >
-            <span className="grid size-9 place-items-center rounded-box bg-ink text-heading5 text-brand">
-              B
-            </span>
-            <span className="hidden text-heading4 text-ink sm:block">
-              {locale === 'hi' && nameHi ? nameHi : name}
-            </span>
+            {/*
+              * The mark alone on a phone, the full logo from `sm` up. Row one
+              * on a phone already carries the menu, the location pill and three
+              * actions, and the wordmark would push the location off the row.
+              * Only one of the two is ever displayed, so a screen reader meets
+              * exactly one name.
+              */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/logo-mark.png"
+              alt={locale === 'hi' && nameHi ? nameHi : name}
+              width={127}
+              height={96}
+              className="h-9 w-auto sm:hidden"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/logo.png"
+              alt={locale === 'hi' && nameHi ? nameHi : name}
+              width={321}
+              height={96}
+              className="hidden h-9 w-auto sm:block lg:h-11"
+            />
           </Link>
 
           {/*
