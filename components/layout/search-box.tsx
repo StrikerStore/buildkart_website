@@ -42,9 +42,15 @@ const ROTATE_MS = 2600;
  */
 export function SearchBox({
   categories,
+  recent = [],
   locale,
 }: {
   categories: SearchCategory[];
+  /**
+   * What this browser looked at recently, freshly priced by the header.
+   * Shown above the categories while the box is empty.
+   */
+  recent?: SuggestionRow[];
   locale: Locale;
 }) {
   const router = useRouter();
@@ -69,12 +75,19 @@ export function SearchBox({
   const reopenBlocked = useRef(false);
 
   const typing = query.trim().length >= MIN_CHARS;
+  /*
+   * One index space across both groups, so ArrowDown walks from the last
+   * recently-viewed product straight into the first category without a seam.
+   */
   const items: Array<{ key: string; href: string }> = typing
     ? rows.map((row) => ({ key: row.handle, href: `/products/${row.handle}` }))
-    : categories.map((category) => ({
-        key: category.slug,
-        href: `/category/${category.slug}`,
-      }));
+    : [
+        ...recent.map((row) => ({ key: `seen-${row.handle}`, href: `/products/${row.handle}` })),
+        ...categories.map((category) => ({
+          key: category.slug,
+          href: `/category/${category.slug}`,
+        })),
+      ];
 
   /*
    * The rotating placeholder.
@@ -218,6 +231,82 @@ export function SearchBox({
 
   const listId = `${id}-list`;
 
+  function productRow(row: SuggestionRow, index: number) {
+    return (
+      <a
+        key={`${typing ? 'row' : 'seen'}-${row.handle}`}
+        id={`${id}-opt-${index}`}
+        role="option"
+        aria-selected={index === active}
+        href={`/products/${row.handle}`}
+        onMouseEnter={() => setActive(index)}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2 text-left',
+          index === active && 'bg-surface-muted',
+        )}
+      >
+        {row.imageSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={row.imageSrc}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-10 shrink-0 rounded-box bg-surface-muted object-cover"
+          />
+        ) : (
+          <span className="size-10 shrink-0 rounded-box bg-surface-muted" />
+        )}
+
+        {/* No brand line, matching the product card: the name already opens
+            with it, so the row underneath only repeated the first word. */}
+        <span className="clamp-2 min-w-0 flex-1 text-body2 text-ink">{row.name}</span>
+
+        {row.price && (
+          <span className="shrink-0 text-heading7 text-ink">{formatINR(row.price)}</span>
+        )}
+      </a>
+    );
+  }
+
+  function categoryTile(category: SearchCategory, index: number) {
+    return (
+      <a
+        key={category.slug}
+        id={`${id}-opt-${index}`}
+        role="option"
+        aria-selected={index === active}
+        href={`/category/${category.slug}`}
+        onMouseEnter={() => setActive(index)}
+        className={cn(
+          'flex w-full flex-col items-center gap-2 rounded-card p-2 text-center',
+          index === active && 'bg-brand-tint',
+        )}
+      >
+        <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-card bg-brand-tint">
+          {category.imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={category.imageSrc}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="size-full object-cover"
+            />
+          ) : (
+            // The initial, not a generic icon: with no artwork uploaded it at
+            // least tells one tile from the next.
+            <span className="text-heading2 text-brand-text">{category.name.charAt(0)}</span>
+          )}
+        </span>
+
+        {/* Never clamped to one line. A two-line category name is fine; a name
+            cut mid-word is what gets noticed. */}
+        <span className="text-heading8 text-ink">{category.name}</span>
+      </a>
+    );
+  }
+
   return (
     <div ref={rootRef} className="relative">
       <Search
@@ -277,108 +366,45 @@ export function SearchBox({
             'rounded-card border border-hairline bg-surface py-1 shadow-sheet',
           )}
         >
-          <p className="px-3 py-1.5 text-heading9 uppercase tracking-wide text-ink-faint">
-            {tr(locale, typing ? 'search.products' : 'search.categories')}
-          </p>
-
           {/*
-           * Two shapes in one listbox.
+           * One listbox, two groups while the box is empty.
            *
-           * Empty: the tiles from the home page's category grid, picture over
-           * label. PLAN.md section 2 asks for images over words because a
-           * thekedar recognises a cement bag faster than they read a grade
-           * name, and a shopper who opened the box with no word in mind is
-           * exactly who that applies to.
+           * Recently viewed comes first, as rows: a shopper who has already
+           * looked at a product is most likely coming back for that one, and a
+           * row has room for the price that tells them whether it moved.
+           * Categories follow as the home page's tiles, picture over label.
            *
-           * Typing: a list, because a suggestion carries a brand and a price
-           * to read and a grid has nowhere to put them.
+           * Typing replaces both with suggestion rows. `role="group"` with a
+           * label is what lets a screen reader say which group an option is in.
            */}
-          <ul
-            id={listId}
-            role="listbox"
-            aria-label={tr(locale, 'header.search')}
-            className={cn(!typing && 'grid grid-cols-3 gap-1 px-2 pb-1 sm:grid-cols-4')}
-          >
-            {items.map((item, index) => {
-              const row = typing ? rows[index] : null;
-              const category = typing ? null : categories[index];
+          <div id={listId} role="listbox" aria-label={tr(locale, 'header.search')}>
+            {typing ? (
+              <div role="group" aria-label={tr(locale, 'search.products')}>
+                <GroupHeading>{tr(locale, 'search.products')}</GroupHeading>
+                {rows.map((row, index) => productRow(row, index))}
+              </div>
+            ) : (
+              <>
+                {recent.length > 0 && (
+                  <div role="group" aria-label={tr(locale, 'recent.title')}>
+                    <GroupHeading>{tr(locale, 'recent.title')}</GroupHeading>
+                    {recent.map((row, index) => productRow(row, index))}
+                  </div>
+                )}
 
-              return (
-                <li key={item.key}>
-                  <a
-                    id={`${id}-opt-${index}`}
-                    role="option"
-                    aria-selected={index === active}
-                    href={item.href}
-                    onMouseEnter={() => setActive(index)}
-                    className={cn(
-                      category
-                        ? 'flex w-full flex-col items-center gap-2 rounded-card p-2 text-center'
-                        : 'flex items-center gap-3 px-3 py-2 text-left',
-                      index === active && (category ? 'bg-brand-tint' : 'bg-surface-muted'),
-                    )}
-                  >
-                    {row && (
-                      <>
-                        {row.imageSrc ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={row.imageSrc}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="size-10 shrink-0 rounded-box bg-surface-muted object-cover"
-                          />
-                        ) : (
-                          <span className="size-10 shrink-0 rounded-box bg-surface-muted" />
-                        )}
-
-                        <span className="min-w-0 flex-1">
-                          <span className="clamp-1 block text-body2 text-ink">{row.name}</span>
-                          {row.brandName && (
-                            <span className="block text-body5 text-ink-faint">{row.brandName}</span>
-                          )}
-                        </span>
-
-                        {row.price && (
-                          <span className="shrink-0 text-heading7 text-ink">
-                            {formatINR(row.price)}
-                          </span>
-                        )}
-                      </>
-                    )}
-
-                    {category && (
-                      <>
-                        <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-card bg-brand-tint">
-                          {category.imageSrc ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={category.imageSrc}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="size-full object-cover"
-                            />
-                          ) : (
-                            // The initial, not a generic icon: with no artwork
-                            // uploaded it at least tells one tile from the next.
-                            <span className="text-heading2 text-brand-text">
-                              {category.name.charAt(0)}
-                            </span>
-                          )}
-                        </span>
-
-                        {/* Never clamped to one line. A two-line category name
-                            is fine; a name cut mid-word is what gets noticed. */}
-                        <span className="text-heading8 text-ink">{category.name}</span>
-                      </>
-                    )}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+                {categories.length > 0 && (
+                  <div role="group" aria-label={tr(locale, 'search.categories')}>
+                    <GroupHeading>{tr(locale, 'search.categories')}</GroupHeading>
+                    <div className="grid grid-cols-3 gap-1 px-2 pb-1 sm:grid-cols-4">
+                      {categories.map((category, index) =>
+                        categoryTile(category, recent.length + index),
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
           {typing && loading && items.length === 0 && (
             <p className="flex items-center gap-2 px-3 py-3 text-body3 text-ink-muted">
@@ -406,5 +432,17 @@ export function SearchBox({
         </div>
       )}
     </div>
+  );
+}
+
+/** A group's label inside the panel. Visual only: the group carries `aria-label`. */
+function GroupHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      aria-hidden
+      className="px-3 pb-1.5 pt-2 text-heading9 uppercase tracking-wide text-ink-faint"
+    >
+      {children}
+    </p>
   );
 }

@@ -3,6 +3,8 @@ import { currentLocale } from '@/lib/locale';
 import { siteUrl } from '@/lib/site';
 import { Hero } from '@/components/home/hero';
 import { HomepageSections } from '@/components/home/homepage-sections';
+import { RecentlyViewed } from '@/components/catalog/recently-viewed';
+import { recentlyViewed } from '@/lib/recently-viewed';
 
 /**
  * The home page.
@@ -20,10 +22,11 @@ import { HomepageSections } from '@/components/home/homepage-sections';
 export const metadata = { alternates: { canonical: '/' } };
 
 export default async function HomePage() {
-  const [locale, home, settings] = await Promise.all([
+  const [locale, home, settings, seen] = await Promise.all([
     currentLocale(),
     api().then((c) => c.storefront.home.query()),
     storeSettings(),
+    recentlyViewed(),
   ]);
 
   const { store } = settings;
@@ -32,6 +35,15 @@ export default async function HomePage() {
     <>
       <Hero banners={home.hero} locale={locale} />
       <HomepageSections sections={home.sections} locale={locale} />
+
+      {/*
+       * Below the owner's bands, not above them.
+       *
+       * The home page is the shop's own running order — what it wants sold
+       * this week — and a returning shopper's history should not push that
+       * below the fold. It renders nothing at all for a first-time visitor.
+       */}
+      <RecentlyViewed cards={seen} locale={locale} className="page-w page-x py-5" />
 
       {/*
         * Who this shop is, in the form a search engine reads.

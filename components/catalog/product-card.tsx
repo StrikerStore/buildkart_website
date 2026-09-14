@@ -82,18 +82,16 @@ export async function ProductCard({
       </div>
 
       {/*
-        * Free delivery, on every tile.
-        *
-        * Directly under the photo and above everything variable, because the
-        * price row is pinned to the bottom by `mt-auto`: anything placed after
-        * it lands at a different height on every card, depending on whether
-        * that card carries a bulk rate. Here it sits on a fixed line and the
-        * grid keeps its rhythm.
-        */}
+       * Free delivery, on every tile.
+       *
+       * Directly under the photo and above everything variable, because the
+       * price row is pinned to the bottom by `mt-auto`: anything placed after
+       * it lands at a different height on every card, depending on whether
+       * that card carries a bulk rate. Here it sits on a fixed line and the
+       * grid keeps its rhythm.
+       */}
       <p className="mb-2">
-        <Badge tone="SUCCESS">
-          {locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}
-        </Badge>
+        <Badge tone="SUCCESS">{locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}</Badge>
       </p>
 
       {product.badges.length > 0 && (
@@ -108,10 +106,10 @@ export async function ProductCard({
         </div>
       )}
 
-      {product.brandName && (
-        <p className="text-body6 uppercase tracking-wide text-ink-faint">{product.brandName}</p>
-      )}
-
+      {/* No brand line. Every product name here already opens with it —
+          "UltraTech Cement OPC 53 Grade" — so the row above was the same word
+          again, one step smaller, eating one of the two lines the name gets.
+          The product page dropped it for the same reason. */}
       <h3 className="clamp-2 text-heading7 text-ink">
         {/* The card's link, stretched over the whole article by `after:` —
             this is what keeps the anchor and the ADD button from nesting. */}
@@ -151,13 +149,13 @@ export async function ProductCard({
       </div>
 
       {/*
-        * The best bulk rate, and what it takes to get it.
-        *
-        * The condition is not decoration: a bare "Bulk: ₹365" is a price the
-        * product page will refuse to honour until forty bags are on the line,
-        * and a card that quotes an unreachable number is worse than one that
-        * quotes none.
-        */}
+       * The best bulk rate, and what it takes to get it.
+       *
+       * The condition is not decoration: a bare "Bulk: ₹365" is a price the
+       * product page will refuse to honour until forty bags are on the line,
+       * and a card that quotes an unreachable number is worse than one that
+       * quotes none.
+       */}
       {product.bestBulkPrice && product.bulkFrom && (
         <p className="pt-1 text-body6 text-success">
           {locale === 'hi' ? 'बल्क' : 'Bulk'}: {formatINR(product.bestBulkPrice)}

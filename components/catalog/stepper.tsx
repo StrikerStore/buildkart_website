@@ -80,9 +80,21 @@ export function Stepper({
         disabled={pending}
         className={cn(
           height,
-          'inline-flex w-[84px] items-center justify-center rounded-box border border-buy',
-          'bg-buy text-cta3 text-buy-foreground hover:bg-buy-dark disabled:opacity-60',
-          size === 'lg' && 'w-full text-cta1',
+          'inline-flex w-[84px] items-center justify-center rounded-box border border-buy disabled:opacity-60',
+          /*
+           * Outlined on a card, solid in the buy bar.
+           *
+           * A grid of twenty cards is twenty ADD buttons, and twenty solid
+           * green blocks turn the grid into a wall of colour that out-shouts
+           * the products. The outline keeps the action findable and lets the
+           * photo lead; the moment something is added it becomes the solid
+           * stepper, so "in the cart" and "not yet" are two different shapes.
+           * The product page's bar is the one decision on that screen, so it
+           * stays solid.
+           */
+          size === 'lg'
+            ? 'w-full bg-buy text-cta1 text-buy-foreground hover:bg-buy-dark'
+            : 'bg-surface text-cta3 text-buy hover:bg-success-bg',
         )}
       >
         {label ?? (locale === 'hi' ? 'जोड़ें' : 'ADD')}

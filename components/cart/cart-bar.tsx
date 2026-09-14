@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
+import { loadCartThumbs, type CartThumb } from '@/app/cart/actions';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 
@@ -74,7 +75,26 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
   if (count > 0 && count !== lastCount) setLastCount(count);
   const shown = count > 0 ? count : lastCount;
 
-  const items = locale === 'hi' ? 'सामान' : shown === 1 ? 'item' : 'items';
+  const items = locale === 'hi' ? 'सामान' : shown === 1 ? 'Item' : 'Items';
+
+  /*
+   * The product faces in the stack.
+   *
+   * Fetched here, after paint, rather than passed down by the layout: the
+   * layout only knows a count, and learning *which* products is a pricing
+   * round trip it deliberately does not make on every page view. Refetched when
+   * the count changes, since that is exactly when the faces can change; the
+   * ticket drops a slow answer that arrives after a newer one.
+   */
+  const [thumbs, setThumbs] = useState<CartThumb[]>([]);
+  const ticket = useRef(0);
+  useEffect(() => {
+    if (count === 0) return;
+    const mine = ++ticket.current;
+    loadCartThumbs().then((next) => {
+      if (mine === ticket.current) setThumbs(next);
+    });
+  }, [count]);
 
   return (
     <div
@@ -98,20 +118,52 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
         aria-label={
           locale === 'hi' ? `कार्ट देखें, ${shown} सामान` : `View cart, ${shown} ${items}`
         }
-        className="inline-flex h-12 max-w-full items-center gap-2.5 rounded-pill bg-ink py-1.5 pr-1.5 pl-2 text-ink-inverted shadow-sheet"
+        className="inline-flex h-14 max-w-full items-center gap-3 rounded-pill bg-buy py-1.5 pr-1.5 pl-2 text-buy-foreground shadow-sheet"
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground">
-          <ShoppingCart className="size-[18px]" aria-hidden />
+        {/*
+         * The cart's first few products, overlapping, each ringed in the pill's
+         * own green so the edges read as a stack rather than a smudge. Until the
+         * faces arrive — or if the cart has no photos — a single cart disc holds
+         * the space, so the pill never changes width under the shopper's thumb.
+         */}
+        <span className="flex shrink-0 items-center" aria-hidden>
+          {thumbs.length > 0 ? (
+            thumbs.map((thumb, index) => (
+              <span
+                key={index}
+                className={cn(
+                  'grid size-10 place-items-center overflow-hidden rounded-full bg-surface ring-2 ring-buy',
+                  index > 0 && '-ml-4',
+                )}
+              >
+                {thumb.src ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumb.src} alt="" className="size-full object-cover" />
+                ) : (
+                  <ShoppingCart className="size-4 text-buy" />
+                )}
+              </span>
+            ))
+          ) : (
+            <span className="grid size-10 place-items-center rounded-full bg-surface text-buy">
+              <ShoppingCart className="size-[18px]" />
+            </span>
+          )}
         </span>
 
-        <span className="min-w-0 truncate text-heading6">
-          {locale === 'hi' ? `कार्ट देखें · ${shown} ${items}` : `View cart · ${shown} ${items}`}
+        <span className="min-w-0 pr-2 leading-tight">
+          <span className="block truncate text-heading5">
+            {locale === 'hi' ? 'कार्ट देखें' : 'View cart'}
+          </span>
+          <span className="block truncate text-body4 text-buy-foreground/85">
+            {shown} {items}
+          </span>
         </span>
 
-        {/* The one spot of brand colour on a charcoal pill, which is what makes
-            it read as the way forward rather than a status chip. */}
+        {/* A darker disc of the same green: the arrow is the way forward, and
+            it reads as a button inside the pill rather than a decoration. */}
         <span
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-buy-dark"
           aria-hidden
         >
           <ChevronRight className="size-5" />

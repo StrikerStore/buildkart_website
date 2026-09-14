@@ -100,13 +100,14 @@
    * file, which used to say yellow marked both price and action. Yellow now
    * marks price, and only price, which is arguably a cleaner split than it had.
    *
-   * #107b3b rather than the lighter --success (#128942): a button label is
+   * #318616, matched to the reference the owner supplied. A button label is
    * 14px bold, which is not "large text" under WCAG, so it needs 4.5:1 against
-   * white. --success manages 4.54:1 — passing, but with nothing to spare on a
-   * cheap panel in daylight. This is 5.42:1.
+   * white; this is 4.63:1 — passing, with little to spare, which is why hover
+   * and every piece of *text on a tint* use the darker steps below instead.
    */
-  --buy: #107b3b;
-  --buy-dark: #0c5f2e;
+  --buy: #318616;
+  /* 6.58:1 on white. Hover fill, and the cart capsule's arrow disc. */
+  --buy-dark: #266b10;
   --buy-foreground: #ffffff;
   /* Charcoal, not white: #faae0a carries white at only 1.89:1. Charcoal is
      6.76:1 and passes. */
@@ -117,8 +118,8 @@
   --hairline-strong: #d8d8d8;
 
   /* --- status ------------------------------------------------------------ */
-  --success: #128942;
-  --success-bg: #daf4e5;
+  --success: #318616;
+  --success-bg: #e9f5e3;
   --error: #d90000;
   --error-bg: #ffeded;
   --warning: #fa875c;
@@ -131,7 +132,7 @@
    *
    * `--success` and `--warning` are *fills* — a tick, a bar, a dot — and they
    * were never dark enough to be read as words on their own backgrounds:
-   * #128942 on the green tint is 3.86:1 and #fa875c on the amber is 2.19:1,
+   * #318616 on the green tint is 4.10:1 and #fa875c on the amber is 2.19:1,
    * both under the 4.5:1 AA needs for text this size. A badge is text, so it
    * takes these instead. Same hue and saturation, dropped in lightness until
    * they clear AA on the tint *and* on white.
@@ -139,7 +140,8 @@
    * `--error` (4.71:1) and `--info` (5.25:1) already passed, so they have no
    * variant — an unused token is one more thing to keep in step.
    */
-  --success-fg: #107b3b;
+  /* 5.83:1 on the tint, 6.59:1 on white — the same hue as --success. */
+  --success-fg: #256b11;
   --warning-fg: #c93b06;
 
   /* --- layout ------------------------------------------------------------ */

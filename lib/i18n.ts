@@ -36,6 +36,7 @@ const STRINGS = {
   'search.seeAll': { en: 'See all results for "{q}"', hi: '"{q}" के सारे नतीजे देखें' },
   'search.noMatches': { en: 'Nothing matched "{q}"', hi: '"{q}" से कुछ नहीं मिला' },
   'search.searching': { en: 'Searching…', hi: 'खोज रहे हैं…' },
+  'recent.title': { en: 'Recently viewed', hi: 'हाल में देखे गए' },
   'header.deliverTo': { en: 'Delivery to', hi: 'डिलीवरी' },
   'header.setLocation': { en: 'Set your location', hi: 'अपना पता चुनें' },
   'header.language': { en: 'Language', hi: 'भाषा' },

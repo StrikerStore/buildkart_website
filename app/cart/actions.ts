@@ -1,5 +1,7 @@
 'use server';
 
+import { imageUrl, IMAGE } from '@/lib/media';
+
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { CartCouponDto, CartDto } from '@StrikerStore/contract';
@@ -91,6 +93,35 @@ export async function setPromoCode(raw: string): Promise<{ code: string | null }
  */
 export async function loadCart(): Promise<CartDto> {
   return pricedCart();
+}
+
+/** One face in the cart capsule's stack. */
+export type CartThumb = { src: string | null; alt: string };
+
+/**
+ * The first few products in the cart, as thumbnails for the floating capsule.
+ *
+ * Called by the capsule itself, after paint, and only when the count changes —
+ * not by the layout. The capsule's own comment explains why: pricing the cart
+ * on every page render to decorate a bar the shopper glances at would put a
+ * database round trip on every page view. Here the cost is paid once per
+ * change in what is in the cart, and never blocks a render.
+ *
+ * Swallows errors: a capsule with plain placeholder discs is a cosmetic loss,
+ * and must never be the thing that breaks the page it floats over.
+ */
+export async function loadCartThumbs(): Promise<CartThumb[]> {
+  try {
+    const cart = await pricedCart();
+    return await Promise.all(
+      cart.lines.slice(0, 3).map(async (line) => ({
+        src: await imageUrl(line.imageKey, IMAGE.thumb),
+        alt: line.nameEn,
+      })),
+    );
+  } catch {
+    return [];
+  }
 }
 
 /**

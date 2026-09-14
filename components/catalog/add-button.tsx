@@ -42,7 +42,7 @@ export async function AddButton({
     return (
       <Link
         href={`/products/${handle}`}
-        className="inline-flex h-10 items-center rounded-box border border-brand bg-surface px-3 text-cta3 text-brand-text hover:bg-brand-tint"
+        className="inline-flex h-10 items-center rounded-box border border-buy bg-surface px-3 text-cta3 text-buy hover:bg-success-bg"
       >
         {locale === 'hi' ? 'चुनें' : 'Options'}
       </Link>

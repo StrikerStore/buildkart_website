@@ -11,6 +11,8 @@ import { MainNav } from './main-nav';
 import { MobileMenu } from './mobile-menu';
 import { MiniCart } from '@/components/cart/mini-cart';
 import { SearchBox, type SearchCategory } from './search-box';
+import type { SuggestionRow } from '@/app/api/suggest/route';
+import { recentlyViewed } from '@/lib/recently-viewed';
 import { WalletPill } from './wallet-pill';
 
 /**
@@ -32,13 +34,14 @@ import { WalletPill } from './wallet-pill';
  * in a side panel behind the mark left of the logo.
  */
 export async function SiteHeader({ locale }: { locale: Locale }) {
-  const [settings, cart, customer, headerMenu, mobileMenu, categories] = await Promise.all([
+  const [settings, cart, customer, headerMenu, mobileMenu, categories, recent] = await Promise.all([
     storeSettings(),
     currentCart(),
     currentCustomer(),
     publishedMenu('header'),
     publishedMenu('mobile'),
     searchCategories(locale),
+    searchRecent(locale),
   ]);
   const count = cartCount(cart);
   const name = settings.store.nameEn;
@@ -79,7 +82,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             role="search"
             className="ml-auto hidden min-w-0 flex-1 md:block md:max-w-md"
           >
-            <SearchBox categories={categories} locale={locale} />
+            <SearchBox categories={categories} recent={recent} locale={locale} />
           </form>
 
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
@@ -112,7 +115,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
 
         {/* --- row two: search, on phones only ---------------------------- */}
         <form action="/search" role="search" className="pb-3 md:hidden">
-          <SearchBox categories={categories} locale={locale} />
+          <SearchBox categories={categories} recent={recent} locale={locale} />
         </form>
 
         {/* --- row three: the owner's menu, on desktop only ---------------- */}
@@ -157,4 +160,29 @@ async function searchCategories(locale: Locale): Promise<SearchCategory[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Recently viewed, shaped for the search panel.
+ *
+ * Four, not the twelve the cookie holds: the panel is a dropdown under a text
+ * box, and more than four rows pushes the category grid below its fold on a
+ * phone. The full shelf is on the home page and the foot of a product page.
+ *
+ * `recentlyViewed` is `cache`d, so the home page asking for the same cards in
+ * the same render costs nothing extra, and it swallows its own failures.
+ */
+async function searchRecent(locale: Locale): Promise<SuggestionRow[]> {
+  const cards = (await recentlyViewed()).slice(0, 4);
+
+  return Promise.all(
+    cards.map(async (card) => ({
+      handle: card.handle,
+      name: (locale === 'hi' && card.nameHi) || card.nameEn,
+      brandName: card.brandName,
+      imageSrc: await imageUrl(card.imageKey, IMAGE.thumb),
+      price: card.price,
+      unitLabel: (locale === 'hi' && card.unitLabelHi) || card.unitLabelEn,
+    })),
+  );
 }

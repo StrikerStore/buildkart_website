@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronRight, TrendingDown } from 'lucide-react';
 import { formatINR, type BulkTierBasis, type StorefrontVariantDto } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
@@ -38,7 +38,6 @@ export function VariantPicker({
   productName,
   bulkTierBasis,
   details,
-  suggestions,
 }: {
   options: Axis[];
   variants: StorefrontVariantDto[];
@@ -52,21 +51,13 @@ export function VariantPicker({
   /**
    * The disclosure stack: description, specifications, FAQs, return terms.
    *
-   * Rendered here rather than by the page so it stays between the price card
-   * and the suggestions rail — the order is the design: price, then everything
-   * a shopper might want to read about it, then alternatives. Built on the page
-   * because none of the four depends on the selected variant, and passed
-   * through as one node so the four cannot drift apart.
+   * Rendered here rather than by the page so it stays directly under the price
+   * card — the order is the design: price, then everything a shopper might want
+   * to read about it. Built on the page because none of the four depends on the
+   * selected variant, and passed through as one node so they cannot drift
+   * apart.
    */
   details?: React.ReactNode;
-  /**
-   * "You may also like", revealed after the first add.
-   *
-   * Rendered by the page and passed in as a node rather than fetched here: the
-   * related products are already on the server's DTO, and a client component
-   * that refetched them would spend a round trip on data it was handed.
-   */
-  suggestions?: React.ReactNode;
 }) {
   const axisValueOf = (variant: StorefrontVariantDto, index: number) =>
     [variant.option1Value, variant.option2Value, variant.option3Value][index] ?? null;
@@ -86,27 +77,6 @@ export function VariantPicker({
   );
 
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [added, setAdded] = useState(false);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * Fired after a cart write lands, from either the inline stepper or the
-   * sticky bar.
-   *
-   * Reveals the suggestions once and scrolls them into view. Once, because a
-   * shopper adjusting the quantity from four to five has not asked to be shown
-   * the shelf again — and a page that scrolls itself on every tap of `+` is a
-   * page that fights the person using it.
-   */
-  function reveal() {
-    if (added) return;
-    setAdded(true);
-    // After paint: the block does not exist to scroll to until React has
-    // rendered it.
-    requestAnimationFrame(() =>
-      suggestionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-    );
-  }
 
   const selected = useMemo(
     () =>
@@ -299,7 +269,6 @@ export function VariantPicker({
                 locale={locale}
                 size="lg"
                 label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
-                onChanged={reveal}
               />
             ) : (
               <p className="rounded-box bg-surface-muted py-3 text-center text-cta2 text-ink-muted">
@@ -338,11 +307,6 @@ export function VariantPicker({
        * next thing they need. It is also where the eye already is, because the
        * add they just made was at the bottom of the screen.
        */}
-      {added && suggestions && (
-        <div ref={suggestionsRef} className="scroll-mt-20 pt-2">
-          {suggestions}
-        </div>
-      )}
 
       {/*
        * The sticky buy bar — phones only.
@@ -398,7 +362,6 @@ export function VariantPicker({
                   locale={locale}
                   size="lg"
                   label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
-                  onChanged={reveal}
                 />
               ) : (
                 <span className="inline-flex h-[52px] w-full items-center justify-center rounded-box bg-surface-muted text-cta2 text-ink-muted">

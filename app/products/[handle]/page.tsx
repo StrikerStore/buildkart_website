@@ -9,6 +9,9 @@ import { Breadcrumb } from '@/components/catalog/breadcrumb';
 import { ProductCard } from '@/components/catalog/product-card';
 import { RateStamp } from '@/components/catalog/rate-stamp';
 import { Gallery } from '@/components/product/gallery';
+import { RecordView } from '@/components/product/record-view';
+import { RecentlyViewed } from '@/components/catalog/recently-viewed';
+import { recentlyViewed } from '@/lib/recently-viewed';
 import { DeliveryLine } from '@/components/product/delivery-line';
 import { Accordion } from '@/components/ui/accordion';
 import { SpecsTable } from '@/components/product/specs-table';
@@ -63,6 +66,10 @@ export default async function ProductPage({ params }: Props) {
    * in the cart, not per variant on the page.
    */
   const quantities = Object.fromEntries(cart.map((line) => [line.variantId, line.qty]));
+
+  // Read before `RecordView` writes this page's own handle, and filtered by it
+  // anyway — a shelf whose first tile is the page you are on is not history.
+  const seen = await recentlyViewed(product.handle);
 
   // The freshest price stamp across variants: on a rate-volatile line the
   // owner edits every size in one pass, so any of them answers "is this
@@ -195,34 +202,38 @@ export default async function ProductPage({ params }: Props) {
                   </section>
                 ) : null
               }
-              suggestions={
-                product.related.length > 0 ? (
-                  <section>
-                    <h2 className="mb-3 text-heading4 text-ink">
-                      {locale === 'hi' ? 'यह भी पसंद आ सकता है' : 'You may also like'}
-                    </h2>
-                    <div className="rail flex -mx-4 gap-3 px-4 pb-1 [--rail-pad:16px] sm:mx-0 sm:px-0 sm:[--rail-pad:0px]">
-                      {product.related.map((related) => (
-                        <div key={related.handle} className="w-[160px] sm:w-[180px]">
-                          <ProductCard product={related} locale={locale} />
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                ) : null
-              }
             />
           </div>
         </div>
       </div>
 
       {/*
-        * The related-products shelf moved *into* the buy column, where
-        * `VariantPicker` reveals it after the first add — see the `suggestions`
-        * prop above. It used to sit here at the foot of the page, and one copy
-        * is right: two shelves of the same six products on one page is the same
-        * recommendation made twice, and the one nobody scrolled to was this.
-        */}
+       * "You may also like", at the foot of the page and always on.
+       *
+       * It used to live inside the buy column and appear only after the first
+       * add. That hid it from everyone still deciding — which is the shopper a
+       * recommendation is actually for — and it moved the page under them at
+       * the moment they tapped ADD. One shelf, in the place a shelf belongs.
+       */}
+      {product.related.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-heading4 text-ink">
+            {locale === 'hi' ? 'यह भी पसंद आ सकता है' : 'You may also like'}
+          </h2>
+          <div className="rail flex -mx-4 gap-3 px-4 pb-1 [--rail-pad:16px] sm:mx-0 sm:px-0 sm:[--rail-pad:0px]">
+            {product.related.map((related) => (
+              <div key={related.handle} className="w-[160px] sm:w-[180px]">
+                <ProductCard product={related} locale={locale} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <RecentlyViewed cards={seen} locale={locale} className="mt-10" />
+
+      {/* Fires after paint. Nothing on screen waits for it. */}
+      <RecordView handle={product.handle} />
 
       {/*
         * Product structured data. Rendered from the same DTO the page uses, so
