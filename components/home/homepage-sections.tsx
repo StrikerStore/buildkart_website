@@ -46,6 +46,7 @@ export function HomepageSections({
 
           case 'PRODUCT_CAROUSEL':
           case 'TAG_CAROUSEL':
+          case 'NEW_ARRIVALS':
           case 'RATE_TICKER':
             return (
               <section key={section.id} className="page-w page-x py-5">
