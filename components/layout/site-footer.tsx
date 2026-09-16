@@ -56,7 +56,7 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                 <img
                   src="/brand/logo.png"
                   alt={name}
-                  width={321}
+                  width={318}
                   height={96}
                   loading="lazy"
                   className="h-10 w-auto"

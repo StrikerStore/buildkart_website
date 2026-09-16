@@ -69,7 +69,7 @@ export function InvoiceDocument({
           <img
             src="/brand/logo.png"
             alt=""
-            width={321}
+            width={318}
             height={96}
             className="mb-2 ml-auto h-10 w-auto"
           />

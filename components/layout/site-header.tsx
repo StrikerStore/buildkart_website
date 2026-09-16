@@ -73,7 +73,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             <img
               src="/brand/logo-mark.png"
               alt={locale === 'hi' && nameHi ? nameHi : name}
-              width={127}
+              width={96}
               height={96}
               className="h-9 w-auto sm:hidden"
             />
@@ -81,7 +81,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             <img
               src="/brand/logo.png"
               alt={locale === 'hi' && nameHi ? nameHi : name}
-              width={321}
+              width={318}
               height={96}
               className="hidden h-9 w-auto sm:block lg:h-11"
             />
