@@ -37,6 +37,7 @@ const STRINGS = {
   'search.noMatches': { en: 'Nothing matched "{q}"', hi: '"{q}" से कुछ नहीं मिला' },
   'search.searching': { en: 'Searching…', hi: 'खोज रहे हैं…' },
   'search.clear': { en: 'Clear search', hi: 'खोज हटाएँ' },
+  'search.close': { en: 'Close search', hi: 'खोज बंद करें' },
   'recent.title': { en: 'Recently viewed', hi: 'हाल में देखे गए' },
   'header.deliverTo': { en: 'Delivery to', hi: 'डिलीवरी' },
   'header.setLocation': { en: 'Set your location', hi: 'अपना पता चुनें' },

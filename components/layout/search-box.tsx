@@ -367,19 +367,24 @@ export function SearchBox({
       )}
 
       {/*
-       * Clear.
+       * Close.
        *
-       * Shown only with something to clear — an empty box has nothing to undo,
-       * and a permanent × beside an empty field reads as "close the search",
-       * which this header has no such thing as.
+       * Up whenever there is something to put away — a typed word, an open
+       * panel, or both. The panel is the common case: the box opens its
+       * categories on focus, so a shopper who taps the field and changes their
+       * mind is looking at a screenful of tiles with no visible way out. Escape
+       * closes it and so does a tap outside, but neither is discoverable on a
+       * phone, where there is barely any "outside" left to tap.
        *
-       * `type="button"`, because the whole box is inside `<form action="/search">`
-       * and the default submit type would send the shopper to the results page
-       * for the word they just asked to delete. It also closes the panel and
-       * hands focus back to the input, so the next keystroke lands in the field
-       * rather than nowhere.
+       * One control for both jobs rather than two, because they are one
+       * intention: it clears the word if there is one and closes the panel
+       * either way.
+       *
+       * `type="button"`, because the whole box sits inside
+       * `<form action="/search">` and the default submit type would send the
+       * shopper to the results page for the word they just asked to delete.
        */}
-      {query.length > 0 && (
+      {(open || query.length > 0) && (
         <button
           type="button"
           onClick={() => {
@@ -387,10 +392,17 @@ export function SearchBox({
             setRows([]);
             setActive(-1);
             setOpen(false);
+            /*
+             * Focus goes back to the field so the next keystroke lands in it —
+             * but `reopenBlocked` first, or the `onFocus` that follows would
+             * reopen the panel this tap just closed. Only set when focus is
+             * genuinely elsewhere, which is the same rule the Escape handler
+             * follows.
+             */
             reopenBlocked.current = document.activeElement !== inputRef.current;
             inputRef.current?.focus();
           }}
-          aria-label={tr(locale, 'search.clear')}
+          aria-label={tr(locale, query.length > 0 ? 'search.clear' : 'search.close')}
           className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-box text-ink-faint hover:bg-surface-muted hover:text-ink"
         >
           <X className="size-5" aria-hidden />
