@@ -1,9 +1,23 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { api } from '@/lib/api/server';
+import { notFound, redirect } from 'next/navigation';
+import { CONTACT_WHATSAPP_NUMBER, whatsappHref } from '@StrikerStore/contract';
+import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 
 type Props = { params: Promise<{ slug: string }> };
+
+/**
+ * Where a `CONTACT` page sends the visitor.
+ *
+ * The store's own WhatsApp number when the owner has set one — the same number
+ * the footer and the help screen already use, so all three stay in step — and
+ * the shared fallback when they have not.
+ */
+async function contactWhatsapp(): Promise<string> {
+  const settings = await storeSettings().catch(() => null);
+  const number = settings?.store.whatsappNumber.trim() || CONTACT_WHATSAPP_NUMBER;
+  return whatsappHref(number) ?? whatsappHref(CONTACT_WHATSAPP_NUMBER)!;
+}
 
 /**
  * A page the owner wrote: the privacy policy, terms, returns, about.
@@ -31,6 +45,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = (locale === 'hi' && page.titleHi) || page.titleEn;
 
+  /*
+   * A contact page is a doorway, not a document: it never renders, so there is
+   * nothing for a crawler to index and a canonical URL would advertise a
+   * redirect off the site.
+   */
+  if (page.kind === 'CONTACT') return { title, robots: { index: false, follow: false } };
+
   return {
     title: page.seoTitle || title,
     ...(page.seoDescription ? { description: page.seoDescription } : {}),
@@ -47,6 +68,13 @@ export default async function ContentPage({ params }: Props) {
   ]);
 
   if (!page) notFound();
+
+  /*
+   * A contact page has no body to show — opening it *is* the action. The
+   * redirect lives here rather than in the menu's href so that every way in
+   * behaves the same: the footer link, a typed URL, an old WhatsApp forward.
+   */
+  if (page.kind === 'CONTACT') redirect(await contactWhatsapp());
 
   const hi = locale === 'hi';
   const title = (hi && page.titleHi) || page.titleEn;

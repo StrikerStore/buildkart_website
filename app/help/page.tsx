@@ -37,6 +37,12 @@ export default async function HelpPage() {
   const hi = locale === 'hi';
   const { store, commerce } = settings;
   const whatsapp = store.whatsappNumber.replace(/\D/g, '');
+  /*
+   * A contact page belongs in the footer, not in this list: it is a WhatsApp
+   * link wearing a page's clothes, and the WhatsApp card at the top of this
+   * screen already says the same thing with the number on it.
+   */
+  const readable = pages.filter((page) => page.kind !== 'CONTACT');
 
   return (
     <div className="page-w page-x py-6">
@@ -155,13 +161,13 @@ export default async function HelpPage() {
         </Link>
 
         {/* --- whatever the owner has published ----------------------------- */}
-        {pages.length > 0 && (
+        {readable.length > 0 && (
           <section className="mt-6">
             <h2 className="mb-2 text-heading6 text-ink-muted">
               {hi ? 'नियम और जानकारी' : 'Policies and information'}
             </h2>
             <ul className="divide-y divide-hairline rounded-card border border-hairline bg-surface">
-              {pages.map((page) => (
+              {readable.map((page) => (
                 <li key={page.slug}>
                   <Link
                     href={`/pages/${page.slug}`}
