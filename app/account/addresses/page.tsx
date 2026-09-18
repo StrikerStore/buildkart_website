@@ -5,6 +5,7 @@ import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';
 import { AddressBook } from '@/components/account/address-book';
 
+
 export const metadata: Metadata = {
   title: 'Addresses',
   robots: { index: false, follow: false },
