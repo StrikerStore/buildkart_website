@@ -30,26 +30,51 @@ export function MainNav({ items, locale }: { items: PublishedMenuItem[]; locale:
       className="hidden border-t border-hairline md:block"
     >
       <ul className="flex items-stretch gap-1">
-        {items.map((item) => (
+        {items.map((item, index) => (
           /*
            * `group` plus `focus-within` rather than a click handler: a dropdown
            * that opens on hover and on keyboard focus needs no JavaScript, so
            * this whole row stays a server component and the links are in the
            * HTML a crawler reads.
+           *
+           * Keyed by position: a group title has no url to key on, and two of
+           * them in one menu would otherwise collide.
            */
-          <li key={item.url} className="group relative">
-            <Link
-              href={item.url}
-              className="flex h-11 items-center gap-1 rounded-box px-3 text-cta2 text-ink hover:bg-surface-muted"
-            >
-              {label(item)}
-              {item.children.length > 0 && (
-                <ChevronDown
-                  className="size-4 text-ink-faint transition-transform group-hover:rotate-180"
-                  aria-hidden
-                />
-              )}
-            </Link>
+          <li key={`${index}-${item.url}`} className="group relative">
+            {/*
+             * A group title is a `<button>`, not a link with a dead href. It
+             * opens the same panel on click as the others do on hover, which is
+             * what keeps it reachable from a keyboard — `focus-within` needs
+             * something focusable, and a `<span>` is not.
+             */}
+            {item.isHeading ? (
+              <button
+                type="button"
+                aria-expanded={false}
+                className="flex h-11 items-center gap-1 rounded-box px-3 text-cta2 text-ink hover:bg-surface-muted"
+              >
+                {label(item)}
+                {item.children.length > 0 && (
+                  <ChevronDown
+                    className="size-4 text-ink-faint transition-transform group-hover:rotate-180"
+                    aria-hidden
+                  />
+                )}
+              </button>
+            ) : (
+              <Link
+                href={item.url}
+                className="flex h-11 items-center gap-1 rounded-box px-3 text-cta2 text-ink hover:bg-surface-muted"
+              >
+                {label(item)}
+                {item.children.length > 0 && (
+                  <ChevronDown
+                    className="size-4 text-ink-faint transition-transform group-hover:rotate-180"
+                    aria-hidden
+                  />
+                )}
+              </Link>
+            )}
 
             {item.children.length > 0 && (
               /*

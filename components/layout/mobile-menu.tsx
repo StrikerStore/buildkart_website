@@ -52,7 +52,8 @@ function MenuMark() {
  */
 export function MobileMenu({ items, locale }: { items: PublishedMenuItem[]; locale: Locale }) {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  /** Which row is open, by position — a group title has no url to key on. */
+  const [expanded, setExpanded] = useState<number | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const hi = locale === 'hi';
@@ -133,29 +134,47 @@ export function MobileMenu({ items, locale }: { items: PublishedMenuItem[]; loca
 
             <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
               <ul>
-                {items.map((item) => {
-                  const isOpen = expanded === item.url;
+                {items.map((item, index) => {
+                  const isOpen = expanded === index;
                   return (
-                    <li key={item.url} className="border-b border-hairline last:border-b-0">
+                    <li
+                      key={`${index}-${item.url}`}
+                      className="border-b border-hairline last:border-b-0"
+                    >
                       {/*
                         * A parent is still a link, with the disclosure as a
                         * separate control beside it. Making the whole row a
                         * toggle would strand the parent's own page — a Cement
                         * category with three sub-categories under it is
                         * somewhere a shopper goes, not just a heading.
+                        *
+                        * A group title is the exception, because it really is
+                        * just a heading: there the whole row toggles, since
+                        * there is no page underneath to strand.
                         */}
                       <div className="flex items-center">
-                        <Link
-                          href={item.url}
-                          className="min-h-[var(--tap)] flex-1 rounded-box px-3 py-3 text-cta2 text-ink hover:bg-surface-muted"
-                        >
-                          {label(item)}
-                        </Link>
+                        {item.isHeading ? (
+                          <button
+                            type="button"
+                            onClick={() => setExpanded(isOpen ? null : index)}
+                            aria-expanded={isOpen}
+                            className="min-h-[var(--tap)] flex-1 rounded-box px-3 py-3 text-left text-cta2 text-ink hover:bg-surface-muted"
+                          >
+                            {label(item)}
+                          </button>
+                        ) : (
+                          <Link
+                            href={item.url}
+                            className="min-h-[var(--tap)] flex-1 rounded-box px-3 py-3 text-cta2 text-ink hover:bg-surface-muted"
+                          >
+                            {label(item)}
+                          </Link>
+                        )}
 
                         {item.children.length > 0 && (
                           <button
                             type="button"
-                            onClick={() => setExpanded(isOpen ? null : item.url)}
+                            onClick={() => setExpanded(isOpen ? null : index)}
                             aria-expanded={isOpen}
                             aria-label={
                               hi ? `${label(item)} के अंदर` : `Show more under ${label(item)}`

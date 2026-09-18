@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { formatINR } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import { tr, type Locale } from '@/lib/i18n';
@@ -342,7 +342,14 @@ export function SearchBox({
         aria-autocomplete="list"
         aria-activedescendant={active >= 0 ? `${id}-opt-${active}` : undefined}
         className={cn(
-          'h-[var(--tap)] w-full rounded-box border border-hairline-strong bg-surface-warm pl-11 pr-3',
+          // `pr-11` always, not only while the clear button is up: a right
+          // padding that changed as you typed would shift the text under the
+          // caret mid-word.
+          'h-[var(--tap)] w-full rounded-box border border-hairline-strong bg-surface-warm pl-11 pr-11',
+          // WebKit draws its own clear button inside `type="search"`. Ours sits
+          // in the same corner and is the one that also closes the panel, so
+          // the native one is suppressed rather than left to double up.
+          '[&::-webkit-search-cancel-button]:appearance-none',
           'text-body1 text-ink placeholder:text-ink-faint focus:border-ink focus:bg-surface focus:outline-none',
           // The overlay stands in for the placeholder while it is showing, so
           // the real one must not print underneath it.
@@ -353,10 +360,41 @@ export function SearchBox({
       {rotating && (
         <span
           aria-hidden
-          className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 truncate pr-3 text-body1 text-ink-faint"
+          className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 truncate pr-11 text-body1 text-ink-faint"
         >
           {rotating}
         </span>
+      )}
+
+      {/*
+       * Clear.
+       *
+       * Shown only with something to clear — an empty box has nothing to undo,
+       * and a permanent × beside an empty field reads as "close the search",
+       * which this header has no such thing as.
+       *
+       * `type="button"`, because the whole box is inside `<form action="/search">`
+       * and the default submit type would send the shopper to the results page
+       * for the word they just asked to delete. It also closes the panel and
+       * hands focus back to the input, so the next keystroke lands in the field
+       * rather than nowhere.
+       */}
+      {query.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setQuery('');
+            setRows([]);
+            setActive(-1);
+            setOpen(false);
+            reopenBlocked.current = document.activeElement !== inputRef.current;
+            inputRef.current?.focus();
+          }}
+          aria-label={tr(locale, 'search.clear')}
+          className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-box text-ink-faint hover:bg-surface-muted hover:text-ink"
+        >
+          <X className="size-5" aria-hidden />
+        </button>
       )}
 
       {open && (

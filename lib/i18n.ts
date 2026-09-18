@@ -36,6 +36,7 @@ const STRINGS = {
   'search.seeAll': { en: 'See all results for "{q}"', hi: '"{q}" के सारे नतीजे देखें' },
   'search.noMatches': { en: 'Nothing matched "{q}"', hi: '"{q}" से कुछ नहीं मिला' },
   'search.searching': { en: 'Searching…', hi: 'खोज रहे हैं…' },
+  'search.clear': { en: 'Clear search', hi: 'खोज हटाएँ' },
   'recent.title': { en: 'Recently viewed', hi: 'हाल में देखे गए' },
   'header.deliverTo': { en: 'Delivery to', hi: 'डिलीवरी' },
   'header.setLocation': { en: 'Set your location', hi: 'अपना पता चुनें' },
@@ -55,6 +56,12 @@ const STRINGS = {
   'footer.whatsapp': { en: 'WhatsApp', hi: 'व्हाट्सएप' },
   'footer.rights': { en: 'All rights reserved.', hi: 'सर्वाधिकार सुरक्षित।' },
   'footer.gstin': { en: 'GSTIN', hi: 'जीएसटीआईएन' },
+  'footer.contact': { en: 'Contact Information', hi: 'संपर्क जानकारी' },
+  'footer.email': { en: 'Email', hi: 'ईमेल' },
+  'footer.phone': { en: 'Phone', hi: 'फ़ोन' },
+  'footer.address': { en: 'Address', hi: 'पता' },
+  /** Names the footer's untitled column for a screen reader; never printed. */
+  'footer.links': { en: 'Footer links', hi: 'फ़ुटर लिंक' },
 
   /*
    * Support. Every one of these is read by someone with a problem, so the
