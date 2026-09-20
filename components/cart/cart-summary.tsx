@@ -68,6 +68,31 @@ export function CartSummary({
           tone={cart.deliveryCharge === '0.00' ? 'success' : undefined}
         />
 
+        {/*
+          Only when the basket is actually splitting. One warehouse is the
+          ordinary case and needs no explanation, but two is a total that looks
+          wrong until you know it covers two vans — so the breakdown appears
+          exactly when the number stops being self-evident.
+        */}
+        {cart.deliveryCharge !== '0.00' && (cart.delivery?.legs.length ?? 0) > 1 && (
+          <ul className="text-muted-foreground -mt-1 flex flex-col gap-0.5 pl-3 text-xs">
+            {cart.delivery?.legs.map((leg) => (
+              <li key={leg.warehouseId} className="flex items-center justify-between gap-2">
+                <span className="truncate">
+                  {leg.warehouseName} · {leg.roadKm} km
+                </span>
+                <span className="tabular shrink-0">
+                  {leg.charge === '0.00'
+                    ? locale === 'hi'
+                      ? 'मुफ़्त'
+                      : 'Free'
+                    : formatINR(leg.charge)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
         {cart.taxAddedTotal !== '0.00' && (
           <Row
             label={locale === 'hi' ? 'जीएसटी' : 'GST'}

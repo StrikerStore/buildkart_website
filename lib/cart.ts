@@ -51,6 +51,19 @@ export const pricedCart = cache(async () => {
   return (await api()).storefront.priceCart.query({
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
     ...(location ? { pincode: location.pincode } : {}),
+    /*
+     * The pin, when the shopper has dropped one, so a shop charging by distance
+     * can quote a real figure rather than a placeholder.
+     *
+     * It comes from the `bk_area` cookie, which is not httpOnly — so this is
+     * the one input on this call the client can move in its own favour. It can
+     * only ever understate a distance, and only in a preview: the charge that
+     * is taken is struck again at order time from the address the goods are
+     * going to. See the note on `priceCartSchema`.
+     */
+    ...(location?.latitude && location.longitude
+      ? { latitude: Number(location.latitude), longitude: Number(location.longitude) }
+      : {}),
     ...(promo ? { discountCode: promo } : {}),
   });
 });

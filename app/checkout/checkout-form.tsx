@@ -596,6 +596,21 @@ export function CheckoutForm({
                   : formatINR(cart.deliveryCharge)
               }
             />
+            {/* Only when the basket is splitting — see the note in cart-summary. */}
+            {cart.deliveryCharge !== '0.00' && (cart.delivery?.legs.length ?? 0) > 1 && (
+              <ul className="-mt-1 space-y-0.5 pl-3 text-caption text-ink-muted">
+                {cart.delivery?.legs.map((leg) => (
+                  <li key={leg.warehouseId} className="flex justify-between gap-2">
+                    <span className="truncate">
+                      {leg.warehouseName} · {leg.roadKm} km
+                    </span>
+                    <span className="shrink-0">
+                      {leg.charge === '0.00' ? (hi ? 'मुफ़्त' : 'Free') : formatINR(leg.charge)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="flex justify-between border-t border-hairline pt-2">
               <dt className="text-heading5 text-ink">{hi ? 'कुल' : 'To pay'}</dt>
               <dd className="text-heading3 text-ink">{formatINR(cart.grandTotal)}</dd>
