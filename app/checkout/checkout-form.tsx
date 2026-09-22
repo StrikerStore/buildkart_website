@@ -103,7 +103,8 @@ export function CheckoutForm({
     wallet && wallet.enabled
       ? quoteWalletRedemption({ grandTotal: cart.grandTotal, balance: wallet.balance }, wallet.rules)
       : null;
-  const [useWallet, setUseWallet] = useState(redemption?.eligible ?? false);
+  // Opt-in: spending store credit is the customer's call, so it starts unticked.
+  const [useWallet, setUseWallet] = useState(false);
   const walletApplied = useWallet && redemption?.eligible ? redemption.amount : '0.00';
   const toPay = subtractMoney(cart.grandTotal, walletApplied);
   const cashback = wallet
@@ -236,6 +237,23 @@ export function CheckoutForm({
       <div className="min-w-0 flex-1 space-y-5">
         <section className="rounded-card border border-hairline bg-surface p-4">
           <h2 className="text-heading5 text-ink">{hi ? 'डिलीवरी का पता' : 'Delivery address'}</h2>
+
+          {/* First, and outside the saved/new switch below: every order needs a
+              name, whichever address it goes to. */}
+          <div className="mt-3">
+            <Field
+              name="name"
+              label={hi ? 'नाम' : 'Full name'}
+              hint={
+                hi
+                  ? 'डिलीवरी के समय राइडर इसी नाम से पूछेगा।'
+                  : 'The rider asks for this name on arrival.'
+              }
+              required
+              defaultValue={defaultName ?? ''}
+              autoComplete="name"
+            />
+          </div>
 
           {here.length > 0 && (
             <div className="mt-3 space-y-2">
@@ -519,23 +537,6 @@ export function CheckoutForm({
           )}
         </section>
 
-        <section className="rounded-card border border-hairline bg-surface p-4">
-          <h2 className="text-heading5 text-ink">{hi ? 'आपका नाम' : 'Your name'}</h2>
-          <p className="mt-0.5 text-body4 text-ink-muted">
-            {hi
-              ? 'डिलीवरी के समय राइडर इसी नाम से पूछेगा।'
-              : 'The rider asks for this name on arrival.'}
-          </p>
-          <div className="mt-3">
-            <Field
-              name="name"
-              label={hi ? 'नाम' : 'Full name'}
-              required
-              defaultValue={defaultName ?? ''}
-              autoComplete="name"
-            />
-          </div>
-        </section>
 
         {/*
           * The GST number — optional, and in its own section rather than beside
