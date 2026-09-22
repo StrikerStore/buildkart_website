@@ -14,6 +14,7 @@ import {
   parseCart,
   parsePromo,
   PROMO_COOKIE,
+  UNLOADING_COOKIE,
   serialiseCart,
   withQuantity,
 } from '@/lib/cart-shared';
@@ -81,6 +82,27 @@ export async function setPromoCode(raw: string): Promise<{ code: string | null }
 
   revalidatePath('/', 'layout');
   return { code };
+}
+
+/**
+ * Adds or removes the unloading service.
+ *
+ * Only the choice is stored; the fee comes from the shop's settings each time
+ * the cart is priced, so a cookie cannot name its own price.
+ */
+export async function setUnloading(on: boolean): Promise<void> {
+  const store = await cookies();
+  if (on) {
+    store.set(UNLOADING_COOKIE, '1', {
+      maxAge: CART_MAX_AGE,
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: false,
+    });
+  } else {
+    store.delete(UNLOADING_COOKIE);
+  }
+  revalidatePath('/', 'layout');
 }
 
 /**

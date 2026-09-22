@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MapPin } from 'lucide-react';
+import { MapPin, User } from 'lucide-react';
 import { formatINR, type CartDto } from '@StrikerStore/contract';
 import { buttonClass } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
@@ -28,10 +28,17 @@ export function CartSummary({
   cart,
   locale,
   showCheckout = true,
+  signedIn = true,
 }: {
   cart: CartDto;
   locale: Locale;
   showCheckout?: boolean;
+  /**
+   * A guest is sent to sign in first, and told so on the button. Checkout
+   * would redirect them there anyway — saying it up front means the tap does
+   * what the label promised, and they come straight back to checkout after.
+   */
+  signedIn?: boolean;
 }) {
   const blocked = !cart.meetsMinimum || cart.delivery?.serviced === false;
 
@@ -91,6 +98,15 @@ export function CartSummary({
               </li>
             ))}
           </ul>
+        )}
+
+        {cart.unloadingCharge !== '0.00' && (
+          <Row
+            label={
+              (locale === 'hi' && cart.unloading?.nameHi) || cart.unloading?.nameEn || 'Unloading'
+            }
+            value={formatINR(cart.unloadingCharge)}
+          />
         )}
 
         {cart.taxAddedTotal !== '0.00' && (
@@ -184,15 +200,22 @@ export function CartSummary({
             </span>
           ) : (
             <Link
-              href="/checkout"
+              href={signedIn ? '/checkout' : '/login?next=%2Fcheckout'}
               className={buttonClass({
                 variant: 'buy',
                 size: 'lg',
                 block: true,
-                className: 'mt-4',
+                className: 'mt-4 gap-2',
               })}
             >
-              {locale === 'hi' ? 'आगे बढ़ें' : 'Proceed to checkout'}
+              {!signedIn && <User className="size-5" aria-hidden />}
+              {signedIn
+                ? locale === 'hi'
+                  ? 'आगे बढ़ें'
+                  : 'Proceed to checkout'
+                : locale === 'hi'
+                  ? 'चेकआउट के लिए लॉगिन करें'
+                  : 'Login to checkout'}
             </Link>
           )}
         </>

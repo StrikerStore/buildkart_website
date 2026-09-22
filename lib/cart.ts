@@ -3,7 +3,14 @@ import { cookies } from 'next/headers';
 import { cache } from 'react';
 import { api } from './api/server';
 import { currentLocation } from './location';
-import { CART_COOKIE, parseCart, parsePromo, PROMO_COOKIE, type CartLine } from './cart-shared';
+import {
+  CART_COOKIE,
+  parseCart,
+  parsePromo,
+  PROMO_COOKIE,
+  UNLOADING_COOKIE,
+  type CartLine,
+} from './cart-shared';
 
 export * from './cart-shared';
 
@@ -34,6 +41,11 @@ export const currentPromo = cache(async (): Promise<string | null> => {
   return parsePromo((await cookies()).get(PROMO_COOKIE)?.value);
 });
 
+/** Whether the shopper has added the unloading service. */
+export const currentUnloading = cache(async (): Promise<boolean> => {
+  return (await cookies()).get(UNLOADING_COOKIE)?.value === '1';
+});
+
 /**
  * The cart, priced by the server.
  *
@@ -42,10 +54,11 @@ export const currentPromo = cache(async (): Promise<string | null> => {
  * what is being priced.
  */
 export const pricedCart = cache(async () => {
-  const [lines, location, promo] = await Promise.all([
+  const [lines, location, promo, unloading] = await Promise.all([
     currentCart(),
     currentLocation(),
     currentPromo(),
+    currentUnloading(),
   ]);
 
   return (await api()).storefront.priceCart.query({
@@ -65,5 +78,6 @@ export const pricedCart = cache(async () => {
       ? { latitude: Number(location.latitude), longitude: Number(location.longitude) }
       : {}),
     ...(promo ? { discountCode: promo } : {}),
+    unloading,
   });
 });

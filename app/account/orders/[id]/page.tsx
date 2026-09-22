@@ -162,6 +162,12 @@ export default async function OrderPage({ params, searchParams }: Props) {
                   : formatINR(order.deliveryCharge)
               }
             />
+            {order.unloadingCharge !== '0.00' && (
+              <Row
+                label={hi ? 'अनलोडिंग सेवा' : 'Unloading service'}
+                value={formatINR(order.unloadingCharge)}
+              />
+            )}
             <div className="flex justify-between border-t border-hairline pt-2">
               <dt className="text-heading5 text-ink">{hi ? 'कुल' : 'Total'}</dt>
               <dd className="text-heading4 text-ink">{formatINR(order.grandTotal)}</dd>

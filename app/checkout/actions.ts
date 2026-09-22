@@ -4,8 +4,8 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult, PlacedOrderDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
-import { currentCart, currentPromo } from '@/lib/cart';
-import { CART_COOKIE, PROMO_COOKIE } from '@/lib/cart-shared';
+import { currentCart, currentPromo, currentUnloading } from '@/lib/cart';
+import { CART_COOKIE, PROMO_COOKIE, UNLOADING_COOKIE } from '@/lib/cart-shared';
 
 /**
  * Placing the order.
@@ -44,12 +44,19 @@ export async function placeOrder(input: {
   /** Pay part of the order from the wallet. The server decides how much. */
   useWallet?: boolean;
 }): Promise<ActionResult<PlacedOrderDto>> {
-  const [lines, promo] = await Promise.all([currentCart(), currentPromo()]);
+  const [lines, promo, unloading] = await Promise.all([
+    currentCart(),
+    currentPromo(),
+    currentUnloading(),
+  ]);
 
   const result = await (await api()).storefront.placeOrder.mutate({
     ...input,
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
     ...(promo ? { discountCode: promo } : {}),
+    // From the cookie the cart page set, like the lines — the form never
+    // carries it, so the order matches what the cart showed.
+    unloading,
   });
 
   if (result.ok) {
@@ -61,6 +68,7 @@ export async function placeOrder(input: {
     const store = await cookies();
     store.delete(CART_COOKIE);
     store.delete(PROMO_COOKIE);
+    store.delete(UNLOADING_COOKIE);
     revalidatePath('/', 'layout');
   }
 

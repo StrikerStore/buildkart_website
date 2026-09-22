@@ -630,6 +630,12 @@ export function CheckoutForm({
                   : formatINR(cart.deliveryCharge)
               }
             />
+            {cart.unloadingCharge !== '0.00' && (
+              <Row
+                label={(hi && cart.unloading?.nameHi) || cart.unloading?.nameEn || 'Unloading'}
+                value={formatINR(cart.unloadingCharge)}
+              />
+            )}
             {/* Only when the basket is splitting — see the note in cart-summary. */}
             {cart.deliveryCharge !== '0.00' && (cart.delivery?.legs.length ?? 0) > 1 && (
               <ul className="-mt-1 space-y-0.5 pl-3 text-caption text-ink-muted">

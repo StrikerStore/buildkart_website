@@ -115,6 +115,15 @@ export function cartCount(lines: CartLine[]): number {
  */
 export const PROMO_COOKIE = 'bk_promo';
 
+/**
+ * Whether the shopper added the unloading service.
+ *
+ * A flag, never a price: "1" means yes, anything else means no, and the fee is
+ * read from the shop's settings on every price. Its own cookie for the same
+ * reason as the promo code — it is not a line.
+ */
+export const UNLOADING_COOKIE = 'bk_unloading';
+
 /** Codes are matched upper-case and bounded; anything else is not a code. */
 export function parsePromo(raw: string | undefined): string | null {
   if (!raw) return null;

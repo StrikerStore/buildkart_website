@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 import { AlertTriangle } from 'lucide-react';
 import { pricedCart } from '@/lib/cart';
 import { currentLocale } from '@/lib/locale';
+import { currentCustomer } from '@/lib/session';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CartLine } from '@/components/cart/cart-line';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { CouponList } from '@/components/cart/coupon-list';
 import { CashbackBanner } from '@/components/wallet/cashback-banner';
+import { UnloadingOffer } from '@/components/cart/unloading-offer';
 
 export const metadata: Metadata = {
   title: 'Cart',
@@ -23,7 +25,11 @@ export const metadata: Metadata = {
  * rather than whenever the shopper last touched a stepper.
  */
 export default async function CartPage() {
-  const [locale, cart] = await Promise.all([currentLocale(), pricedCart()]);
+  const [locale, cart, customer] = await Promise.all([
+    currentLocale(),
+    pricedCart(),
+    currentCustomer(),
+  ]);
 
   const empty = cart.lines.length === 0;
 
@@ -100,6 +106,12 @@ export default async function CartPage() {
               ))}
             </ul>
 
+            {cart.unloading && (
+              <div className="mt-4">
+                <UnloadingOffer offer={cart.unloading} locale={locale} />
+              </div>
+            )}
+
             <div className="mt-4 sm:mt-4">
               <CouponList
                 discount={cart.discount}
@@ -113,7 +125,7 @@ export default async function CartPage() {
               on a phone it simply follows the lines, because a fixed panel
               would eat a third of a small screen. */}
           <div className="mt-5 lg:mt-0 lg:w-80 lg:shrink-0 lg:sticky lg:top-[calc(var(--header-h)+16px)]">
-            <CartSummary cart={cart} locale={locale} />
+            <CartSummary cart={cart} locale={locale} signedIn={customer !== null} />
           </div>
         </div>
       )}
