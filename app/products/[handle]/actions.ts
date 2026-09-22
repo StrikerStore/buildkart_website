@@ -1,6 +1,10 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import type { BulkTierBasis, StorefrontProductDto } from '@StrikerStore/contract';
+import { api } from '@/lib/api/server';
+import { currentCart } from '@/lib/cart';
+import { imageUrl, IMAGE } from '@/lib/media';
 import {
   parseSeen,
   SEEN_COOKIE,
@@ -33,4 +37,44 @@ export async function recordViewed(handle: string): Promise<void> {
     path: '/',
     maxAge: SEEN_MAX_AGE,
   });
+}
+
+/** What the quick-options sheet needs to sell a multi-variant product. */
+export type QuickOptionsData = {
+  handle: string;
+  nameEn: string;
+  nameHi: string | null;
+  imageSrc: string | null;
+  bulkTierBasis: BulkTierBasis;
+  options: StorefrontProductDto['options'];
+  variants: StorefrontProductDto['variants'];
+  /** variantId → quantity already in the cart, as the product page passes it. */
+  quantities: Record<string, number>;
+};
+
+/**
+ * The product behind a card's Options button, loaded when the sheet opens.
+ *
+ * On open rather than with the grid: every multi-variant card on a page would
+ * otherwise carry its whole variant list and ladders into the HTML, for a sheet
+ * most shoppers never open. Only the fields the sheet uses leave the server —
+ * the description, FAQs and related products stay on the product page.
+ */
+export async function loadQuickOptions(handle: string): Promise<QuickOptionsData | null> {
+  const [product, cart] = await Promise.all([
+    (await api()).storefront.product.query({ handle }),
+    currentCart(),
+  ]);
+  if (!product) return null;
+
+  return {
+    handle: product.handle,
+    nameEn: product.nameEn,
+    nameHi: product.nameHi,
+    imageSrc: await imageUrl(product.images[0]?.key, IMAGE.thumb),
+    bulkTierBasis: product.bulkTierBasis,
+    options: product.options,
+    variants: product.variants,
+    quantities: Object.fromEntries(cart.map((line) => [line.variantId, line.qty])),
+  };
 }

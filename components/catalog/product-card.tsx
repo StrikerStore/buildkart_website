@@ -157,10 +157,10 @@ export async function ProductCard({
        * quotes none.
        */}
       {product.bestBulkPrice && product.bulkFrom && (
-        <p className="pt-1 text-body6 text-success">
+        <p className="pt-1 text-body3 text-success">
           {locale === 'hi' ? 'बल्क' : 'Bulk'}: {formatINR(product.bestBulkPrice)}
           {product.bulkFrom.minQuantity !== null
-            ? ` · ${product.bulkFrom.minQuantity}+`
+            ? ` · ${product.bulkFrom.minQuantity}+ ${locale === 'hi' ? 'मात्रा' : 'Qty'}`
             : ` · ${locale === 'hi' ? 'ऊपर' : 'above'} ${formatINR(product.bulkFrom.minAmount!)}`}
         </p>
       )}

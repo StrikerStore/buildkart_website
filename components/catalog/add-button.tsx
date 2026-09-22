@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { quantityOf } from '@/lib/cart';
 import type { Locale } from '@/lib/i18n';
+import { QuickOptions } from './quick-options';
 import { Stepper } from './stepper';
 
 /**
@@ -11,8 +11,8 @@ import { Stepper } from './stepper';
  * the first HTML, with no hydration flash of the wrong control.
  *
  *   - single sellable variant  → a stepper that starts at ADD
- *   - several variants         → a link to the product page, because there is a
- *                                real choice to make and a card cannot make it
+ *   - several variants         → Options, which opens a sheet to pick the size
+ *                                and quantity, with Add to cart and Buy now
  *   - nothing sellable         → a disabled label
  *
  * The middle case is the one worth stating: an ADD button on a multi-size
@@ -38,16 +38,7 @@ export async function AddButton({
     );
   }
 
-  if (!variantId) {
-    return (
-      <Link
-        href={`/products/${handle}`}
-        className="inline-flex h-10 items-center rounded-box border border-buy bg-surface px-3 text-cta3 text-buy hover:bg-success-bg"
-      >
-        {locale === 'hi' ? 'चुनें' : 'Options'}
-      </Link>
-    );
-  }
+  if (!variantId) return <QuickOptions handle={handle} locale={locale} />;
 
   return <Stepper variantId={variantId} quantity={await quantityOf(variantId)} locale={locale} />;
 }
