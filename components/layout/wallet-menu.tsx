@@ -178,7 +178,13 @@ function Panel({
   summary: Summary | null;
 }) {
   const hi = locale === 'hi';
-  const tiles = benefitTiles(rules, locale, summary === null);
+  const tiles = benefitTiles(rules, locale);
+  // The welcome offer, in the owner's amount — only to somebody not signed in,
+  // and only while the bonus is actually switched on.
+  const bonus =
+    summary === null && rules.enabled && rules.signupBonus.enabled
+      ? rules.signupBonus.amount
+      : null;
 
   return (
     <div className="overflow-hidden rounded-card border border-hairline bg-surface p-4 shadow-xl">
@@ -223,11 +229,33 @@ function Panel({
           </div>
         )
       ) : (
-        <p className="mt-2 text-body3 text-ink-muted">
-          {hi
-            ? 'हर ऑर्डर पर कैशबैक कमाने और अगली खरीद पर बचाने के लिए लॉगिन करें।'
-            : 'Login to earn cashback on every order & save on your next purchases.'}
-        </p>
+        <>
+          <p className="mt-2 text-body3 text-ink-muted">
+            {hi
+              ? 'हर ऑर्डर पर कैशबैक कमाने और अगली खरीद पर बचाने के लिए लॉगिन करें।'
+              : 'Login to earn cashback on every order & save on your next purchases.'}
+          </p>
+          {bonus && (
+            /*
+             * "New customers", said plainly: the bonus is paid once, to an
+             * account's first sign-in, and a returning customer promised ₹500
+             * who does not get it is a complaint this line would have caused.
+             */
+            <p className="mt-3 flex items-center gap-2 rounded-box border border-brand/40 bg-brand-tint px-3 py-2">
+              <Gift className="size-5 shrink-0 text-brand-text" aria-hidden />
+              <span className="min-w-0">
+                <span className="block text-heading7 text-ink">
+                  {hi
+                    ? `लॉगिन करें और वॉलेट में ${formatINR(bonus)} पाएं`
+                    : `Login & get ${formatINR(bonus)} in your wallet`}
+                </span>
+                <span className="block text-body6 text-ink-muted">
+                  {hi ? 'नए ग्राहकों के लिए वेलकम बोनस' : 'Welcome bonus for new customers'}
+                </span>
+              </span>
+            </p>
+          )}
+        </>
       )}
 
       {tiles.length > 0 && (
@@ -269,9 +297,13 @@ function Panel({
           ? hi
             ? 'वॉलेट देखें'
             : 'View wallet'
-          : hi
-            ? 'लॉगिन करें'
-            : 'Login to continue'}
+          : bonus
+            ? hi
+              ? `लॉगिन करें, ${formatINR(bonus)} पाएं`
+              : `Login & get ${formatINR(bonus)}`
+            : hi
+              ? 'लॉगिन करें'
+              : 'Login to continue'}
       </Link>
     </div>
   );
@@ -279,13 +311,12 @@ function Panel({
 
 /**
  * Up to three benefits, in the owner's numbers: the entry cashback slab, where
- * the wallet can be spent, and the top slab (or, for a stranger, the welcome
- * bonus when there is only one slab to talk about).
+ * the wallet can be spent, and the top slab. The welcome bonus has its own
+ * line above these, so it is not repeated here.
  */
 function benefitTiles(
   rules: WalletRulesDto,
   locale: Locale,
-  signedOut: boolean,
 ): Array<{ icon: LucideIcon; title: string; sub: string }> {
   const hi = locale === 'hi';
   const tiles: Array<{ icon: LucideIcon; title: string; sub: string }> = [];
@@ -316,12 +347,6 @@ function benefitTiles(
       icon: IndianRupee,
       title: hi ? `${top.percent}% तक` : `Up to ${top.percent}%`,
       sub: hi ? `${formatINR(top.minOrderValue)} से ऊपर` : `above ${formatINR(top.minOrderValue)}`,
-    });
-  } else if (signedOut && rules.signupBonus.enabled) {
-    tiles.push({
-      icon: Gift,
-      title: hi ? `${formatINR(rules.signupBonus.amount)} बोनस` : `${formatINR(rules.signupBonus.amount)} bonus`,
-      sub: hi ? 'साइन अप पर' : 'on sign up',
     });
   }
   return tiles.slice(0, 3);

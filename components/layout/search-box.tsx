@@ -65,6 +65,8 @@ export function SearchBox({
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(-1);
   const [term, setTerm] = useState(0);
+  /** Viewport y where the phone drawer starts — just under the box. */
+  const [drawerTop, setDrawerTop] = useState(0);
 
   /*
    * Set just before we move focus back to the input, so the `onFocus` that
@@ -158,6 +160,27 @@ export function SearchBox({
       controller.abort();
     };
   }, [query, locale]);
+
+  /*
+   * On a phone the drawer spans the screen, not the box, so it is placed
+   * against the viewport and needs to know where the box ends. Measured on
+   * open and again when the viewport changes — the keyboard sliding up is a
+   * resize — since the header is sticky and does not move with the page.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (rect) setDrawerTop(Math.round(rect.bottom + 8));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.visualViewport?.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
+    };
+  }, [open]);
 
   /* Escape closes, a click outside closes. Mirrors the mini cart next door. */
   useEffect(() => {
@@ -333,6 +356,12 @@ export function SearchBox({
           setOpen(true);
         }}
         onBlur={() => setFocused(false)}
+        /*
+         * A tap on a field that already has focus fires no focus event, so
+         * `onFocus` alone left a shopper who had closed the panel with the
+         * keyboard still up unable to get it back by tapping — only by typing.
+         */
+        onClick={() => setOpen(true)}
         onKeyDown={onKeyDown}
         placeholder={tr(locale, 'header.searchPlaceholder')}
         aria-label={tr(locale, 'header.search')}
@@ -346,6 +375,8 @@ export function SearchBox({
           // padding that changed as you typed would shift the text under the
           // caret mid-word.
           'h-[var(--tap)] w-full rounded-box border border-hairline-strong bg-surface-warm pl-11 pr-11',
+          // The static placeholder, cut with "…" rather than at the border.
+          'text-ellipsis',
           // WebKit draws its own clear button inside `type="search"`. Ours sits
           // in the same corner and is the one that also closes the panel, so
           // the native one is suppressed rather than left to double up.
@@ -360,7 +391,10 @@ export function SearchBox({
       {rotating && (
         <span
           aria-hidden
-          className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 truncate pr-11 text-body1 text-ink-faint"
+          // Both edges pinned, so `truncate` has a width to cut against —
+          // with only `left` set, "Search for Overhead Water Tank" simply ran
+          // on past the end of the box.
+          className="pointer-events-none absolute left-11 right-11 top-1/2 -translate-y-1/2 truncate text-body1 text-ink-faint"
         >
           {rotating}
         </span>
@@ -376,9 +410,8 @@ export function SearchBox({
        * closes it and so does a tap outside, but neither is discoverable on a
        * phone, where there is barely any "outside" left to tap.
        *
-       * One control for both jobs rather than two, because they are one
-       * intention: it clears the word if there is one and closes the panel
-       * either way.
+       * One control for both jobs rather than two: it clears the word if there
+       * is one, and closes the panel (and the keyboard) once there is not.
        *
        * `type="button"`, because the whole box sits inside
        * `<form action="/search">` and the default submit type would send the
@@ -387,20 +420,29 @@ export function SearchBox({
       {(open || query.length > 0) && (
         <button
           type="button"
+          // Keeps focus in the field while the word is cleared, instead of
+          // handing it to the button and back.
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
-            setQuery('');
             setRows([]);
             setActive(-1);
-            setOpen(false);
+
             /*
-             * Focus goes back to the field so the next keystroke lands in it —
-             * but `reopenBlocked` first, or the `onFocus` that follows would
-             * reopen the panel this tap just closed. Only set when focus is
-             * genuinely elsewhere, which is the same rule the Escape handler
-             * follows.
+             * Two presses, two meanings. With a word typed, ✕ clears it and
+             * leaves the panel and keyboard where they are — the shopper is
+             * still searching, just for something else. With the box already
+             * empty, ✕ means "I'm done": the panel closes *and* the field lets
+             * go of focus, so the phone's keyboard goes with it. Closing the
+             * panel while leaving the keyboard up was the worst of both — and a
+             * tap on the field afterwards now reopens it (see `onClick`).
              */
-            reopenBlocked.current = document.activeElement !== inputRef.current;
-            inputRef.current?.focus();
+            if (query.length > 0) {
+              setQuery('');
+              inputRef.current?.focus();
+              return;
+            }
+            setOpen(false);
+            inputRef.current?.blur();
           }}
           aria-label={tr(locale, query.length > 0 ? 'search.clear' : 'search.close')}
           className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-box text-ink-faint hover:bg-surface-muted hover:text-ink"
@@ -411,9 +453,18 @@ export function SearchBox({
 
       {open && (
         <div
+          style={{ '--search-top': `${drawerTop}px` } as React.CSSProperties}
           className={cn(
             'absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-[60vh] overflow-y-auto',
             'rounded-card border border-hairline bg-surface py-1 shadow-sheet',
+            /*
+             * Below `md` the box shares its row with the wallet pill, so a
+             * drawer the width of the box is a narrow column of tiles. There it
+             * spans the screen instead, from just under the box to the bottom
+             * of what is visible.
+             */
+            'max-md:fixed max-md:inset-x-2 max-md:top-[var(--search-top)]',
+            'max-md:max-h-[calc(100dvh-var(--search-top)-8px)]',
           )}
         >
           {/*
