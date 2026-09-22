@@ -13,7 +13,7 @@ import { MiniCart } from '@/components/cart/mini-cart';
 import { SearchBox, type SearchCategory } from './search-box';
 import type { SuggestionRow } from '@/app/api/suggest/route';
 import { recentlyViewed } from '@/lib/recently-viewed';
-import { WalletPill } from './wallet-pill';
+import { WalletMenu } from './wallet-menu';
 
 /**
  * The sticky header.
@@ -49,6 +49,26 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
   const name = settings.store.nameEn;
   const nameHi = settings.store.nameHi;
   const promiseHours = settings.commerce.promiseHours;
+
+  /** The wallet pill and panel, in either of its two placements. */
+  const walletMenu = (variant: 'header' | 'bar', className?: string) =>
+    settings.wallet.enabled ? (
+      <WalletMenu
+        locale={locale}
+        rules={settings.wallet}
+        variant={variant}
+        className={className}
+        summary={
+          wallet
+            ? {
+                balance: wallet.balance,
+                pendingCashback: wallet.pendingCashback,
+                expiringSoon: wallet.expiringSoon,
+              }
+            : null
+        }
+      />
+    ) : null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-surface print:hidden">
@@ -107,9 +127,9 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
             <LocaleToggle locale={locale} />
 
-            {settings.wallet.enabled && (
-              <WalletPill locale={locale} balance={wallet?.balance ?? null} />
-            )}
+            {/* Desktop: in the top row. The phone's copy is beside the search
+                box below — see `walletMenu`. */}
+            {walletMenu('header', 'hidden md:block')}
 
             {/* Icon-only on a phone, labelled from `md` up. Previously hidden
                 below `md` altogether, which left no way to reach an account on
@@ -135,9 +155,18 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
         </div>
 
         {/* --- row two: search, on phones only ---------------------------- */}
-        <form action="/search" role="search" className="pb-3 md:hidden">
-          <SearchBox categories={categories} recent={recent} locale={locale} />
-        </form>
+        {/*
+          * The wallet rides beside the search box on a phone. Row one there
+          * already carries the menu, the mark, the location and the language
+          * toggle, and a balance squeezed in beside them pushed the delivery
+          * pincode out of view — the one thing that row must always show.
+          */}
+        <div className="flex items-center gap-2 pb-3 md:hidden">
+          <form action="/search" role="search" className="min-w-0 flex-1">
+            <SearchBox categories={categories} recent={recent} locale={locale} />
+          </form>
+          {walletMenu('bar')}
+        </div>
 
         {/* --- row three: the owner's menu, on desktop only ---------------- */}
         <MainNav items={headerMenu.items} locale={locale} />
