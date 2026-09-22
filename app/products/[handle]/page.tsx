@@ -16,6 +16,7 @@ import { DeliveryLine } from '@/components/product/delivery-line';
 import { Accordion } from '@/components/ui/accordion';
 import { SpecsTable } from '@/components/product/specs-table';
 import { VariantPicker } from '@/components/product/variant-picker';
+import { CashbackOffer } from '@/components/wallet/cashback-offer';
 
 type Props = { params: Promise<{ handle: string }> };
 
@@ -147,6 +148,7 @@ export default async function ProductPage({ params }: Props) {
               locale={locale}
               productName={name}
               bulkTierBasis={product.bulkTierBasis}
+              offer={<CashbackOffer rules={settings.wallet} locale={locale} />}
               details={
                 /*
                   * Everything worth reading about this product, as one closed

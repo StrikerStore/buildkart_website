@@ -2,8 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { Banknote, CreditCard, Loader2, MapPin, Plus } from 'lucide-react';
-import { formatINR, type CartDto, type MyAddressDto } from '@StrikerStore/contract';
+import { Banknote, CreditCard, Loader2, MapPin, Plus, Wallet } from 'lucide-react';
+import {
+  cashbackBase,
+  formatINR,
+  quoteCashback,
+  quoteWalletRedemption,
+  subtractMoney,
+  type CartDto,
+  type MyAddressDto,
+  type WalletSummaryDto,
+} from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { MapPicker } from '@/components/location/map-picker';
 import { useLocationSheet } from '@/components/location/location-provider';
@@ -37,6 +46,7 @@ export function CheckoutForm({
   area,
   askGstin,
   defaultGstin,
+  wallet,
 }: {
   cart: CartDto;
   methods: Method[];
@@ -72,6 +82,8 @@ export function CheckoutForm({
   askGstin: boolean;
   /** The GSTIN this customer gave last time, so a regular firm types it once. */
   defaultGstin: string | null;
+  /** Null when the wallet could not be read — the option is then not offered. */
+  wallet: WalletSummaryDto | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -80,6 +92,26 @@ export function CheckoutForm({
   const [picking, setPicking] = useState(false);
   const [method, setMethod] = useState(methods[0]?.provider ?? '');
   const hi = locale === 'hi';
+
+  /*
+   * The wallet preview, worked out with the same shared functions the server
+   * uses to write the order. The server still decides — the form sends a
+   * yes/no, never an amount — so this is a preview of the figure that will be
+   * charged, never a claim about it.
+   */
+  const redemption =
+    wallet && wallet.enabled
+      ? quoteWalletRedemption({ grandTotal: cart.grandTotal, balance: wallet.balance }, wallet.rules)
+      : null;
+  const [useWallet, setUseWallet] = useState(redemption?.eligible ?? false);
+  const walletApplied = useWallet && redemption?.eligible ? redemption.amount : '0.00';
+  const toPay = subtractMoney(cart.grandTotal, walletApplied);
+  const cashback = wallet
+    ? quoteCashback(
+        { base: cashbackBase(cart.subtotal, cart.discountTotal), walletApplied },
+        wallet.rules,
+      )
+    : cart.cashback;
   const { open: openLocation } = useLocationSheet();
 
   const areaCity = area.city;
@@ -187,6 +219,7 @@ export function CheckoutForm({
         // Normalised and checksum-checked on the server; an empty box is
         // simply absent rather than an empty string to validate.
         gstin: askGstin ? value('gstin') || undefined : undefined,
+        useWallet: walletApplied !== '0.00',
       });
 
       if (!result.ok) {
@@ -611,11 +644,39 @@ export function CheckoutForm({
                 ))}
               </ul>
             )}
+            {walletApplied !== '0.00' && (
+              <>
+                <Row label={hi ? 'ऑर्डर का कुल' : 'Order total'} value={formatINR(cart.grandTotal)} />
+                <Row
+                  label={hi ? 'वॉलेट से' : 'Paid from wallet'}
+                  value={`− ${formatINR(walletApplied)}`}
+                  tone="success"
+                />
+              </>
+            )}
             <div className="flex justify-between border-t border-hairline pt-2">
               <dt className="text-heading5 text-ink">{hi ? 'कुल' : 'To pay'}</dt>
-              <dd className="text-heading3 text-ink">{formatINR(cart.grandTotal)}</dd>
+              <dd className="text-heading3 text-ink">{formatINR(toPay)}</dd>
             </div>
           </dl>
+
+          {wallet && wallet.enabled && wallet.balance !== '0.00' && redemption && (
+            <WalletChoice
+              wallet={wallet}
+              redemption={redemption}
+              checked={useWallet}
+              onChange={setUseWallet}
+              locale={locale}
+            />
+          )}
+
+          {cashback && (
+            <p className="mt-3 rounded-box bg-brand-tint px-3 py-2 text-center text-body4 text-brand-text">
+              {hi
+                ? `इस ऑर्डर पर ${formatINR(cashback.amount)} कैशबैक — डिलीवरी के बाद वॉलेट में`
+                : `You'll earn ${formatINR(cashback.amount)} cashback — added to your wallet after delivery`}
+            </p>
+          )}
 
           {error && (
             <p role="alert" className="mt-3 rounded-box bg-error-bg px-3 py-2 text-body3 text-error">
@@ -679,6 +740,76 @@ function Field({
       />
       {hint && <p className="mt-0.5 text-body5 text-ink-faint">{hint}</p>}
     </div>
+  );
+}
+
+/**
+ * "Use wallet balance", with what it would take off this order.
+ *
+ * Shown whenever there is a balance, eligible or not — a customer with ₹500 in
+ * the wallet who cannot use it on a ₹300 order deserves to be told why, rather
+ * than wondering where the option went.
+ */
+function WalletChoice({
+  wallet,
+  redemption,
+  checked,
+  onChange,
+  locale,
+}: {
+  wallet: WalletSummaryDto;
+  redemption: ReturnType<typeof quoteWalletRedemption>;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  locale: Locale;
+}) {
+  const hi = locale === 'hi';
+  const eligible = redemption.eligible;
+  return (
+    <label
+      className={cn(
+        'mt-3 flex items-start gap-3 rounded-box border p-3',
+        eligible
+          ? checked
+            ? 'cursor-pointer border-buy bg-success-bg'
+            : 'cursor-pointer border-hairline-strong'
+          : 'border-hairline bg-surface-muted',
+      )}
+    >
+      <input
+        type="checkbox"
+        className="mt-1 size-4 accent-[var(--buy)]"
+        checked={eligible && checked}
+        disabled={!eligible}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5 text-heading6 text-ink">
+          <Wallet className="size-4 shrink-0" aria-hidden />
+          {hi ? 'वॉलेट बैलेंस इस्तेमाल करें' : 'Use wallet balance'}
+        </span>
+        <span className="mt-0.5 block text-body5 text-ink-muted">
+          {eligible
+            ? hi
+              ? `${formatINR(wallet.balance)} उपलब्ध · इस ऑर्डर पर ${formatINR(redemption.amount)}`
+              : `${formatINR(wallet.balance)} available · ${formatINR(redemption.amount)} on this order`
+            : redemption.reason === 'BELOW_MINIMUM'
+              ? hi
+                ? `${formatINR(wallet.balance)} उपलब्ध · ${formatINR(redemption.minOrderValue)} से ऊपर के ऑर्डर पर`
+                : `${formatINR(wallet.balance)} available · usable on orders above ${formatINR(redemption.minOrderValue)}`
+              : hi
+                ? `${formatINR(wallet.balance)} उपलब्ध`
+                : `${formatINR(wallet.balance)} available`}
+        </span>
+        {eligible && wallet.rules.redemption.maxPercentOfOrder < 100 && (
+          <span className="mt-0.5 block text-body6 text-ink-faint">
+            {hi
+              ? `ऑर्डर का ${wallet.rules.redemption.maxPercentOfOrder}% तक वॉलेट से`
+              : `Up to ${wallet.rules.redemption.maxPercentOfOrder}% of an order can be paid from the wallet`}
+          </span>
+        )}
+      </span>
+    </label>
   );
 }
 

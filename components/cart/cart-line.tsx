@@ -118,7 +118,18 @@ export async function CartLine({ line, locale }: { line: CartLineDto; locale: Lo
           */}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <CartQuantity variantId={line.variantId} quantity={line.quantity} locale={locale} jumps />
-          <span className="ml-auto text-heading6 text-ink">{formatINR(line.lineTotal)}</span>
+          <span className="ml-auto flex flex-col items-end gap-1">
+            <span className="text-heading6 text-ink">{formatINR(line.lineTotal)}</span>
+            {/* This line's share of the order's cashback — the pills add up to
+                the banner above the list. */}
+            {line.cashback !== '0.00' && (
+              <span className="rounded-pill bg-brand-tint px-2 py-0.5 text-heading9 text-brand-text">
+                {locale === 'hi'
+                  ? `${formatINR(line.cashback)} कैशबैक`
+                  : `${formatINR(line.cashback)} cashback`}
+              </span>
+            )}
+          </span>
         </div>
       </div>
     </li>

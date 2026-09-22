@@ -39,10 +39,12 @@ export default async function CheckoutPage() {
   if (!cart.meetsMinimum) redirect('/cart');
 
   const client = await api();
-  const [checkout, addresses, profile] = await Promise.all([
+  const [checkout, addresses, profile, wallet] = await Promise.all([
     client.content.storefrontCheckout.query(),
     client.storefront.myAddresses.query(),
     client.storefront.myProfile.query(),
+    // A wallet that fails to load hides the option; it must not stop checkout.
+    client.storefront.wallet.query().catch(() => null),
   ]);
 
   /*
@@ -90,6 +92,7 @@ export default async function CheckoutPage() {
         }}
         askGstin={askGstin}
         defaultGstin={profile?.gstin ?? null}
+        wallet={wallet}
       />
     </div>
   );

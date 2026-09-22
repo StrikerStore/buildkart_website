@@ -105,6 +105,14 @@ export function CartSummary({
           <dt className="text-heading5 text-ink">{locale === 'hi' ? 'कुल' : 'To pay'}</dt>
           <dd className="text-heading3 text-ink">{formatINR(cart.grandTotal)}</dd>
         </div>
+
+        {cart.cashback && (
+          <Row
+            label={locale === 'hi' ? 'वॉलेट में कैशबैक' : 'Cashback to wallet'}
+            value={formatINR(cart.cashback.amount)}
+            tone="success"
+          />
+        )}
       </dl>
 
       {/*

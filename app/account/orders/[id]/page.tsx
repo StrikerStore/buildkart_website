@@ -166,6 +166,13 @@ export default async function OrderPage({ params, searchParams }: Props) {
               <dt className="text-heading5 text-ink">{hi ? 'कुल' : 'Total'}</dt>
               <dd className="text-heading4 text-ink">{formatINR(order.grandTotal)}</dd>
             </div>
+            {order.walletApplied !== '0.00' && (
+              <Row
+                label={hi ? 'वॉलेट से चुकाया' : 'Paid from wallet'}
+                value={`− ${formatINR(order.walletApplied)}`}
+                tone="success"
+              />
+            )}
             <Row
               label={hi ? 'पेमेंट' : 'Payment'}
               value={
@@ -175,6 +182,15 @@ export default async function OrderPage({ params, searchParams }: Props) {
               }
             />
           </dl>
+
+          {order.cashbackStatus !== 'NONE' && (
+            <CashbackStatusLine
+              status={order.cashbackStatus}
+              amount={order.cashbackAmount}
+              releaseAt={order.cashbackReleaseAt}
+              locale={locale}
+            />
+          )}
         </section>
 
         <section className="mt-5 rounded-card border border-hairline bg-surface p-4">
@@ -265,5 +281,68 @@ function Row({ label, value, tone }: { label: string; value: string; tone?: 'suc
       <dt className="text-ink-muted">{label}</dt>
       <dd className={tone === 'success' ? 'text-success' : 'text-ink'}>{value}</dd>
     </div>
+  );
+}
+
+/**
+ * Where this order's cashback is: on its way, in the wallet, or withdrawn.
+ *
+ * "Pending" says what it is waiting for — delivery, or the hold after it — so
+ * a customer does not have to guess whether something went wrong.
+ */
+function CashbackStatusLine({
+  status,
+  amount,
+  releaseAt,
+  locale,
+}: {
+  status: 'PENDING' | 'CREDITED' | 'VOIDED' | 'NONE';
+  amount: string;
+  releaseAt: string | null;
+  locale: 'en' | 'hi';
+}) {
+  const hi = locale === 'hi';
+  const when = releaseAt
+    ? new Date(releaseAt).toLocaleString(hi ? 'hi-IN' : 'en-IN', {
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
+
+  const text =
+    status === 'CREDITED'
+      ? hi
+        ? `${formatINR(amount)} कैशबैक आपके वॉलेट में जोड़ा गया`
+        : `${formatINR(amount)} cashback added to your wallet`
+      : status === 'VOIDED'
+        ? hi
+          ? `${formatINR(amount)} कैशबैक — ऑर्डर रद्द होने से नहीं मिलेगा`
+          : `${formatINR(amount)} cashback — withdrawn, the order was cancelled`
+        : when
+          ? hi
+            ? `${formatINR(amount)} कैशबैक ${when} तक वॉलेट में`
+            : `${formatINR(amount)} cashback arrives in your wallet by ${when}`
+          : hi
+            ? `${formatINR(amount)} कैशबैक — डिलीवरी के बाद वॉलेट में`
+            : `${formatINR(amount)} cashback — added to your wallet after delivery`;
+
+  return (
+    <p
+      className={
+        status === 'VOIDED'
+          ? 'border-t border-hairline px-4 py-3 text-body4 text-ink-muted'
+          : 'border-t border-hairline bg-brand-tint px-4 py-3 text-body4 text-brand-text'
+      }
+    >
+      {status === 'CREDITED' ? (
+        <Link href="/wallet" className="underline">
+          {text}
+        </Link>
+      ) : (
+        text
+      )}
+    </p>
   );
 }

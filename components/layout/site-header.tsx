@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { User } from 'lucide-react';
-import { categoryNav, publishedMenu, storeSettings } from '@/lib/api/server';
+import { categoryNav, publishedMenu, storeSettings, myWallet } from '@/lib/api/server';
 import { imageUrl, IMAGE } from '@/lib/media';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentCustomer } from '@/lib/session';
@@ -44,6 +44,8 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
     searchRecent(locale),
   ]);
   const count = cartCount(cart);
+  // Only asked for when there is somebody to ask about.
+  const wallet = customer && settings.wallet.enabled ? await myWallet() : null;
   const name = settings.store.nameEn;
   const nameHi = settings.store.nameHi;
   const promiseHours = settings.commerce.promiseHours;
@@ -105,7 +107,9 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
             <LocaleToggle locale={locale} />
 
-            <WalletPill locale={locale} />
+            {settings.wallet.enabled && (
+              <WalletPill locale={locale} balance={wallet?.balance ?? null} />
+            )}
 
             {/* Icon-only on a phone, labelled from `md` up. Previously hidden
                 below `md` altogether, which left no way to reach an account on

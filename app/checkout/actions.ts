@@ -41,6 +41,8 @@ export async function placeOrder(input: {
    * implementation for a crafted request to walk around.
    */
   gstin?: string;
+  /** Pay part of the order from the wallet. The server decides how much. */
+  useWallet?: boolean;
 }): Promise<ActionResult<PlacedOrderDto>> {
   const [lines, promo] = await Promise.all([currentCart(), currentPromo()]);
 

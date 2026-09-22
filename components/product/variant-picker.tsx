@@ -27,6 +27,7 @@ export function VariantPicker({
   locale,
   productName,
   bulkTierBasis,
+  offer,
   details,
 }: {
   options: Axis[];
@@ -38,6 +39,12 @@ export function VariantPicker({
   productName: string;
   /** How this product's rungs read, so the ladder is worded once. */
   bulkTierBasis: BulkTierBasis;
+  /**
+   * The cashback strip, built on the page from the store's wallet rules.
+   * Under the price card on every screen size — on a phone the card itself can
+   * be hidden, and the offer must not go with it.
+   */
+  offer?: React.ReactNode;
   /**
    * The disclosure stack: description, specifications, FAQs, return terms.
    *
@@ -184,6 +191,8 @@ export function VariantPicker({
           {locale === 'hi' ? 'ऊपर से एक विकल्प चुनें।' : 'Choose an option above to see the price.'}
         </p>
       )}
+
+      {offer}
 
       {details}
 

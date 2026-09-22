@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CartLine } from '@/components/cart/cart-line';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { CouponList } from '@/components/cart/coupon-list';
+import { CashbackBanner } from '@/components/wallet/cashback-banner';
 
 export const metadata: Metadata = {
   title: 'Cart',
@@ -83,6 +84,8 @@ export default async function CartPage() {
       ) : (
         <div className="mt-5 gap-8 lg:flex lg:items-start">
           <div className="min-w-0 flex-1">
+            <CashbackBanner cart={cart} locale={locale} className="mb-4" />
+
             {/*
               * The cart-wide bulk progress bar is gone with the store-wide
               * cutoff it measured. Bulk is per line now, so the nudge lives on

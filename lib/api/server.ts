@@ -41,6 +41,17 @@ export const api = cache(async () =>
 export const storeSettings = cache(async () => (await api()).content.settings.query());
 
 /**
+ * The signed-in customer's wallet — balance, what expires soon, the rules.
+ *
+ * Cached per request because the header pill and the wallet page both want it.
+ * Resolves to null for a guest, or when the read fails: a wallet is never
+ * worth breaking the header over.
+ */
+export const myWallet = cache(async () =>
+  (await api()).storefront.wallet.query().catch(() => null),
+);
+
+/**
  * The category tree.
  *
  * Cached per request for the same reason `storeSettings` is: the header strip
