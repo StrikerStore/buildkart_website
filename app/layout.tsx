@@ -165,16 +165,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
           <SiteHeader locale={locale} />
 
-          {/* `pb-24 md:pb-0` leaves room for the mobile cart bar, which is fixed
-              and would otherwise sit on top of the last row of any page. */}
-          <main id="main" className="pb-24 md:pb-0">
-            {children}
-          </main>
+          <main id="main">{children}</main>
 
           {/* Closes every page, above the footer rather than inside it: the
               footer is a list of links and this is the shop signing off. */}
           <BrandTagline locale={locale} />
           <SiteFooter locale={locale} />
+
+          {/*
+            * Room for the mobile cart bar, which is fixed and would otherwise
+            * sit on top of the end of the page. After the footer, not as
+            * padding on `<main>`: the tagline and footer follow `<main>`, so
+            * padding there opened a 96px gap mid-page above the tagline while
+            * leaving the footer — the real end of the page — uncovered.
+            * Footer-coloured so it reads as the footer running on.
+            */}
+          <div aria-hidden className="h-24 bg-surface md:hidden print:hidden" />
           <CartBar count={cartCount(cart)} locale={locale} />
         </LocationProvider>
       </body>
