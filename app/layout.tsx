@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Noto_Sans_Devanagari } from 'next/font/google';
+import localFont from 'next/font/local';
 import { announcementBar, api, storeSettings } from '@/lib/api/server';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentLocale, htmlLang } from '@/lib/locale';
@@ -25,11 +25,27 @@ import './globals.css';
  * first visit and used by nothing. On the connection this shop's customers
  * actually have, an unused webfont is the most expensive kind of dead code.
  */
-const notoDevanagari = Noto_Sans_Devanagari({
-  subsets: ['devanagari'],
-  weight: ['400', '500', '600', '700'],
+/*
+ * Self-hosted, not `next/font/google`. That fetched Google's CSS at build time,
+ * and on Railway's builder Google answered with font URLs Turbopack could not
+ * parse ("next/font/google queries have exactly one entry") — a build that
+ * failed there and passed here. The file is Google's own devanagari subset of
+ * the variable font (weights 400–700), and `unicode-range` keeps it to the
+ * glyphs that subset was served for.
+ */
+const notoDevanagari = localFont({
+  src: './fonts/noto-sans-devanagari-var.woff2',
+  weight: '400 700',
+  style: 'normal',
   variable: '--font-noto-devanagari',
   display: 'swap',
+  declarations: [
+    {
+      prop: 'unicode-range',
+      value:
+        'U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09',
+    },
+  ],
 });
 
 /**
