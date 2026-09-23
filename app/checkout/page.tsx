@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/api/server';
+import { mapDefaultFrom } from '@/lib/location-shared';
 import { pricedCart } from '@/lib/cart';
 import { currentLocale } from '@/lib/locale';
 import { currentLocation } from '@/lib/location';
@@ -78,11 +79,7 @@ export default async function CheckoutPage() {
             ? { lat: Number(area.latitude), lng: Number(area.longitude) }
             : null
         }
-        mapDefault={{
-          lat: checkout.location.defaultLat,
-          lng: checkout.location.defaultLng,
-          zoom: checkout.location.defaultZoom,
-        }}
+        mapDefault={mapDefaultFrom(checkout.location)}
         area={{
           // The cart's own area is authoritative for the city; the cookie
           // carries the state, which no serviceable-area row holds.

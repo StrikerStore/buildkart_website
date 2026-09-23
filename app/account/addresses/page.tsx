@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/api/server';
+import { mapDefaultFrom } from '@/lib/location-shared';
 import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';
 import { AddressBook } from '@/components/account/address-book';
@@ -44,11 +45,7 @@ export default async function AddressesPage() {
           <AddressBook
             addresses={addresses}
             locale={locale}
-            mapDefault={{
-              lat: checkout.location.defaultLat,
-              lng: checkout.location.defaultLng,
-              zoom: checkout.location.defaultZoom,
-            }}
+            mapDefault={mapDefaultFrom(checkout.location)}
           />
         </div>
       </div>

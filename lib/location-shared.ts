@@ -13,6 +13,8 @@
  * never be what decides a delivery fee.
  */
 
+import type { MapProvider, StorefrontLocationDto } from '@StrikerStore/contract';
+
 export const LOCATION_COOKIE = 'bk_area';
 
 /** Ninety days. Long enough that a returning customer is not asked again. */
@@ -121,4 +123,29 @@ export function normalizeCoordinate(value: number | string | null | undefined): 
 /** The short label the header pill shows — area if known, else the pincode. */
 export function locationLabel(location: StoredLocation): string {
   return location.areaName ?? location.pincode;
+}
+
+/**
+ * Where a map opens, and whose tiles it draws.
+ *
+ * Built once from `checkout.location` on the server and handed down to every
+ * `MapPicker`. `browserKey` is public by design — it travels in the Maps
+ * script URL and is locked to the shop's domains at Google, not hidden here.
+ */
+export type MapDefault = {
+  lat: number;
+  lng: number;
+  zoom: number;
+  provider: MapProvider;
+  browserKey: string;
+};
+
+export function mapDefaultFrom(location: StorefrontLocationDto): MapDefault {
+  return {
+    lat: location.defaultLat,
+    lng: location.defaultLng,
+    zoom: location.defaultZoom,
+    provider: location.provider,
+    browserKey: location.browserKey,
+  };
 }

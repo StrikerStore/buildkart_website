@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { api } from '@/lib/api/server';
+import { mapDefaultFrom } from '@/lib/location-shared';
 import { currentLocale } from '@/lib/locale';
 import { currentLocation } from '@/lib/location';
 import { currentCustomer } from '@/lib/session';
@@ -58,11 +59,7 @@ export default async function LocationPage() {
           current={location}
           addresses={addresses}
           signedInPhone={customer?.phone ?? null}
-          mapDefault={{
-            lat: checkout.location.defaultLat,
-            lng: checkout.location.defaultLng,
-            zoom: checkout.location.defaultZoom,
-          }}
+          mapDefault={mapDefaultFrom(checkout.location)}
         />
       </div>
     </div>

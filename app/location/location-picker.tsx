@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { MapPicker, type ConfirmedPin } from '@/components/location/map-picker';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
-import type { StoredLocation } from '@/lib/location-shared';
+import type { MapDefault, StoredLocation } from '@/lib/location-shared';
 import { NotifyForm } from './notify-form';
 import { chooseSavedAddress, confirmLocation, type PincodeCheck } from './actions';
 
@@ -50,7 +50,7 @@ export function LocationPicker({
   addresses: MyAddressDto[];
   signedInPhone: string | null;
   /** `checkout.location`'s default centre and zoom, set by the owner. */
-  mapDefault: { lat: number; lng: number; zoom: number };
+  mapDefault: MapDefault;
   /**
    * Fired once a **serviced** area has been set, so a host sheet can close.
    *
@@ -170,6 +170,7 @@ export function LocationPicker({
 
         <MapPicker
           locale={locale}
+          map={mapDefault}
           initial={{ lat: stage.centre.lat, lng: stage.centre.lng, zoom: stage.zoom }}
           onConfirm={confirm}
           onCancel={() => setStage({ kind: 'idle' })}

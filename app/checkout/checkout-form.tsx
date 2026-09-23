@@ -18,6 +18,7 @@ import { MapPicker } from '@/components/location/map-picker';
 import { useLocationSheet } from '@/components/location/location-provider';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
+import type { MapDefault } from '@/lib/location-shared';
 import { placeOrder } from './actions';
 
 type Method = { provider: string; label: string };
@@ -63,7 +64,7 @@ export function CheckoutForm({
    */
   areaPin: { lat: number; lng: number } | null;
   /** `checkout.location`'s default centre, for a shopper with no pin at all. */
-  mapDefault: { lat: number; lng: number; zoom: number };
+  mapDefault: MapDefault;
   /**
    * What the chosen delivery area resolved to.
    *
@@ -461,6 +462,7 @@ export function CheckoutForm({
             <div className="mt-3">
               <MapPicker
                 locale={locale}
+                map={mapDefault}
                 initial={{
                   lat: orderPin?.lat ?? mapDefault.lat,
                   lng: orderPin?.lng ?? mapDefault.lng,

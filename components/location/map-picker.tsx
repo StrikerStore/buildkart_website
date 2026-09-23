@@ -7,21 +7,29 @@ import { formatINR, type DeviceLocationDto, type PlaceSuggestionDto } from '@Str
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
-import { resolveDeviceLocation, searchPlaces } from '@/app/location/actions';
+import type { MapDefault } from '@/lib/location-shared';
+import { placeLocation, resolveDeviceLocation, searchPlaces } from '@/app/location/actions';
 
 /*
  * `ssr: false` is only honoured inside a Client Component — the Next docs are
  * explicit about it — which is the whole reason this wrapper exists rather than
  * the page importing the map directly.
  */
-const LeafletMap = dynamic(() => import('./leaflet-map'), {
-  ssr: false,
-  loading: () => (
+function MapLoading() {
+  return (
     <div className="grid size-full place-items-center bg-surface-muted">
       <Loader2 className="size-6 animate-spin text-ink-faint" aria-hidden />
     </div>
-  ),
-});
+  );
+}
+
+const LeafletMap = dynamic(() => import('./leaflet-map'), { ssr: false, loading: MapLoading });
+const GoogleMap = dynamic(() => import('./google-map'), { ssr: false, loading: MapLoading });
+
+/** A fresh Places session ID, or none where the browser cannot make one. */
+function newSessionToken(): string | undefined {
+  return globalThis.crypto?.randomUUID?.();
+}
 
 /** Close enough to read house numbers, which is the point of the exercise. */
 const PIN_ZOOM = 17;
@@ -52,12 +60,15 @@ export type ConfirmedPin = {
  */
 export function MapPicker({
   locale,
+  map,
   initial,
   onConfirm,
   onCancel,
   confirmLabel,
 }: {
   locale: Locale;
+  /** Whose tiles to draw — the shop's `checkout.location` provider and key. */
+  map: Pick<MapDefault, 'provider' | 'browserKey'>;
   /** Where to open. A saved pin, the last known area, or the shop's default. */
   initial: { lat: number; lng: number; zoom: number };
   onConfirm: (pin: ConfirmedPin) => void;
@@ -79,6 +90,21 @@ export function MapPicker({
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<PlaceSuggestionDto[]>([]);
   const [searchPending, startSearch] = useTransition();
+
+  /*
+   * Google tiles when the shop is on Google with a browser key, until the
+   * key is refused — then Leaflet for the rest of this picker's life, opening
+   * wherever the customer had got to.
+   */
+  const [googleFailed, setGoogleFailed] = useState(false);
+  const googleTiles = map.provider === 'GOOGLE' && map.browserKey !== '' && !googleFailed;
+
+  /*
+   * One Places session per search: opened by the first query, closed by a
+   * pick or by closing the search. Google bills the keystrokes of a session
+   * that ends in a pick as that pick alone; other providers ignore it.
+   */
+  const session = useRef<string | undefined>(undefined);
 
   /*
    * Guards a slow response overwriting a newer one. Two drags in quick
@@ -128,28 +154,56 @@ export function MapPicker({
   }
 
   /* Debounced, because Nominatim asks for about one request a second and this
-     fires while somebody is typing. */
+     fires while somebody is typing. Google autocomplete is built for
+     keystrokes and its session makes them free, so it can keep up closer. */
   useEffect(() => {
     if (query.trim().length < 3) {
       setHits([]);
       return;
     }
 
-    const timer = setTimeout(() => {
-      startSearch(async () => setHits(await searchPlaces(query)));
-    }, 400);
+    const timer = setTimeout(
+      () => {
+        session.current ??= newSessionToken();
+        const token = session.current;
+        startSearch(async () => setHits(await searchPlaces(query, token)));
+      },
+      map.provider === 'GOOGLE' ? 250 : 400,
+    );
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, map.provider]);
 
-  function pick(hit: PlaceSuggestionDto) {
-    setCentre({ lat: hit.latitude, lng: hit.longitude });
-    setZoom(PIN_ZOOM);
-    setRecentreToken((token) => token + 1);
-    resolveAt(hit.latitude, hit.longitude);
+  function closeSearch() {
     setSearching(false);
     setQuery('');
     setHits([]);
+    session.current = undefined;
+  }
+
+  function goTo(lat: number, lng: number) {
+    setCentre({ lat, lng });
+    setZoom(PIN_ZOOM);
+    setRecentreToken((token) => token + 1);
+    resolveAt(lat, lng);
+    closeSearch();
+  }
+
+  function pick(hit: PlaceSuggestionDto) {
+    if (hit.latitude !== null && hit.longitude !== null) {
+      goTo(hit.latitude, hit.longitude);
+      return;
+    }
+    if (!hit.placeId) return;
+
+    // A Google suggestion: an ID now, its coordinate on pick.
+    const { placeId } = hit;
+    const token = session.current;
+    startSearch(async () => {
+      const found = await placeLocation(placeId, token);
+      // Nothing to go to — leave the list open so another hit can be tried.
+      if (found) goTo(found.latitude, found.longitude);
+    });
   }
 
   const serviced = resolved?.serviced === true;
@@ -158,12 +212,25 @@ export function MapPicker({
     <div className="overflow-hidden rounded-card border border-hairline bg-surface">
       {/* --- the map ----------------------------------------------------- */}
       <div className="relative h-[280px] sm:h-[340px]">
-        <LeafletMap centre={centre} zoom={zoom} onMoved={moved} recentreToken={recentreToken} />
+        {googleTiles ? (
+          <GoogleMap
+            centre={centre}
+            zoom={zoom}
+            onMoved={moved}
+            recentreToken={recentreToken}
+            apiKey={map.browserKey}
+            language={locale === 'hi' ? 'hi' : 'en'}
+            onFailed={() => setGoogleFailed(true)}
+          />
+        ) : (
+          <LeafletMap centre={centre} zoom={zoom} onMoved={moved} recentreToken={recentreToken} />
+        )}
 
         {/*
           * The pin. Fixed dead centre, above the tiles, and deliberately not a
-          * Leaflet marker — the map moves under it. `-translate-y-full` puts the
-          * point of the pin on the centre pixel rather than its middle.
+          * map marker — the map moves under it, whichever provider draws it.
+          * `-translate-y-full` puts the point of the pin on the centre pixel
+          * rather than its middle.
           */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-[400] -translate-x-1/2 -translate-y-full">
           <MapPin
@@ -216,11 +283,7 @@ export function MapPicker({
               {searchPending && <Loader2 className="size-4 animate-spin text-ink-faint" aria-hidden />}
               <button
                 type="button"
-                onClick={() => {
-                  setSearching(false);
-                  setQuery('');
-                  setHits([]);
-                }}
+                onClick={closeSearch}
                 aria-label={hi ? 'बंद करें' : 'Close search'}
                 className="grid size-7 shrink-0 place-items-center rounded-box text-ink-muted hover:bg-surface-muted"
               >
@@ -231,7 +294,7 @@ export function MapPicker({
             {hits.length > 0 && (
               <ul className="mt-2 max-h-52 overflow-y-auto border-t border-hairline pt-1">
                 {hits.map((hit) => (
-                  <li key={`${hit.latitude},${hit.longitude}`}>
+                  <li key={hit.placeId ?? `${hit.latitude},${hit.longitude}`}>
                     <button
                       type="button"
                       onClick={() => pick(hit)}

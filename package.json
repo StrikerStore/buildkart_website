@@ -18,7 +18,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
   "dependencies": {
-    "@StrikerStore/contract": "0.6.0",
+    "@googlemaps/js-api-loader": "2.1.3",
+    "@StrikerStore/contract": "0.7.0",
     "@trpc/client": "11.18.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -35,6 +36,7 @@
     "@eslint/js": "9.39.5",
     "@next/eslint-plugin-next": "16.3.4",
     "@tailwindcss/postcss": "4.3.3",
+    "@types/google.maps": "3.66.3",
     "@types/leaflet": "1.9.22",
     "@types/node": "22.20.1",
     "@types/qrcode": "1.5.5",

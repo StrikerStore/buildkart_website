@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { Loader2, X } from 'lucide-react';
 import type { MyAddressDto } from '@StrikerStore/contract';
-import type { StoredLocation } from '@/lib/location-shared';
+import type { MapDefault, StoredLocation } from '@/lib/location-shared';
 import { LocationPicker } from '@/app/location/location-picker';
 import { loadLocationSheet } from '@/app/location/actions';
 import { cn } from '@/lib/cn';
@@ -46,7 +46,7 @@ export function LocationSheet({
     addresses: MyAddressDto[];
     current: StoredLocation | null;
     signedInPhone: string | null;
-    mapDefault: { lat: number; lng: number; zoom: number };
+    mapDefault: MapDefault;
   } | null>(null);
   const [pending, startTransition] = useTransition();
   const panel = useRef<HTMLDivElement>(null);

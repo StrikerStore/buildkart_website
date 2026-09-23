@@ -6,13 +6,16 @@ import type {
   ActionResult,
   DeviceLocationDto,
   MyAddressDto,
+  PlaceLocationDto,
   PlaceSuggestionDto,
 } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import {
   LOCATION_COOKIE,
   LOCATION_MAX_AGE,
+  mapDefaultFrom,
   normalizeCoordinate,
+  type MapDefault,
   type StoredLocation,
 } from '@/lib/location-shared';
 import { currentLocation } from '@/lib/location';
@@ -179,7 +182,7 @@ export async function loadLocationSheet(): Promise<{
   addresses: MyAddressDto[];
   current: StoredLocation | null;
   signedInPhone: string | null;
-  mapDefault: { lat: number; lng: number; zoom: number };
+  mapDefault: MapDefault;
 }> {
   const [customer, current] = await Promise.all([currentCustomer(), currentLocation()]);
   const client = await api();
@@ -196,11 +199,7 @@ export async function loadLocationSheet(): Promise<{
     // So an out-of-area answer offers one tap rather than asking for a number
     // the shop has already verified.
     signedInPhone: customer?.phone ?? null,
-    mapDefault: {
-      lat: checkout.location.defaultLat,
-      lng: checkout.location.defaultLng,
-      zoom: checkout.location.defaultZoom,
-    },
+    mapDefault: mapDefaultFrom(checkout.location),
   };
 }
 
@@ -215,13 +214,34 @@ export async function loadLocationSheet(): Promise<{
  * Returns an empty list rather than an error for a bad query — the map is
  * already open and draggable, so "no matches" is a nudge, not a failure.
  */
-export async function searchPlaces(query: string): Promise<PlaceSuggestionDto[]> {
+export async function searchPlaces(
+  query: string,
+  sessionToken?: string,
+): Promise<PlaceSuggestionDto[]> {
   if (query.trim().length < 3) return [];
 
   try {
-    return await (await api()).storefront.searchPlaces.query({ q: query });
+    return await (await api()).storefront.searchPlaces.query({ q: query, sessionToken });
   } catch {
     return [];
+  }
+}
+
+/**
+ * Where a picked Google autocomplete suggestion is.
+ *
+ * Google's suggestions arrive as place IDs without coordinates, so the pick is
+ * a second lookup. Passing the same session token as the searches before it is
+ * what makes Google bill the whole search as that one lookup.
+ */
+export async function placeLocation(
+  placeId: string,
+  sessionToken?: string,
+): Promise<PlaceLocationDto | null> {
+  try {
+    return await (await api()).storefront.placeLocation.query({ placeId, sessionToken });
+  } catch {
+    return null;
   }
 }
 

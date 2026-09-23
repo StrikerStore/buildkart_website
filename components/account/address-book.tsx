@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { MapPicker, type ConfirmedPin } from '@/components/location/map-picker';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
+import type { MapDefault } from '@/lib/location-shared';
 import { deleteAddress, saveAddress } from '@/app/account/actions';
 
 /**
@@ -35,7 +36,7 @@ export function AddressBook({
   addresses: MyAddressDto[];
   locale: Locale;
   /** `checkout.location`'s default centre and zoom, set by the owner. */
-  mapDefault: { lat: number; lng: number; zoom: number };
+  mapDefault: MapDefault;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<MyAddressDto | 'new' | null>(null);
@@ -217,7 +218,7 @@ function AddressForm({
 }: {
   address: MyAddressDto | null;
   locale: Locale;
-  mapDefault: { lat: number; lng: number; zoom: number };
+  mapDefault: MapDefault;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -324,6 +325,7 @@ function AddressForm({
 
         <MapPicker
           locale={locale}
+          map={mapDefault}
           initial={{
             lat: existingPin?.lat ?? mapDefault.lat,
             lng: existingPin?.lng ?? mapDefault.lng,
