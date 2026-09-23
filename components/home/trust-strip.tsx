@@ -35,14 +35,26 @@ export function TrustStrip({
   if (markers.length === 0) return null;
 
   return (
-    <div className="border-y border-hairline bg-brand-tint">
-      <ul className="page-w page-x flex items-stretch justify-between gap-2 py-3">
+    /*
+     * A step stronger than the page's own tint: on the warm page `bg-brand-tint`
+     * alone all but disappeared, so the ground is a heavier wash of the brand
+     * with brand-coloured rules, and each icon sits on a white disc.
+     */
+    <div className="border-y border-brand/40 bg-brand/15">
+      <ul className="page-w page-x flex items-stretch justify-between gap-2 py-3.5 sm:py-4">
         {markers.map((marker) => {
           const { icon: Icon, key } = MARKERS[marker];
           return (
-            <li key={marker} className="flex flex-1 flex-col items-center gap-1 text-center">
-              <Icon className="size-5 text-brand-text" aria-hidden />
-              <span className="text-body5 text-ink">{tr(locale, key, { hours: promiseHours })}</span>
+            <li
+              key={marker}
+              className="flex flex-1 flex-col items-center gap-1.5 text-center sm:flex-row sm:justify-center sm:gap-2.5 sm:text-left"
+            >
+              <span className="grid size-9 shrink-0 place-items-center rounded-pill bg-surface shadow-raised sm:size-10">
+                <Icon className="size-5 text-brand-text" strokeWidth={2.25} aria-hidden />
+              </span>
+              <span className="text-body4 font-semibold text-ink sm:text-body2">
+                {tr(locale, key, { hours: promiseHours })}
+              </span>
             </li>
           );
         })}

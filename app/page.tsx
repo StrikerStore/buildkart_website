@@ -3,6 +3,7 @@ import { currentLocale } from '@/lib/locale';
 import { siteUrl } from '@/lib/site';
 import { Hero } from '@/components/home/hero';
 import { HomepageSections } from '@/components/home/homepage-sections';
+import { BottomBanner } from '@/components/home/bottom-banner';
 import { RecentlyViewed } from '@/components/catalog/recently-viewed';
 import { recentlyViewed } from '@/lib/recently-viewed';
 
@@ -44,6 +45,10 @@ export default async function HomePage() {
        * below the fold. It renders nothing at all for a first-time visitor.
        */}
       <RecentlyViewed cards={seen} locale={locale} className="page-w page-x py-5" />
+
+      {/* Last on the page, so it sits directly above the brand tagline that
+          the layout closes every page with. */}
+      <BottomBanner banners={home.bottom} locale={locale} />
 
       {/*
         * Who this shop is, in the form a search engine reads.

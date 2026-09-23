@@ -39,6 +39,9 @@ export const IMAGE = {
    * no visible gain — on the connection least able to spare them.
    */
   stripCard: { w: 840, q: 75 } satisfies MediaTransform,
+  /** Banner closing the home page — the fallbacks when there is no srcset. */
+  bottomMobile: { w: 1200, q: 75 } satisfies MediaTransform,
+  bottomDesktop: { w: 2172, q: 75 } satisfies MediaTransform,
   /** Cart and order lines. */
   thumb: { w: 120, q: 75 } satisfies MediaTransform,
   /** A portrait review card: about 216px wide at most, so 480 covers it at 2x. */
@@ -80,5 +83,18 @@ export const SRCSET = {
     widths: [320, 420, 560, 840] as const,
     // Three across from `md`, a fixed-width rail item below it.
     sizes: '(min-width: 1328px) 416px, (min-width: 768px) 32vw, 300px',
+  },
+  /*
+   * The banner closing the home page. Full page width like the hero, but its
+   * artwork is uploaded larger (2172 × 724 desktop, 1672 × 941 phone), so the
+   * top widths go up to the upload rather than stopping at the hero's.
+   */
+  bottomDesktop: {
+    widths: [800, 1200, 1600, 2172] as const,
+    sizes: '(min-width: 1328px) 1280px, 100vw',
+  },
+  bottomMobile: {
+    widths: [480, 800, 1200, 1672] as const,
+    sizes: '100vw',
   },
 } as const;
