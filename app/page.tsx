@@ -48,7 +48,9 @@ export default async function HomePage() {
 
       {/* Last on the page, so it sits directly above the brand tagline that
           the layout closes every page with. */}
-      <BottomBanner banners={home.bottom} locale={locale} />
+      {/* `?? []` so a website deployed ahead of the API that adds `bottom`
+          renders without the banner instead of failing the home page. */}
+      <BottomBanner banners={home.bottom ?? []} locale={locale} />
 
       {/*
         * Who this shop is, in the form a search engine reads.
