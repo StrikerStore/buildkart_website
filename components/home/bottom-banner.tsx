@@ -6,10 +6,12 @@ import type { Locale } from '@/lib/i18n';
 /**
  * The wide banner that closes the home page, just above the brand tagline.
  *
- * The `HOME_BOTTOM` placement. Built like the hero — a scroll-snap rail, sized
- * by aspect ratio so each crop renders whole — with two differences: it is far
- * below the fold, so every image is lazy, and its ratios are the ones the owner
- * designs for this slot: 3:1 on a desktop (2172 × 724) and 1672:941 on a phone.
+ * The `HOME_BOTTOM` placement. Built like the hero — a scroll-snap rail — with
+ * two differences: it is far below the fold, so every image is lazy, and the
+ * box takes **the artwork's own shape** rather than a fixed ratio. A fixed
+ * 1672:941 phone box cropped the sides off a 1672 × 526 upload (logo and store
+ * buttons gone); following the image means whatever the owner uploads shows
+ * whole. The recommended sizes (2172 × 724, 1672 × 941) only reserve space.
  */
 export async function BottomBanner({
   banners,
@@ -46,15 +48,21 @@ export async function BottomBanner({
                   media="(min-width: 768px)"
                   srcSet={desktopSrcSet ?? desktop}
                   {...(desktopSrcSet ? { sizes: SRCSET.bottomDesktop.sizes } : {})}
+                  width={2172}
+                  height={724}
                 />
               )}
               <img
                 src={mobile ?? desktop ?? ''}
                 {...(mobileSrcSet ? { srcSet: mobileSrcSet, sizes: SRCSET.bottomMobile.sizes } : {})}
                 alt={title ?? ''}
+                // The recommended sizes, reserving space until the image
+                // arrives; with `h-auto` the image's own shape wins once it has.
+                width={1672}
+                height={941}
                 loading="lazy"
                 decoding="async"
-                className="h-full w-full object-cover"
+                className="block h-auto w-full"
               />
             </picture>
           );
@@ -62,10 +70,10 @@ export async function BottomBanner({
           return (
             <div
               key={banner.desktopKey}
-              className="aspect-[1672/941] w-full overflow-hidden rounded-card bg-surface-muted md:aspect-[3/1]"
+              className="w-full overflow-hidden rounded-card bg-surface-muted"
             >
               {banner.linkUrl ? (
-                <Link href={banner.linkUrl} className="block h-full">
+                <Link href={banner.linkUrl} className="block">
                   {art}
                 </Link>
               ) : (
