@@ -96,79 +96,98 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
     });
   }, [count]);
 
+  /*
+   * Room at the end of the page for whatever is fixed over it, sized to what
+   * is actually there. It used to be a flat 96px in the layout, which on a page
+   * with an empty cart left a band of blank footer under the closed fold with
+   * nothing floating over it. Product routes also clear the buy bar, which the
+   * page's own bottom padding cannot do — the tagline and footer come after it.
+   */
+  const aboveBuyBar = matches(ABOVE_BUY_BAR);
+  const spacer = aboveBuyBar
+    ? hidden
+      ? 'h-[var(--buy-bar-h)]'
+      : 'h-[calc(var(--buy-bar-h)+5rem)]'
+    : hidden
+      ? null
+      : 'h-24';
+
   return (
-    <div
-      data-hidden={hidden}
-      className={cn(
-        'cart-capsule fixed inset-x-0 z-30 flex justify-center px-3 md:hidden print:hidden',
-        // `--buy-bar-h` is defined once in globals.css and is the buy bar's
-        // height; keeping the number there stops the two drifting apart.
-        matches(ABOVE_BUY_BAR) ? 'bottom-[calc(var(--buy-bar-h)+0.75rem)]' : 'bottom-3',
-      )}
-    >
-      <Link
-        href="/cart"
-        // Unreachable while it is leaving. `display: none` handles this once the
-        // exit finishes, but for those few frames the link is still laid out,
-        // and a capsule on its way out should not be tabbable or announced.
-        tabIndex={hidden ? -1 : undefined}
-        aria-hidden={hidden || undefined}
-        // The arrow replaced the words, so the link needs its name back —
-        // without this a screen reader announces a chevron and nothing else.
-        aria-label={
-          locale === 'hi' ? `कार्ट देखें, ${shown} सामान` : `View cart, ${shown} ${items}`
-        }
-        className="inline-flex h-14 max-w-full items-center gap-3 rounded-pill bg-buy py-1.5 pr-1.5 pl-2 text-buy-foreground shadow-sheet"
+    <>
+      {spacer && <div aria-hidden className={cn('bg-surface md:hidden print:hidden', spacer)} />}
+      <div
+        data-hidden={hidden}
+        className={cn(
+          'cart-capsule fixed inset-x-0 z-30 flex justify-center px-3 md:hidden print:hidden',
+          // `--buy-bar-h` is defined once in globals.css and is the buy bar's
+          // height; keeping the number there stops the two drifting apart.
+          aboveBuyBar ? 'bottom-[calc(var(--buy-bar-h)+0.75rem)]' : 'bottom-3',
+        )}
       >
-        {/*
-         * The cart's first few products, overlapping, each ringed in the pill's
-         * own green so the edges read as a stack rather than a smudge. Until the
-         * faces arrive — or if the cart has no photos — a single cart disc holds
-         * the space, so the pill never changes width under the shopper's thumb.
-         */}
-        <span className="flex shrink-0 items-center" aria-hidden>
-          {thumbs.length > 0 ? (
-            thumbs.map((thumb, index) => (
-              <span
-                key={index}
-                className={cn(
-                  'grid size-10 place-items-center overflow-hidden rounded-full bg-surface ring-2 ring-buy',
-                  index > 0 && '-ml-4',
-                )}
-              >
-                {thumb.src ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={thumb.src} alt="" className="size-full object-cover" />
-                ) : (
-                  <ShoppingCart className="size-4 text-buy" />
-                )}
-              </span>
-            ))
-          ) : (
-            <span className="grid size-10 place-items-center rounded-full bg-surface text-buy">
-              <ShoppingCart className="size-[18px]" />
-            </span>
-          )}
-        </span>
-
-        <span className="min-w-0 pr-2 leading-tight">
-          <span className="block truncate text-heading5">
-            {locale === 'hi' ? 'कार्ट देखें' : 'View cart'}
-          </span>
-          <span className="block truncate text-body4 text-buy-foreground/85">
-            {shown} {items}
-          </span>
-        </span>
-
-        {/* A darker disc of the same green: the arrow is the way forward, and
-            it reads as a button inside the pill rather than a decoration. */}
-        <span
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-buy-dark"
-          aria-hidden
+        <Link
+          href="/cart"
+          // Unreachable while it is leaving. `display: none` handles this once the
+          // exit finishes, but for those few frames the link is still laid out,
+          // and a capsule on its way out should not be tabbable or announced.
+          tabIndex={hidden ? -1 : undefined}
+          aria-hidden={hidden || undefined}
+          // The arrow replaced the words, so the link needs its name back —
+          // without this a screen reader announces a chevron and nothing else.
+          aria-label={
+            locale === 'hi' ? `कार्ट देखें, ${shown} सामान` : `View cart, ${shown} ${items}`
+          }
+          className="inline-flex h-14 max-w-full items-center gap-3 rounded-pill bg-buy py-1.5 pr-1.5 pl-2 text-buy-foreground shadow-sheet"
         >
-          <ChevronRight className="size-5" />
-        </span>
-      </Link>
-    </div>
+          {/*
+           * The cart's first few products, overlapping, each ringed in the pill's
+           * own green so the edges read as a stack rather than a smudge. Until the
+           * faces arrive — or if the cart has no photos — a single cart disc holds
+           * the space, so the pill never changes width under the shopper's thumb.
+           */}
+          <span className="flex shrink-0 items-center" aria-hidden>
+            {thumbs.length > 0 ? (
+              thumbs.map((thumb, index) => (
+                <span
+                  key={index}
+                  className={cn(
+                    'grid size-10 place-items-center overflow-hidden rounded-full bg-surface ring-2 ring-buy',
+                    index > 0 && '-ml-4',
+                  )}
+                >
+                  {thumb.src ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thumb.src} alt="" className="size-full object-cover" />
+                  ) : (
+                    <ShoppingCart className="size-4 text-buy" />
+                  )}
+                </span>
+              ))
+            ) : (
+              <span className="grid size-10 place-items-center rounded-full bg-surface text-buy">
+                <ShoppingCart className="size-[18px]" />
+              </span>
+            )}
+          </span>
+
+          <span className="min-w-0 pr-2 leading-tight">
+            <span className="block truncate text-heading5">
+              {locale === 'hi' ? 'कार्ट देखें' : 'View cart'}
+            </span>
+            <span className="block truncate text-body4 text-buy-foreground/85">
+              {shown} {items}
+            </span>
+          </span>
+
+          {/* A darker disc of the same green: the arrow is the way forward, and
+            it reads as a button inside the pill rather than a decoration. */}
+          <span
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-buy-dark"
+            aria-hidden
+          >
+            <ChevronRight className="size-5" />
+          </span>
+        </Link>
+      </div>
+    </>
   );
 }

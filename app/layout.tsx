@@ -141,10 +141,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={htmlLang(locale)} className={notoDevanagari.variable}>
       <body className="min-h-screen antialiased">
         {/*
-          * The first thing in the tab order, visible only when focused. A
-          * keyboard user should not have to tab through the category strip and
-          * every filter to reach the products.
-          */}
+         * The first thing in the tab order, visible only when focused. A
+         * keyboard user should not have to tab through the category strip and
+         * every filter to reach the products.
+         */}
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-box focus:bg-ink focus:px-4 focus:py-2 focus:text-cta2 focus:text-ink-inverted"
@@ -153,11 +153,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
 
         {/*
-          * Wraps everything so the header's pill, the cart and checkout can all
-          * open the same location sheet without a navigation — and so a first
-          * visit with no area set is asked once, up front, the way every quick
-          * commerce app does it.
-          */}
+         * Wraps everything so the header's pill, the cart and checkout can all
+         * open the same location sheet without a navigation — and so a first
+         * visit with no area set is asked once, up front, the way every quick
+         * commerce app does it.
+         */}
         <LocationProvider locale={locale} hasLocation={location !== null}>
           {/* Above the header and outside it: the header is the sticky part,
               and the strip should scroll away once it has been read. */}
@@ -173,14 +173,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SiteFooter locale={locale} />
 
           {/*
-            * Room for the mobile cart bar, which is fixed and would otherwise
-            * sit on top of the end of the page. After the footer, not as
-            * padding on `<main>`: the tagline and footer follow `<main>`, so
-            * padding there opened a 96px gap mid-page above the tagline while
-            * leaving the footer — the real end of the page — uncovered.
-            * Footer-coloured so it reads as the footer running on.
-            */}
-          <div aria-hidden className="h-24 bg-surface md:hidden print:hidden" />
+           * After the footer, not inside `<main>`: it also renders the spacer
+           * that keeps the fixed capsule off the end of the page, and the
+           * tagline and footer follow `<main>`, so padding there would open a
+           * gap mid-page while leaving the footer — the real end — uncovered.
+           */}
           <CartBar count={cartCount(cart)} locale={locale} />
         </LocationProvider>
       </body>
