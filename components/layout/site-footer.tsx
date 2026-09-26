@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { MessageCircle, MessageSquare, Phone } from 'lucide-react';
+import { whatsappHref } from '@StrikerStore/contract';
 import { api, storeSettings } from '@/lib/api/server';
 import { tr, type Locale } from '@/lib/i18n';
 import { FooterFold } from './footer-fold';
@@ -84,6 +85,7 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
 
   const hasContact =
     Boolean(store.supportEmail) || Boolean(store.supportPhone) || store.addressLines.length > 0;
+  const whatsapp = whatsappHref(store.whatsappNumber);
 
   return (
     <footer className="mt-10 border-t border-hairline bg-surface print:hidden">
@@ -150,9 +152,9 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                     {tr(locale, 'footer.callUs')}
                   </a>
                 )}
-                {store.whatsappNumber && (
+                {whatsapp && (
                   <a
-                    href={`https://wa.me/${store.whatsappNumber.replace(/\D/g, '')}`}
+                    href={whatsapp}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex h-[var(--tap)] items-center gap-2 rounded-box border border-hairline-strong px-4 text-cta2 text-ink hover:bg-surface-muted"

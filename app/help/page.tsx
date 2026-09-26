@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ChevronRight, MessageCircle, MessageSquare, Package, Phone } from 'lucide-react';
+import { whatsappHref } from '@StrikerStore/contract';
 import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 
@@ -36,7 +37,7 @@ export default async function HelpPage() {
 
   const hi = locale === 'hi';
   const { store, commerce } = settings;
-  const whatsapp = store.whatsappNumber.replace(/\D/g, '');
+  const whatsapp = whatsappHref(store.whatsappNumber);
   /*
    * A contact page belongs in the footer, not in this list: it is a WhatsApp
    * link wearing a page's clothes, and the WhatsApp card at the top of this
@@ -71,7 +72,7 @@ export default async function HelpPage() {
 
           {whatsapp && (
             <a
-              href={`https://wa.me/${whatsapp}`}
+              href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
               className="flex min-h-[64px] items-center gap-3 rounded-card border border-hairline-strong bg-surface px-4 py-3 hover:bg-surface-muted"
