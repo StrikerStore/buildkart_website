@@ -1,4 +1,4 @@
-import { BadgeCheck, Banknote, TrendingUp, Zap } from 'lucide-react';
+import { BadgeCheck, Banknote, BadgePercent, TrendingUp, Zap } from 'lucide-react';
 import type { TrustMarker } from '@StrikerStore/contract';
 import { tr, type Locale, type StringKey } from '@/lib/i18n';
 
@@ -21,6 +21,7 @@ const MARKERS: Record<TrustMarker, { icon: typeof Zap; key: StringKey }> = {
   cod: { icon: Banknote, key: 'trust.cod' },
   genuine: { icon: BadgeCheck, key: 'trust.genuine' },
   rates: { icon: TrendingUp, key: 'trust.dailyRates' },
+  cashback: { icon: BadgePercent, key: 'trust.cashback' },
 };
 
 export function TrustStrip({

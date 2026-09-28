@@ -142,6 +142,7 @@ const STRINGS = {
   'trust.cod': { en: 'Cash on delivery', hi: 'कैश ऑन डिलीवरी' },
   'trust.genuine': { en: 'Genuine brands', hi: 'असली ब्रांड' },
   'trust.dailyRates': { en: "Today's rates", hi: 'आज के भाव' },
+  'trust.cashback': { en: 'Assured Cashback', hi: 'पक्का कैशबैक' },
 } as const satisfies Record<string, Record<Locale, string>>;
 
 export type StringKey = keyof typeof STRINGS;
