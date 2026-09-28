@@ -6,6 +6,7 @@ import { Loader2, Search, X } from 'lucide-react';
 import { formatINR } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import { tr, type Locale } from '@/lib/i18n';
+import { reportSearchHit } from '@/lib/search-hit';
 import type { SuggestionRow } from '@/app/api/suggest/route';
 
 /** A category, reduced to what the panel and the placeholder need. */
@@ -240,6 +241,8 @@ export function SearchBox({
       if (item) {
         event.preventDefault();
         setOpen(false);
+        // While typing, every item is a suggestion keyed by its handle.
+        if (typing) reportSearchHit(item.key);
         router.push(item.href);
       }
     }
@@ -263,6 +266,9 @@ export function SearchBox({
         aria-selected={index === active}
         href={`/products/${row.handle}`}
         onMouseEnter={() => setActive(index)}
+        // Only a typed search counts toward Trending — a recently-viewed row
+        // is the shopper's own history, not something they searched for.
+        onClick={typing ? () => reportSearchHit(row.handle) : undefined}
         className={cn(
           'flex items-center gap-3 px-3 py-2 text-left',
           index === active && 'bg-surface-muted',

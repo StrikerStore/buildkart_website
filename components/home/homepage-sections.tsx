@@ -48,6 +48,7 @@ export function HomepageSections({
           case 'PRODUCT_CAROUSEL':
           case 'TAG_CAROUSEL':
           case 'NEW_ARRIVALS':
+          case 'TRENDING':
           case 'RATE_TICKER':
             return (
               <section key={section.id} className="page-w page-x py-5">
@@ -58,10 +59,10 @@ export function HomepageSections({
                   locale={locale}
                 />
                 {/*
-                  * A rail, not a grid: a home page band is a *sample* the
-                  * shopper swipes through, and wrapping it into rows makes it
-                  * compete with the band below for the same attention.
-                  */}
+                 * A rail, not a grid: a home page band is a *sample* the
+                 * shopper swipes through, and wrapping it into rows makes it
+                 * compete with the band below for the same attention.
+                 */}
                 <div className="rail flex -mx-4 gap-3 px-4 pb-1 [--rail-pad:16px]">
                   {section.products.map((product) => (
                     <div key={product.handle} className="w-[160px] sm:w-[180px]">

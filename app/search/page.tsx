@@ -3,6 +3,7 @@ import { api } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 import { readQuery, type SearchParams } from '@/lib/list-query';
 import { Listing } from '@/components/catalog/listing';
+import { SearchHitTracker } from '@/components/catalog/search-hit-tracker';
 import { EmptyState } from '@/components/ui/empty-state';
 
 export const metadata: Metadata = {
@@ -49,17 +50,21 @@ export default async function SearchPage({ searchParams }: Props) {
   const result = await (await api()).storefront.search.query(query);
 
   return (
-    <Listing
-      pathname="/search"
-      params={search}
-      result={result}
-      locale={locale}
-      heading={
-        <h1 className="text-heading3 text-ink">
-          {locale === 'hi' ? 'नतीजे' : 'Results for'}{' '}
-          <span className="text-brand-text">{query.q}</span>
-        </h1>
-      }
-    />
+    // Counts the product a shopper opens from here, for the homepage's
+    // Trending band.
+    <SearchHitTracker>
+      <Listing
+        pathname="/search"
+        params={search}
+        result={result}
+        locale={locale}
+        heading={
+          <h1 className="text-heading3 text-ink">
+            {locale === 'hi' ? 'नतीजे' : 'Results for'}{' '}
+            <span className="text-brand-text">{query.q}</span>
+          </h1>
+        }
+      />
+    </SearchHitTracker>
   );
 }
