@@ -4,6 +4,7 @@ import { imageUrl, IMAGE } from '@/lib/media';
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import type { CartCouponDto, CartDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentCart, currentPromo, pricedCart } from '@/lib/cart';
@@ -34,7 +35,23 @@ import {
  */
 export async function setCartQuantity(variantId: string, qty: number): Promise<{ count: number }> {
   const store = await cookies();
-  const lines = withQuantity(parseCart(store.get(CART_COOKIE)?.value), variantId, qty);
+  const before = parseCart(store.get(CART_COOKIE)?.value);
+  const lines = withQuantity(before, variantId, qty);
+
+  /*
+   * More of this variant than before is interest the homepage's Trending band
+   * counts — a card's ADD and a stepper's plus alike. Only once per shopper per
+   * product per day however often they tap, which the API sees to. After the
+   * response, so the badge updates without waiting on it.
+   */
+  const had = before.find((line) => line.variantId === variantId)?.qty ?? 0;
+  const has = lines.find((line) => line.variantId === variantId)?.qty ?? 0;
+  if (has > had) {
+    const client = await api();
+    after(() =>
+      client.storefront.recordProductSignal.mutate({ kind: 'CART', variantId }).catch(() => {}),
+    );
+  }
 
   store.set(CART_COOKIE, serialiseCart(lines), {
     maxAge: CART_MAX_AGE,

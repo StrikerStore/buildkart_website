@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { after } from 'next/server';
 import type { BulkTierBasis, StorefrontProductDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentCart } from '@/lib/cart';
@@ -37,6 +38,18 @@ export async function recordViewed(handle: string): Promise<void> {
     path: '/',
     maxAge: SEEN_MAX_AGE,
   });
+
+  /*
+   * The same view, counted toward the homepage's Trending band — however the
+   * shopper got here: a listing, a homepage row, a shared link. Here rather
+   * than while the page renders because this runs in the shopper's browser
+   * after paint, so a crawler or a link preview fetching the HTML is never
+   * counted. After the response, so the cookie write never waits on it.
+   */
+  const client = await api();
+  after(() =>
+    client.storefront.recordProductSignal.mutate({ kind: 'VIEW', handle }).catch(() => {}),
+  );
 }
 
 /** What the quick-options sheet needs to sell a multi-variant product. */

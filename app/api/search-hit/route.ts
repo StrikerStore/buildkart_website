@@ -23,7 +23,11 @@ export async function POST(request: NextRequest) {
       body && typeof body === 'object' && 'handle' in body && typeof body.handle === 'string'
         ? body.handle
         : null;
-    if (handle) await (await api()).storefront.recordSearchHit.mutate({ handle });
+    // SEARCH only: views are recorded by the product page itself and cart adds
+    // by the cart action, so a browser cannot claim either through here.
+    if (handle) {
+      await (await api()).storefront.recordProductSignal.mutate({ kind: 'SEARCH', handle });
+    }
   } catch {
     // Swallowed on purpose — see above.
   }
