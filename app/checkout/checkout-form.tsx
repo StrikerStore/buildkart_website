@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
-import { Banknote, CreditCard, Loader2, MapPin, Plus, Wallet } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+import { Loader2, MapPin, Plus, Wallet } from 'lucide-react';
 import {
   cashbackBase,
   formatINR,
@@ -10,7 +10,10 @@ import {
   quoteWalletRedemption,
   subtractMoney,
   type CartDto,
+  type CheckoutOptionDto,
   type MyAddressDto,
+  type PaymentStartDto,
+  type SavedCardDto,
   type WalletSummaryDto,
 } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
@@ -19,9 +22,12 @@ import { useLocationSheet } from '@/components/location/location-provider';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import type { MapDefault } from '@/lib/location-shared';
-import { placeOrder } from './actions';
+import { confirmRazorpay, placeOrder, reportPaymentFailed, startPayment } from './actions';
+import { openRazorpay, submitToPayu } from './gateway';
+import { choiceKey, PaymentOptions, type PaymentChoice } from './payment-options';
 
-type Method = { provider: string; label: string };
+/** The last way this device paid, preselected next time. Per device, so localStorage. */
+const LAST_CHOICE_KEY = 'bk_last_payment';
 
 /**
  * Address, payment, place.
@@ -37,7 +43,11 @@ type Method = { provider: string; label: string };
  */
 export function CheckoutForm({
   cart,
-  methods,
+  paymentOptions,
+  savedCards,
+  cod,
+  storeName,
+  paymentNotice,
   locale,
   defaultName,
   pincode,
@@ -50,7 +60,16 @@ export function CheckoutForm({
   wallet,
 }: {
   cart: CartDto;
-  methods: Method[];
+  /** The online ways to pay some gateway will take, in storefront order. */
+  paymentOptions: CheckoutOptionDto[];
+  /** Cards this customer asked a gateway to remember. */
+  savedCards: SavedCardDto[];
+  /** Null when cash on delivery is switched off. */
+  cod: { label: string; maxOrderValue: string } | null;
+  /** Shown at the top of the payment window. */
+  storeName: string;
+  /** Why the customer is back here — a failed or refunded PayU payment. */
+  paymentNotice: string | null;
   locale: Locale;
   defaultName: string | null;
   pincode: string;
@@ -91,8 +110,44 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(areaPin);
   const [picking, setPicking] = useState(false);
-  const [method, setMethod] = useState(methods[0]?.provider ?? '');
   const hi = locale === 'hi';
+
+  /*
+   * The first online option by default — UPI, for nearly every shop — or cash
+   * when nothing online is switched on. A saved card is never the default: it
+   * is a shortcut the customer reaches for, not a choice to make for them.
+   */
+  const [choice, setChoice] = useState<PaymentChoice | null>(() =>
+    paymentOptions[0]
+      ? { kind: 'ONLINE', option: paymentOptions[0].option }
+      : cod
+        ? { kind: 'COD' }
+        : null,
+  );
+  /** The gateway's window is open; the form waits on it. */
+  const [paying, setPaying] = useState(false);
+  const busy = pending || paying;
+
+  // Restored after mount rather than in the initial state, so the server render
+  // and the first client render agree.
+  useEffect(() => {
+    let last: string | null = null;
+    try {
+      last = window.localStorage.getItem(LAST_CHOICE_KEY);
+    } catch {
+      return;
+    }
+    if (!last) return;
+    const card = savedCards.find((entry) => choiceKey({ kind: 'SAVED', card: entry }) === last);
+    if (card) setChoice({ kind: 'SAVED', card });
+    else if (last === 'COD' && cod) setChoice({ kind: 'COD' });
+    else {
+      const option = paymentOptions.find((entry) => entry.option === last);
+      if (option) setChoice({ kind: 'ONLINE', option: option.option });
+    }
+    // Once, on mount: the lists come from the server and do not change here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /*
    * The wallet preview, worked out with the same shared functions the server
@@ -207,30 +262,137 @@ export function CheckoutForm({
           longitude: orderPin.lng,
         };
 
-    startTransition(async () => {
-      const result = await placeOrder({
-        name: value('name'),
-        // Only meaningful when this address is about to be filed; a saved one
-        // already has whatever name the customer gave it.
-        addressLabel: saved ? undefined : value('addressLabel') || undefined,
-        address,
-        paymentMethod: method,
-        customerNote: value('note') || undefined,
-        // A saved address is already in the book; only a typed one is added.
-        saveAddress: !saved,
-        // Normalised and checksum-checked on the server; an empty box is
-        // simply absent rather than an empty string to validate.
-        gstin: askGstin ? value('gstin') || undefined : undefined,
-        useWallet: walletApplied !== '0.00',
-      });
+    if (!choice) {
+      setError(hi ? 'भुगतान का तरीका चुनें।' : 'Choose how you would like to pay.');
+      return;
+    }
 
-      if (!result.ok) {
-        setError(result.formErrors[0] ?? Object.values(result.fieldErrors)[0] ?? null);
+    const details = {
+      name: value('name'),
+      // Only meaningful when this address is about to be filed; a saved one
+      // already has whatever name the customer gave it.
+      addressLabel: saved ? undefined : value('addressLabel') || undefined,
+      address,
+      customerNote: value('note') || undefined,
+      // A saved address is already in the book; only a typed one is added.
+      saveAddress: !saved,
+      // Normalised and checksum-checked on the server; an empty box is
+      // simply absent rather than an empty string to validate.
+      gstin: askGstin ? value('gstin') || undefined : undefined,
+      useWallet: walletApplied !== '0.00',
+    };
+
+    try {
+      window.localStorage.setItem(LAST_CHOICE_KEY, choiceKey(choice));
+    } catch {
+      // Private mode or blocked storage: the choice simply is not remembered.
+    }
+
+    startTransition(async () => {
+      if (choice.kind === 'COD') {
+        const result = await placeOrder({ ...details, paymentMethod: 'COD' });
+        if (!result.ok) {
+          setError(result.formErrors[0] ?? Object.values(result.fieldErrors)[0] ?? null);
+          return;
+        }
+        router.replace(`/account/orders/${result.data.orderId}?placed=1`);
         return;
       }
 
-      router.replace(`/account/orders/${result.data.orderId}?placed=1`);
+      /*
+       * A saved card names its own gateway, and opens on the card form whether
+       * it was a credit or a debit card.
+       */
+      const started = await startPayment(
+        choice.kind === 'SAVED'
+          ? {
+              ...details,
+              option: choice.card.cardType === 'debit' ? 'DEBIT_CARD' : 'CREDIT_CARD',
+              savedCard: { gateway: choice.card.gateway, tokenId: choice.card.tokenId },
+            }
+          : { ...details, option: choice.option },
+      );
+      if (!started.ok) {
+        setError(started.formErrors[0] ?? Object.values(started.fieldErrors)[0] ?? null);
+        return;
+      }
+      await goToGateway(started.data);
     });
+  }
+
+  /** Sends the customer wherever the API opened their payment. */
+  async function goToGateway(start: PaymentStartDto) {
+    if (start.gateway === 'NONE') {
+      // The wallet covered the whole order; it has already been placed.
+      router.replace(`/account/orders/${start.order.orderId}?placed=1`);
+      return;
+    }
+
+    if (start.gateway === 'PAYU') {
+      // Left busy on purpose: the page is about to navigate to PayU.
+      setPaying(true);
+      submitToPayu(start);
+      return;
+    }
+
+    setPaying(true);
+    try {
+      await openRazorpay(start, {
+        storeName,
+        onSuccess: (response) => {
+          void (async () => {
+            let confirmed;
+            try {
+              confirmed = await confirmRazorpay({
+                sessionId: start.sessionId,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+            } catch {
+              /*
+               * The money may well have gone through — the webhook and the
+               * reconcile job will still place the order. Say so, rather than
+               * inviting a second payment.
+               */
+              setPaying(false);
+              setError(
+                hi
+                  ? 'हम आपका भुगतान पक्का कर रहे हैं। कुछ मिनट में "मेरे ऑर्डर" देखें — दोबारा भुगतान न करें।'
+                  : 'We are still confirming your payment. Check My orders in a few minutes — please do not pay again.',
+              );
+              return;
+            }
+            if (confirmed.ok && confirmed.data.status === 'PAID') {
+              router.replace(`/account/orders/${confirmed.data.order.orderId}?placed=1`);
+              return;
+            }
+            setPaying(false);
+            if (!confirmed.ok) setError(confirmed.formErrors[0] ?? null);
+            else if (confirmed.data.status !== 'PAID') setError(confirmed.data.message);
+          })();
+        },
+        onDismiss: () => {
+          setPaying(false);
+          void reportPaymentFailed(start.sessionId, 'Closed the payment window.');
+          setError(
+            hi
+              ? 'भुगतान पूरा नहीं हुआ। आपका कार्ट सुरक्षित है — फिर से कोशिश करें या दूसरा तरीका चुनें।'
+              : 'Payment was not completed. Your cart is safe — try again, or choose another way to pay.',
+          );
+        },
+        onFailed: (reason) => {
+          void reportPaymentFailed(start.sessionId, reason);
+        },
+      });
+    } catch {
+      setPaying(false);
+      setError(
+        hi
+          ? 'पेमेंट विंडो नहीं खुल सकी। इंटरनेट जाँचें और फिर कोशिश करें।'
+          : 'The payment window could not open. Check your connection and try again.',
+      );
+    }
   }
 
   return (
@@ -488,54 +650,28 @@ export function CheckoutForm({
         <section className="rounded-card border border-hairline bg-surface p-4">
           <h2 className="text-heading5 text-ink">{hi ? 'पेमेंट' : 'Payment'}</h2>
 
-          {methods.length === 0 ? (
+          {paymentNotice && (
+            <p role="alert" className="mt-2 rounded-box bg-error-bg px-3 py-2 text-body3 text-error">
+              {paymentNotice}
+            </p>
+          )}
+
+          {paymentOptions.length === 0 && !cod ? (
             <p className="mt-2 text-body2 text-error">
               {hi
                 ? 'अभी कोई पेमेंट तरीका चालू नहीं है। कृपया कॉल करें।'
                 : 'No payment method is switched on. Please call us to order.'}
             </p>
           ) : (
-            <div className="mt-3 space-y-2">
-              {methods.map((entry) => (
-                <label
-                  key={entry.provider}
-                  className={cn(
-                    'flex min-h-[var(--tap)] cursor-pointer items-center gap-3 rounded-box border px-4 py-3',
-                    method === entry.provider
-                      ? 'border-ink bg-surface-muted'
-                      : 'border-hairline-strong hover:border-ink',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value={entry.provider}
-                    checked={method === entry.provider}
-                    onChange={() => setMethod(entry.provider)}
-                    className="size-4 accent-[var(--ink)]"
-                  />
-                  {entry.provider === 'COD' ? (
-                    <Banknote className="size-5 text-ink-muted" aria-hidden />
-                  ) : (
-                    <CreditCard className="size-5 text-ink-muted" aria-hidden />
-                  )}
-                  <span className="text-body1 text-ink">{entry.label}</span>
-                </label>
-              ))}
-            </div>
-          )}
-
-          {/*
-            * Said plainly rather than left to be discovered on the payment
-            * screen. Online payment is not wired to a gateway yet — the order
-            * is placed and the shop calls to collect.
-            */}
-          {method && method !== 'COD' && (
-            <p className="mt-3 rounded-box bg-info-bg px-3 py-2 text-body3 text-info">
-              {hi
-                ? 'ऑनलाइन पेमेंट अभी चालू नहीं है। ऑर्डर दर्ज होगा और हम पेमेंट के लिए कॉल करेंगे।'
-                : 'Online payment is not live yet. Your order will be placed and we will call you to take payment.'}
-            </p>
+            <PaymentOptions
+              options={paymentOptions}
+              savedCards={savedCards}
+              cod={cod}
+              toPay={toPay}
+              value={choice}
+              onChange={setChoice}
+              hi={hi}
+            />
           )}
         </section>
 
@@ -698,11 +834,17 @@ export function CheckoutForm({
             variant="buy"
             size="lg"
             block
-            disabled={pending || methods.length === 0 || !orderPin}
+            disabled={busy || !choice || !orderPin}
             className="mt-4"
           >
-            {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-            {hi ? 'ऑर्डर करें' : 'Place order'}
+            {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
+            {!choice || choice.kind === 'COD'
+              ? hi
+                ? 'ऑर्डर करें'
+                : 'Place order'
+              : hi
+                ? `${formatINR(toPay)} का भुगतान करें`
+                : `Pay ${formatINR(toPay)}`}
           </Button>
 
           <p className="mt-2 text-center text-body5 text-ink-faint">

@@ -2,21 +2,20 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import type { ActionResult, PlacedOrderDto } from '@StrikerStore/contract';
+import type {
+  ActionResult,
+  CheckoutOption,
+  OnlineGateway,
+  PaymentOutcomeDto,
+  PaymentStartDto,
+  PlacedOrderDto,
+} from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentCart, currentPromo, currentUnloading } from '@/lib/cart';
 import { CART_COOKIE, PROMO_COOKIE, UNLOADING_COOKIE } from '@/lib/cart-shared';
 
-/**
- * Placing the order.
- *
- * The lines come from **the cart cookie on the server**, not from the form.
- * That is deliberate: a form that posted its own lines could post different
- * ones than the review screen showed, and the shopper would be agreeing to a
- * total that belonged to a different basket. The form carries the address and
- * the payment choice, which are the only things it actually knows.
- */
-export async function placeOrder(input: {
+/** What the form knows about the order — everything except how it is paid. */
+type CheckoutDetails = {
   name?: string;
   /** The customer's nickname for this place, filed with the address book row. */
   addressLabel?: string;
@@ -30,7 +29,6 @@ export async function placeOrder(input: {
     latitude?: number;
     longitude?: number;
   };
-  paymentMethod: string;
   customerNote?: string;
   saveAddress: boolean;
   /**
@@ -43,34 +41,101 @@ export async function placeOrder(input: {
   gstin?: string;
   /** Pay part of the order from the wallet. The server decides how much. */
   useWallet?: boolean;
-}): Promise<ActionResult<PlacedOrderDto>> {
+};
+
+/**
+ * The basket as the cart page left it.
+ *
+ * The lines come from **the cart cookie on the server**, not from the form.
+ * That is deliberate: a form that posted its own lines could post different
+ * ones than the review screen showed, and the shopper would be agreeing to a
+ * total that belonged to a different basket. The unloading choice comes from
+ * the cookie too, so the order matches what the cart showed.
+ */
+async function basket() {
   const [lines, promo, unloading] = await Promise.all([
     currentCart(),
     currentPromo(),
     currentUnloading(),
   ]);
-
-  const result = await (await api()).storefront.placeOrder.mutate({
-    ...input,
+  return {
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
     ...(promo ? { discountCode: promo } : {}),
-    // From the cookie the cart page set, like the lines — the form never
-    // carries it, so the order matches what the cart showed.
     unloading,
+  };
+}
+
+/**
+ * Empties the cart, once an order exists for it.
+ *
+ * Never sooner: a customer whose payment failed must still have the basket
+ * they spent twenty minutes building.
+ */
+async function clearCart() {
+  const store = await cookies();
+  store.delete(CART_COOKIE);
+  store.delete(PROMO_COOKIE);
+  store.delete(UNLOADING_COOKIE);
+  revalidatePath('/', 'layout');
+}
+
+/**
+ * Starting an online payment.
+ *
+ * Nothing is placed here — the API opens a payment at whichever gateway the
+ * shop routes this option to, and hands back where to send the customer. The
+ * cart is cleared only in the one case where an order was written outright:
+ * the wallet covered the whole total.
+ */
+export async function startPayment(
+  input: CheckoutDetails & {
+    option: CheckoutOption;
+    savedCard?: { gateway: OnlineGateway; tokenId: string };
+  },
+): Promise<ActionResult<PaymentStartDto>> {
+  const result = await (await api()).storefront.startPayment.mutate({
+    ...input,
+    ...(await basket()),
+  });
+  if (result.ok && result.data.gateway === 'NONE') await clearCart();
+  return result;
+}
+
+/**
+ * Razorpay's modal reported success. The API checks the signature and reads
+ * the payment back before an order is written; the cart goes only once it is.
+ */
+export async function confirmRazorpay(input: {
+  sessionId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}): Promise<ActionResult<PaymentOutcomeDto>> {
+  const result = await (await api()).storefront.confirmRazorpay.mutate(input);
+  if (result.ok && result.data.status === 'PAID') await clearCart();
+  return result;
+}
+
+/** The customer closed the gateway. Bookkeeping only; failures are not worth surfacing. */
+export async function reportPaymentFailed(sessionId: string, reason?: string): Promise<void> {
+  try {
+    await (await api()).storefront.paymentFailed.mutate({ sessionId, reason });
+  } catch {
+    // The session expires on its own; nothing the customer needs to hear about.
+  }
+}
+
+/** Placing a cash-on-delivery order — written at once, paid at the door. */
+export async function placeOrder(
+  input: CheckoutDetails & { paymentMethod: 'COD' },
+): Promise<ActionResult<PlacedOrderDto>> {
+  const result = await (await api()).storefront.placeOrder.mutate({
+    ...input,
+    ...(await basket()),
   });
 
-  if (result.ok) {
-    /*
-     * The cart is emptied only after the order is committed. Clearing it first
-     * would leave a customer whose payment failed with neither an order nor the
-     * basket they spent twenty minutes building.
-     */
-    const store = await cookies();
-    store.delete(CART_COOKIE);
-    store.delete(PROMO_COOKIE);
-    store.delete(UNLOADING_COOKIE);
-    revalidatePath('/', 'layout');
-  }
+  // Emptied only after the order is committed — see `clearCart`.
+  if (result.ok) await clearCart();
 
   return result;
 }

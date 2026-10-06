@@ -179,12 +179,20 @@ export default async function OrderPage({ params, searchParams }: Props) {
                 tone="success"
               />
             )}
+            {/*
+              * How it was paid, in the customer's words — "UPI", "Visa •••• 4242"
+              * — never the gateway's name, which means nothing to them.
+              */}
             <Row
               label={hi ? 'पेमेंट' : 'Payment'}
               value={
                 order.paymentStatus === 'PAID'
-                  ? `${order.paymentMethod} · ${hi ? 'चुकाया' : 'paid'}`
-                  : `${order.paymentMethod} · ${hi ? 'बाकी' : 'due'}`
+                  ? `${order.paidWith ?? (hi ? 'ऑनलाइन' : 'Online')} · ${hi ? 'चुकाया' : 'paid'}`
+                  : order.paymentMethod === 'COD'
+                    ? hi
+                      ? 'डिलीवरी पर भुगतान'
+                      : 'Pay on delivery'
+                    : `${order.paidWith ?? (hi ? 'ऑनलाइन' : 'Online')} · ${hi ? 'बाकी' : 'due'}`
               }
             />
           </dl>

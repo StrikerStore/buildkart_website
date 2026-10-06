@@ -2,7 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import type { ActionResult, MyAddressDto, MyProfileDto } from '@StrikerStore/contract';
+import type {
+  ActionResult,
+  MyAddressDto,
+  MyProfileDto,
+  OnlineGateway,
+} from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { LOCALE_COOKIE, LOCALE_MAX_AGE } from '@/lib/locale-shared';
 
@@ -67,4 +72,20 @@ export async function deleteAddress(id: string): Promise<ActionResult<void>> {
 
 export async function listAddresses(): Promise<MyAddressDto[]> {
   return (await api()).storefront.myAddresses.query();
+}
+
+/**
+ * Asks the gateway to forget a saved card. The API checks the token belongs to
+ * this customer's own gateway account before passing the request on.
+ */
+export async function removeSavedCard(
+  gateway: OnlineGateway,
+  tokenId: string,
+): Promise<ActionResult<void>> {
+  const result = await (await api()).storefront.removeSavedCard.mutate({ gateway, tokenId });
+  if (result.ok) {
+    revalidatePath('/account/settings');
+    revalidatePath('/checkout');
+  }
+  return result;
 }

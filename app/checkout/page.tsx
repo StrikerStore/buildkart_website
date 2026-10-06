@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { api } from '@/lib/api/server';
+import { api, storeSettings } from '@/lib/api/server';
 import { mapDefaultFrom } from '@/lib/location-shared';
 import { pricedCart } from '@/lib/cart';
 import { currentLocale } from '@/lib/locale';
@@ -22,8 +22,14 @@ export const metadata: Metadata = {
  * checks run on the server, so none of them can be skipped by arriving at the
  * URL directly.
  */
-export default async function CheckoutPage() {
-  const [locale, customer, cart, area] = await Promise.all([
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  /** Set by the PayU return route when a payment did not become an order. */
+  searchParams: Promise<{ payment?: string; reason?: string }>;
+}) {
+  const [{ payment, reason }, locale, customer, cart, area] = await Promise.all([
+    searchParams,
     currentLocale(),
     currentCustomer(),
     pricedCart(),
@@ -40,13 +46,31 @@ export default async function CheckoutPage() {
   if (!cart.meetsMinimum) redirect('/cart');
 
   const client = await api();
-  const [checkout, addresses, profile, wallet] = await Promise.all([
+  const [checkout, addresses, profile, wallet, savedCards, settings] = await Promise.all([
     client.content.storefrontCheckout.query(),
     client.storefront.myAddresses.query(),
     client.storefront.myProfile.query(),
     // A wallet that fails to load hides the option; it must not stop checkout.
     client.storefront.wallet.query().catch(() => null),
+    // Saved cards are a shortcut; a gateway that is down only hides them.
+    client.storefront.savedCards.query().catch(() => []),
+    storeSettings(),
   ]);
+
+  const cod = checkout.methods.find((method) => method.provider === 'COD');
+
+  /*
+   * Back from PayU without an order. The reason is PayU's or ours, passed
+   * through the URL — shown as text, never as markup, and capped so a crafted
+   * link cannot fill the page.
+   */
+  const paymentNotice =
+    payment === 'failed' || payment === 'refunded' || payment === 'pending'
+      ? (reason?.slice(0, 300) ??
+        (locale === 'hi'
+          ? 'भुगतान पूरा नहीं हुआ। आपका कार्ट सुरक्षित है।'
+          : 'Payment was not completed. Your cart is safe.'))
+      : null;
 
   /*
    * Whether to ask for a GST number, per the shop's own checkout settings.
@@ -66,10 +90,11 @@ export default async function CheckoutPage() {
 
       <CheckoutForm
         cart={cart}
-        methods={checkout.methods.map((method) => ({
-          provider: method.provider,
-          label: method.label,
-        }))}
+        paymentOptions={checkout.paymentOptions}
+        savedCards={savedCards}
+        cod={cod ? { label: cod.label, maxOrderValue: cod.maxOrderValue } : null}
+        storeName={settings.store.nameEn || 'BuildKart'}
+        paymentNotice={paymentNotice}
         locale={locale}
         defaultName={customer.name}
         pincode={cart.delivery.pincode}
