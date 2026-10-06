@@ -1,7 +1,12 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
-import { LOCATION_COOKIE, parseLocation, type StoredLocation } from './location-shared';
+import {
+  ADDRESS_COOKIE,
+  LOCATION_COOKIE,
+  parseLocation,
+  type StoredLocation,
+} from './location-shared';
 import { api } from './api/server';
 
 export * from './location-shared';
@@ -15,6 +20,12 @@ export * from './location-shared';
  */
 export const currentLocation = cache(async (): Promise<StoredLocation | null> => {
   return parseLocation((await cookies()).get(LOCATION_COOKIE)?.value);
+});
+
+/** The saved address chosen for delivery, if any. Validated against the book by the caller. */
+export const currentAddressId = cache(async (): Promise<string | null> => {
+  const raw = (await cookies()).get(ADDRESS_COOKIE)?.value ?? '';
+  return /^[A-Za-z0-9_-]{1,64}$/.test(raw) ? raw : null;
 });
 
 /**

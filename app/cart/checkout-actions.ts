@@ -4,8 +4,6 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type {
   ActionResult,
-  CheckoutOption,
-  OnlineGateway,
   PaymentOutcomeDto,
   PaymentStartDto,
   PlacedOrderDto,
@@ -13,24 +11,18 @@ import type {
 import { api } from '@/lib/api/server';
 import { currentCart, currentPromo, currentUnloading } from '@/lib/cart';
 import { CART_COOKIE, PROMO_COOKIE, UNLOADING_COOKIE } from '@/lib/cart-shared';
+import { chooseSavedAddress } from '@/app/location/actions';
 
-/** What the form knows about the order — everything except how it is paid. */
+/**
+ * What the cart knows about the order — everything except how it is paid.
+ *
+ * The address travels as an **id**: the API reads it, its pin and its receiver
+ * from the customer's own address book, so nothing here can point an order at
+ * a place the customer does not own.
+ */
 type CheckoutDetails = {
-  name?: string;
-  /** The customer's nickname for this place, filed with the address book row. */
-  addressLabel?: string;
-  address: {
-    line1: string;
-    line2?: string;
-    landmark?: string;
-    city: string;
-    state: string;
-    pincode: string;
-    latitude?: number;
-    longitude?: number;
-  };
+  addressId: string;
   customerNote?: string;
-  saveAddress: boolean;
   /**
    * The buyer's GSTIN, when they asked for an invoice in a firm's name.
    *
@@ -59,6 +51,8 @@ async function basket() {
     currentUnloading(),
   ]);
   return {
+    // Already in the book; nothing to file.
+    saveAddress: false,
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
     ...(promo ? { discountCode: promo } : {}),
     unloading,
@@ -80,18 +74,35 @@ async function clearCart() {
 }
 
 /**
+ * The delivery address, chosen from the book.
+ *
+ * Moves the delivery area to it as well — `chooseSavedAddress` re-checks we
+ * deliver there and sets both cookies — so the cart reprices for exactly the
+ * place the order will go.
+ */
+export async function selectDeliveryAddress(
+  addressId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const result = await chooseSavedAddress(addressId);
+  if ('error' in result) return { ok: false, error: result.error };
+  if (!result.serviced) {
+    return { ok: false, error: `We do not deliver to ${result.pincode} yet.` };
+  }
+  revalidatePath('/cart');
+  return { ok: true };
+}
+
+/**
  * Starting an online payment.
  *
- * Nothing is placed here — the API opens a payment at whichever gateway the
- * shop routes this option to, and hands back where to send the customer. The
- * cart is cleared only in the one case where an order was written outright:
- * the wallet covered the whole total.
+ * Nothing is placed here — the API opens a payment at the shop's top-priority
+ * gateway, which shows the customer every way it can take the money. `ADVANCE`
+ * is partial COD: only the advance is taken now, worked out by the server. The
+ * cart is cleared only where an order was written outright: the wallet
+ * covered the whole total.
  */
 export async function startPayment(
-  input: CheckoutDetails & {
-    option: CheckoutOption;
-    savedCard?: { gateway: OnlineGateway; tokenId: string };
-  },
+  input: CheckoutDetails & { mode: 'FULL' | 'ADVANCE' },
 ): Promise<ActionResult<PaymentStartDto>> {
   const result = await (await api()).storefront.startPayment.mutate({
     ...input,
@@ -126,11 +137,10 @@ export async function reportPaymentFailed(sessionId: string, reason?: string): P
 }
 
 /** Placing a cash-on-delivery order — written at once, paid at the door. */
-export async function placeOrder(
-  input: CheckoutDetails & { paymentMethod: 'COD' },
-): Promise<ActionResult<PlacedOrderDto>> {
+export async function placeOrder(input: CheckoutDetails): Promise<ActionResult<PlacedOrderDto>> {
   const result = await (await api()).storefront.placeOrder.mutate({
     ...input,
+    paymentMethod: 'COD',
     ...(await basket()),
   });
 

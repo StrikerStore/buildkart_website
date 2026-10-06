@@ -195,6 +195,21 @@ export default async function OrderPage({ params, searchParams }: Props) {
                     : `${order.paidWith ?? (hi ? 'ऑनलाइन' : 'Online')} · ${hi ? 'बाकी' : 'due'}`
               }
             />
+            {/* Partial COD, or any part payment: what is paid and what the
+                rider will collect, side by side. */}
+            {order.paymentStatus !== 'PAID' && order.amountPaid !== order.walletApplied && order.amountPaid !== '0.00' && (
+              <Row
+                label={hi ? 'ऑनलाइन चुकाया' : 'Paid online'}
+                value={formatINR(order.amountPaid)}
+                tone="success"
+              />
+            )}
+            {order.paymentStatus !== 'PAID' && order.amountDue !== '0.00' && order.status !== 'CANCELLED' && (
+              <Row
+                label={hi ? 'डिलीवरी पर देना है' : 'To pay on delivery'}
+                value={formatINR(order.amountDue)}
+              />
+            )}
           </dl>
 
           {order.cashbackStatus !== 'NONE' && (

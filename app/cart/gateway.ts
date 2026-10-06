@@ -85,7 +85,8 @@ export async function openRazorpay(
       ...start.prefill,
       ...(start.method ? { method: start.method } : {}),
     },
-    config: start.display,
+    // Absent means Razorpay shows every method it offers — the normal case.
+    ...(start.display ? { config: start.display } : {}),
     theme: { color: '#318616' },
     modal: {
       ondismiss: handlers.onDismiss,

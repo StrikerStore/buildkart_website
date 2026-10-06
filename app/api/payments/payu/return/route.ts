@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
   return back(outcome.status === 'REFUNDED' ? 'refunded' : outcome.status === 'PENDING' ? 'pending' : 'failed', outcome.message);
 }
 
-/** Back to checkout, cart intact, with the reason shown above the payment options. */
+/** Back to the cart, intact, with the reason shown above the pay button. */
 function back(status: 'failed' | 'refunded' | 'pending', reason: string) {
   const query = new URLSearchParams({ payment: status, reason });
-  return NextResponse.redirect(absoluteUrl(`/checkout?${query.toString()}`), 303);
+  return NextResponse.redirect(absoluteUrl(`/cart?${query.toString()}`), 303);
 }

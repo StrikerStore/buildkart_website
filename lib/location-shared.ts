@@ -20,6 +20,16 @@ export const LOCATION_COOKIE = 'bk_area';
 /** Ninety days. Long enough that a returning customer is not asked again. */
 export const LOCATION_MAX_AGE = 60 * 60 * 24 * 90;
 
+/**
+ * The saved address the order goes to — an id, nothing more.
+ *
+ * Set only when the delivery area was taken *from* that address, and cleared
+ * whenever the area changes any other way, so the cart can never be priced for
+ * one place and shipped to another. The server reads the address itself from
+ * the customer's own book when the order is placed.
+ */
+export const ADDRESS_COOKIE = 'bk_addr';
+
 export type StoredLocation = {
   pincode: string;
   /** The area name as it was when chosen — a label only, never a price input. */

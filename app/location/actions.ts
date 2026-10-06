@@ -11,6 +11,7 @@ import type {
 } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import {
+  ADDRESS_COOKIE,
   LOCATION_COOKIE,
   LOCATION_MAX_AGE,
   mapDefaultFrom,
@@ -165,6 +166,13 @@ export async function chooseSavedAddress(
         state: address.state,
       },
     );
+    // Picked from the book, so this is also where the order goes.
+    (await cookies()).set(ADDRESS_COOKIE, address.id, {
+      maxAge: LOCATION_MAX_AGE,
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: true,
+    });
   }
 
   return result;
@@ -288,6 +296,13 @@ async function rememberArea(
       httpOnly: false,
     },
   );
+
+  /*
+   * Any change of area forgets the chosen address: the cart is about to be
+   * priced somewhere else, and an order must not ship to the old place at the
+   * new place's price. `chooseSavedAddress` sets it again straight after.
+   */
+  (await cookies()).delete(ADDRESS_COOKIE);
 
   // The header pill and every delivery line render from this cookie.
   revalidatePath('/', 'layout');

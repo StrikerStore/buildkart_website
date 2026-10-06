@@ -5,7 +5,7 @@ import { useTransition } from 'react';
 import { Loader2, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
-import { reorder } from '@/app/checkout/actions';
+import { reorder } from '@/app/cart/checkout-actions';
 
 /**
  * "Same order again" — the contractor use case PLAN.md §6.8 singles out.

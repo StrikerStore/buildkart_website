@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import { AlertTriangle } from 'lucide-react';
+import { api, storeSettings } from '@/lib/api/server';
 import { pricedCart } from '@/lib/cart';
 import { currentLocale } from '@/lib/locale';
+import { currentAddressId, currentLocation, mapDefaultFrom } from '@/lib/location';
 import { currentCustomer } from '@/lib/session';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CartLine } from '@/components/cart/cart-line';
 import { CartSummary } from '@/components/cart/cart-summary';
+import { CartCheckout } from '@/components/cart/cart-checkout';
 import { CouponList } from '@/components/cart/coupon-list';
 import { CashbackBanner } from '@/components/wallet/cashback-banner';
 import { UnloadingOffer } from '@/components/cart/unloading-offer';
@@ -24,17 +27,63 @@ export const metadata: Metadata = {
  * owner changed this morning is reflected the moment the page is reloaded,
  * rather than whenever the shopper last touched a stepper.
  */
-export default async function CartPage() {
-  const [locale, cart, customer] = await Promise.all([
+export default async function CartPage({
+  searchParams,
+}: {
+  /** Set by the PayU return route when a payment did not become an order. */
+  searchParams: Promise<{ payment?: string; reason?: string }>;
+}) {
+  const [{ payment, reason }, locale, cart, customer, area, addressId] = await Promise.all([
+    searchParams,
     currentLocale(),
     pricedCart(),
     currentCustomer(),
+    currentLocation(),
+    currentAddressId(),
   ]);
 
   const empty = cart.lines.length === 0;
 
+  /*
+   * The cart is the checkout now, so it loads what checkout used to: the
+   * address book, the payment rules, the wallet. Only for a signed-in customer
+   * with something in the cart — a guest has no book and nothing to pay.
+   */
+  const client = await api();
+  const checkout = empty ? null : await client.content.storefrontCheckout.query();
+  const [addresses, profile, wallet, settings] =
+    customer && !empty
+      ? await Promise.all([
+          client.storefront.myAddresses.query(),
+          client.storefront.myProfile.query(),
+          client.storefront.wallet.query().catch(() => null),
+          storeSettings(),
+        ])
+      : [[], null, null, await storeSettings()];
+
+  /*
+   * The chosen address only counts while the cart is still priced for it — the
+   * area cookie is moved to the address when it is chosen, and any other change
+   * of area forgets the choice. Checked here as well, so a stale cookie can
+   * never put a "Pay" button over a total for somewhere else.
+   */
+  const chosen = addresses.find((address) => address.id === addressId) ?? null;
+  const selectedAddress =
+    chosen && chosen.serviced && chosen.pincode === cart.delivery?.pincode ? chosen : null;
+
+  const cod = checkout?.methods.find((method) => method.provider === 'COD') ?? null;
+  const online = checkout?.methods.some((method) => method.provider !== 'COD') ?? false;
+
+  // Back from PayU without an order — shown as text, capped.
+  const notice =
+    payment === 'failed' || payment === 'refunded' || payment === 'pending'
+      ? (reason?.slice(0, 300) ??
+        (locale === 'hi' ? 'भुगतान पूरा नहीं हुआ। आपका कार्ट सुरक्षित है।' : 'Payment was not completed. Your cart is safe.'))
+      : null;
+
   return (
-    <div className="page-w page-x py-4 sm:py-5">
+    // Room at the bottom on a phone for the pinned pay bar.
+    <div className="page-w page-x py-4 pb-44 sm:py-5 sm:pb-44 lg:pb-5">
       <h1 className="text-heading3 text-ink sm:text-heading2">
         {locale === 'hi' ? 'कार्ट' : 'Cart'}
         {cart.itemCount > 0 && (
@@ -125,7 +174,31 @@ export default async function CartPage() {
               on a phone it simply follows the lines, because a fixed panel
               would eat a third of a small screen. */}
           <div className="mt-5 lg:mt-0 lg:w-80 lg:shrink-0 lg:sticky lg:top-[calc(var(--header-h)+16px)]">
-            <CartSummary cart={cart} locale={locale} signedIn={customer !== null} />
+            <CartSummary cart={cart} locale={locale} showCheckout={false} />
+            {checkout && (
+              <CartCheckout
+                cart={cart}
+                locale={locale}
+                signedIn={customer !== null}
+                addresses={addresses}
+                selectedAddress={selectedAddress}
+                mapDefault={mapDefaultFrom(checkout.location)}
+                currentPin={
+                  area?.latitude && area.longitude
+                    ? { lat: Number(area.latitude), lng: Number(area.longitude) }
+                    : null
+                }
+                receiver={{ name: customer?.name ?? '', phone: customer?.phone ?? '' }}
+                online={online}
+                cod={cod ? { label: cod.label, maxOrderValue: cod.maxOrderValue } : null}
+                partialCod={checkout.partialCod}
+                wallet={wallet}
+                askGstin={checkout.fields.find((field) => field.key === 'gstin')?.visible ?? false}
+                defaultGstin={profile?.gstin ?? null}
+                storeName={settings.store.nameEn || 'BuildKart'}
+                notice={notice}
+              />
+            )}
           </div>
         </div>
       )}
