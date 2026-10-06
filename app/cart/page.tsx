@@ -27,6 +27,19 @@ export const metadata: Metadata = {
  * owner changed this morning is reflected the moment the page is reloaded,
  * rather than whenever the shopper last touched a stepper.
  */
+/** Whether a saved address is exactly the spot the delivery area was set to. */
+function samePlace(
+  address: { pincode: string; latitude: string | null; longitude: string | null },
+  area: { pincode: string; latitude: string | null; longitude: string | null } | null,
+): boolean {
+  if (!area || area.pincode !== address.pincode) return false;
+  if (!address.latitude || !address.longitude || !area.latitude || !area.longitude) return false;
+  return (
+    Math.abs(Number(address.latitude) - Number(area.latitude)) < 1e-6 &&
+    Math.abs(Number(address.longitude) - Number(area.longitude)) < 1e-6
+  );
+}
+
 export default async function CartPage({
   searchParams,
 }: {
@@ -67,7 +80,16 @@ export default async function CartPage({
    * of area forgets the choice. Checked here as well, so a stale cookie can
    * never put a "Pay" button over a total for somewhere else.
    */
-  const chosen = addresses.find((address) => address.id === addressId) ?? null;
+  const chosen =
+    addresses.find((address) => address.id === addressId) ??
+    /*
+     * Chosen in the header instead — the delivery area *is* one of the saved
+     * addresses (same pincode, same pin), so there is nothing to ask again.
+     * Exact match only: the cart was priced for this coordinate, and an
+     * address a few metres away could carry a different delivery charge.
+     */
+    addresses.find((address) => samePlace(address, area)) ??
+    null;
   const selectedAddress =
     chosen && chosen.serviced && chosen.pincode === cart.delivery?.pincode ? chosen : null;
 

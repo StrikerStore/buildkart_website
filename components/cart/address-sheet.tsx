@@ -48,9 +48,13 @@ export function AddressSheet({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [stage, setStage] = useState<Stage>(
-    addresses.length > 0 ? { name: 'list' } : { name: 'map', chosen: null, locate: false },
-  );
+  /*
+   * A pin already dropped from the header is where a new address starts: the
+   * map opens on it with "Confirm & Continue" ready, so the customer only adds
+   * the house details rather than finding the place a second time.
+   */
+  const fresh: Stage = { name: 'map', chosen: currentPin, locate: false };
+  const [stage, setStage] = useState<Stage>(addresses.length > 0 ? { name: 'list' } : fresh);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -107,7 +111,7 @@ export function AddressSheet({
         <div className="space-y-4 p-4">
           <button
             type="button"
-            onClick={() => setStage({ name: 'map', chosen: null, locate: false })}
+            onClick={() => setStage(fresh)}
             className="flex w-full items-center gap-3 rounded-card border border-hairline bg-surface px-4 py-4 text-left hover:bg-surface-muted"
           >
             <Plus className="size-5 text-brand-text" aria-hidden />
