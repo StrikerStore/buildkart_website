@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Briefcase, ChevronRight, Crosshair, Home, Loader2, MapPin, Plus, Search, X } from 'lucide-react';
-import type { MyAddressDto, PlaceSuggestionDto } from '@StrikerStore/contract';
+import { mobileInputValue, type MyAddressDto, type PlaceSuggestionDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
@@ -511,7 +511,7 @@ function AddressDetails({
           <Field
             label={hi ? 'सामान लेने वाले का नंबर *' : 'Receiver number *'}
             value={phone}
-            onChange={setPhone}
+            onChange={(value) => setPhone(mobileInputValue(value))}
             error={errors.receiverPhone}
             prefix="+91"
             inputMode="tel"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { isValidIndianMobile, mobileInputValue } from '@StrikerStore/contract';
 import { Bell, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
@@ -118,15 +119,15 @@ export function NotifyForm({
         <input
           id="notify-phone"
           value={phone}
-          onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))}
+          // Cleaned, not truncated — see the login form.
+          onChange={(event) => setPhone(mobileInputValue(event.target.value))}
           inputMode="tel"
-          autoComplete="tel"
-          maxLength={10}
+          autoComplete="tel-national"
           placeholder="9826000000"
           aria-invalid={error !== null}
           className="h-[var(--tap)] w-44 rounded-box border border-hairline-strong bg-surface px-4 text-body1 text-ink focus:border-ink focus:outline-none"
         />
-        <Button type="submit" variant="quiet" disabled={pending || phone.length !== 10}>
+        <Button type="submit" variant="quiet" disabled={pending || !isValidIndianMobile(phone)}>
           {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {hi ? 'बताएं' : 'Notify me'}
         </Button>

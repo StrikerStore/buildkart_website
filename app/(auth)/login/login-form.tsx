@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { indianMobileError, mobileInputValue } from '@StrikerStore/contract';
 import { ArrowLeft, Loader2, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
@@ -53,6 +54,13 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
   const send = useCallback(
     (onSent: () => void) =>
       startTransition(async () => {
+        // Said here, instantly, rather than after a round trip — and in the
+        // same words the server would use, since both read one rule.
+        const problem = indianMobileError(phone);
+        if (problem) {
+          setError(problem);
+          return;
+        }
         const result = await requestCode(phone);
         if (!result.ok) {
           setError(result.fieldErrors.phone ?? result.formErrors[0] ?? null);
@@ -120,11 +128,20 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
           <input
             id="phone"
             value={phone}
-            onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))}
+            /*
+             * Cleaned, not truncated. Autofill and pastes arrive as
+             * "+91 91747 73644"; keeping the first ten digits of that gave
+             * "9191747736" — somebody else's number. `mobileInputValue` drops
+             * the country code first. No `maxLength` for the same reason: the
+             * browser would cut a paste before this ever saw it.
+             */
+            onChange={(event) => {
+              setPhone(mobileInputValue(event.target.value));
+              setError(null);
+            }}
             inputMode="tel"
-            autoComplete="tel"
+            autoComplete="tel-national"
             autoFocus
-            maxLength={10}
             placeholder="9826000000"
             aria-invalid={error !== null}
             className="h-[52px] min-w-0 flex-1 rounded-box border border-hairline-strong bg-surface px-4 text-heading4 tracking-wide text-ink focus:border-ink focus:outline-none"
