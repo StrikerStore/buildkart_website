@@ -19,7 +19,7 @@ import {
   type MapDefault,
   type StoredLocation,
 } from '@/lib/location-shared';
-import { currentLocation } from '@/lib/location';
+import { currentAddressId, currentLocation } from '@/lib/location';
 import { currentCustomer } from '@/lib/session';
 
 /**
@@ -190,9 +190,15 @@ export async function loadLocationSheet(): Promise<{
   addresses: MyAddressDto[];
   current: StoredLocation | null;
   signedInPhone: string | null;
+  signedInName: string | null;
+  selectedAddressId: string | null;
   mapDefault: MapDefault;
 }> {
-  const [customer, current] = await Promise.all([currentCustomer(), currentLocation()]);
+  const [customer, current, selectedAddressId] = await Promise.all([
+    currentCustomer(),
+    currentLocation(),
+    currentAddressId(),
+  ]);
   const client = await api();
 
   const [checkout, addresses] = await Promise.all([
@@ -207,6 +213,8 @@ export async function loadLocationSheet(): Promise<{
     // So an out-of-area answer offers one tap rather than asking for a number
     // the shop has already verified.
     signedInPhone: customer?.phone ?? null,
+    signedInName: customer?.name ?? null,
+    selectedAddressId,
     mapDefault: mapDefaultFrom(checkout.location),
   };
 }

@@ -6,8 +6,10 @@ import { Crosshair, Loader2, MapPin, Search } from 'lucide-react';
 import type { DeviceLocationDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import type { MapDefault } from '@/lib/location-shared';
 import { resolveDeviceLocation } from '@/app/location/actions';
+import { NotifyForm } from '@/app/location/notify-form';
 
 function MapLoading() {
   return (
@@ -41,7 +43,8 @@ export type PinChoice = { latitude: number; longitude: number; resolved: DeviceL
  * it names the spot and offers to continue.
  */
 export function PinMap({
-  hi,
+  locale,
+  notifyPhone,
   map,
   start,
   /** A spot to open on, already chosen (a search pick, or "edit" from the details). */
@@ -50,7 +53,9 @@ export function PinMap({
   onSearch,
   onConfirm,
 }: {
-  hi: boolean;
+  locale: Locale;
+  /** The signed-in number for "tell me when you deliver here"; null asks for one. */
+  notifyPhone: string | null;
   map: Pick<MapDefault, 'provider' | 'browserKey'>;
   start: { lat: number; lng: number; zoom: number };
   chosen: { lat: number; lng: number } | null;
@@ -58,6 +63,7 @@ export function PinMap({
   onSearch: () => void;
   onConfirm: (pin: PinChoice) => void;
 }) {
+  const hi = locale === 'hi';
   const [centre, setCentre] = useState(chosen ?? { lat: start.lat, lng: start.lng });
   const [zoom, setZoom] = useState(chosen ? PIN_ZOOM : start.zoom);
   const [recentreToken, setRecentreToken] = useState(0);
@@ -219,12 +225,32 @@ export function PinMap({
                   <p className="mt-1.5 text-body4 text-error">
                     {resolved.resolved
                       ? hi
-                        ? 'यहाँ अभी डिलीवरी नहीं है — पिन को अपने इलाक़े में रखें।'
-                        : 'We do not deliver here yet — move the pin into an area we serve.'
+                        ? 'यहाँ अभी डिलीवरी नहीं है।'
+                        : 'We do not deliver here yet.'
                       : hi
                         ? 'यह जगह पहचान नहीं पाए — पिन थोड़ा हिलाएँ।'
                         : 'Could not identify this spot — nudge the pin.'}
                   </p>
+                )}
+                {/*
+                  * "Not yet" as a shop growing toward them, not a closed door:
+                  * where we do reach today, and a way to hear when we start.
+                  */}
+                {!serviced && resolved.resolved && (
+                  <div className="mt-2 max-h-48 overflow-y-auto">
+                    {resolved.nearby.length > 0 && (
+                      <p className="text-body5 text-ink-muted">
+                        {hi ? 'फ़िलहाल हम यहाँ पहुँचते हैं: ' : 'Right now we reach: '}
+                        {resolved.nearby
+                          .slice(0, 3)
+                          .map((near) => `${near.areaName}, ${near.city}`)
+                          .join(' · ')}
+                      </p>
+                    )}
+                    {resolved.pincode && (
+                      <NotifyForm pincode={resolved.pincode} locale={locale} signedInPhone={notifyPhone} />
+                    )}
+                  </div>
                 )}
               </div>
             ) : null}

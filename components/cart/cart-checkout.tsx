@@ -439,7 +439,7 @@ export function CartCheckout({
 
       {sheetOpen && (
         <AddressSheet
-          hi={hi}
+          locale={locale}
           addresses={addresses}
           selectedId={selectedAddress?.id ?? null}
           mapDefault={mapDefault}

@@ -24,6 +24,7 @@ export function Sheet({
   backLabel = 'Back',
   children,
   footer,
+  dismissible = true,
 }: {
   title: string;
   onClose: () => void;
@@ -35,10 +36,15 @@ export function Sheet({
   children: React.ReactNode;
   /** Pinned under the scrolling body — a primary action that must stay in reach. */
   footer?: React.ReactNode;
+  /**
+   * False makes the sheet a gate: no close button, no backdrop or Escape
+   * dismiss. For a question the page cannot work without the answer to.
+   */
+  dismissible?: boolean;
 }) {
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && dismissible) onClose();
     }
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -47,11 +53,15 @@ export function Sheet({
       document.body.style.overflow = previous;
       document.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+  }, [onClose, dismissible]);
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-ink/50" onClick={onClose} aria-hidden />
+      <div
+        className="fixed inset-0 z-50 bg-ink/50"
+        onClick={dismissible ? onClose : undefined}
+        aria-hidden
+      />
       <div
         role="dialog"
         aria-modal="true"
@@ -81,14 +91,16 @@ export function Sheet({
           <h2 className={cn('min-w-0 flex-1 truncate text-heading4 text-ink', !onBack && 'pl-1')}>
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={closeLabel}
-            className="grid size-9 shrink-0 place-items-center rounded-box text-ink-muted hover:bg-surface-muted"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
+          {dismissible && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={closeLabel}
+              className="grid size-9 shrink-0 place-items-center rounded-box text-ink-muted hover:bg-surface-muted"
+            >
+              <X className="size-5" aria-hidden />
+            </button>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>

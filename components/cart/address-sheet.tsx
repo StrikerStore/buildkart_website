@@ -7,8 +7,9 @@ import type { MyAddressDto, PlaceSuggestionDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import type { MapDefault } from '@/lib/location-shared';
-import { placeLocation, searchPlaces } from '@/app/location/actions';
+import { confirmLocation, placeLocation, searchPlaces } from '@/app/location/actions';
 import { saveAddress } from '@/app/account/actions';
 import { selectDeliveryAddress } from '@/app/cart/checkout-actions';
 import { PinMap, type PinChoice } from './pin-map';
@@ -20,24 +21,33 @@ type Stage =
   | { name: 'details'; pin: PinChoice };
 
 /**
- * Choosing where the order goes, from the cart.
+ * Choosing where we deliver — the one picker, opened from the header's
+ * location pill and from the cart's "Add address to proceed" alike.
  *
  * Saved addresses first — one tap and done — then "Add New Address", which
  * walks through the map (current location or a search), a confirmed pin, and
  * the house-level details a rider needs at the gate. Whatever is picked or
- * saved becomes the delivery address *and* the delivery area, so the cart
- * reprices for exactly that place before anyone pays.
+ * saved becomes the delivery address *and* the delivery area, so prices and
+ * the cart reprice for exactly that place.
+ *
+ * A guest has no address book, so for them it is the map alone: the pin sets
+ * the delivery area, and the house details are asked at the cart once they
+ * have signed in.
  */
 export function AddressSheet({
-  hi,
+  locale,
+  signedIn = true,
   addresses,
   selectedId,
   mapDefault,
   currentPin,
   receiver,
   onClose,
+  onSettled,
+  dismissible = true,
 }: {
-  hi: boolean;
+  locale: Locale;
+  signedIn?: boolean;
   addresses: MyAddressDto[];
   selectedId: string | null;
   mapDefault: MapDefault;
@@ -46,15 +56,28 @@ export function AddressSheet({
   /** Prefill for "who takes the delivery". */
   receiver: { name: string; phone: string };
   onClose: () => void;
+  /** Fired once a place is committed; defaults to closing. */
+  onSettled?: () => void;
+  /** False while the site has no delivery area at all — see `LocationProvider`. */
+  dismissible?: boolean;
 }) {
+  const hi = locale === 'hi';
   const router = useRouter();
+  const [guestError, setGuestError] = useState<string | null>(null);
+
+  function settle() {
+    router.refresh();
+    (onSettled ?? onClose)();
+  }
   /*
    * A pin already dropped from the header is where a new address starts: the
    * map opens on it with "Confirm & Continue" ready, so the customer only adds
    * the house details rather than finding the place a second time.
    */
   const fresh: Stage = { name: 'map', chosen: currentPin, locate: false };
-  const [stage, setStage] = useState<Stage>(addresses.length > 0 ? { name: 'list' } : fresh);
+  const [stage, setStage] = useState<Stage>(
+    signedIn && addresses.length > 0 ? { name: 'list' } : fresh,
+  );
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -75,8 +98,20 @@ export function AddressSheet({
         setError(result.error);
         return;
       }
-      router.refresh();
-      onClose();
+      settle();
+    });
+  }
+
+  /** A guest's confirmed pin becomes the delivery area; nothing is saved. */
+  function commitGuestPin(pin: PinChoice) {
+    setGuestError(null);
+    startTransition(async () => {
+      const result = await confirmLocation(pin.latitude, pin.longitude);
+      if (!result.serviced) {
+        setGuestError(hi ? 'यहाँ अभी डिलीवरी नहीं है।' : 'We do not deliver here yet.');
+        return;
+      }
+      settle();
     });
   }
 
@@ -91,7 +126,7 @@ export function AddressSheet({
     stage.name === 'list'
       ? undefined
       : stage.name === 'map'
-        ? addresses.length > 0
+        ? signedIn && addresses.length > 0
           ? () => setStage({ name: 'list' })
           : undefined
         : stage.name === 'search'
@@ -106,6 +141,7 @@ export function AddressSheet({
       size={stage.name === 'list' ? 'half' : 'full'}
       closeLabel={hi ? 'बंद करें' : 'Close'}
       backLabel={hi ? 'वापस' : 'Back'}
+      dismissible={dismissible}
     >
       {stage.name === 'list' && (
         <div className="space-y-4 p-4">
@@ -179,14 +215,20 @@ export function AddressSheet({
         <PinMap
           // Remounted per entry, so a search pick or an edit opens where it should.
           key={stage.chosen ? `${stage.chosen.lat},${stage.chosen.lng}` : `fresh-${String(stage.locate)}`}
-          hi={hi}
+          locale={locale}
+          notifyPhone={signedIn ? receiver.phone || null : null}
           map={mapDefault}
           start={mapStart}
           chosen={stage.chosen}
           locateOnOpen={stage.locate}
           onSearch={() => setStage({ name: 'search' })}
-          onConfirm={(pin) => setStage({ name: 'details', pin })}
+          onConfirm={(pin) => (signedIn ? setStage({ name: 'details', pin }) : commitGuestPin(pin))}
         />
+      )}
+      {stage.name === 'map' && guestError && (
+        <p role="alert" className="bg-error-bg px-4 py-2 text-body3 text-error">
+          {guestError}
+        </p>
       )}
 
       {stage.name === 'search' && (
@@ -206,10 +248,7 @@ export function AddressSheet({
           onEdit={() =>
             setStage({ name: 'map', chosen: { lat: stage.pin.latitude, lng: stage.pin.longitude }, locate: false })
           }
-          onSaved={() => {
-            router.refresh();
-            onClose();
-          }}
+          onSaved={settle}
         />
       )}
     </Sheet>
