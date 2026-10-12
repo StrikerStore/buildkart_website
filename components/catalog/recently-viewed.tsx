@@ -18,16 +18,19 @@ export function RecentlyViewed({
   cards,
   locale,
   className,
+  title,
 }: {
   cards: StorefrontCardDto[];
   locale: Locale;
   className?: string;
+  /** The heading the owner gave the home page section; the stock one otherwise. */
+  title?: string | null;
 }) {
   if (cards.length < 2) return null;
 
   return (
     <section className={className}>
-      <h2 className="mb-3 text-heading4 text-ink">{tr(locale, 'recent.title')}</h2>
+      <h2 className="mb-3 text-heading4 text-ink">{title || tr(locale, 'recent.title')}</h2>
 
       <div className="rail flex -mx-4 gap-3 px-4 pb-1 [--rail-pad:16px] sm:mx-0 sm:px-0 sm:[--rail-pad:0px]">
         {cards.map((card) => (

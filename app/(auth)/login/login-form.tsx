@@ -25,6 +25,8 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [devCode, setDevCode] = useState<string | null>(null);
+  // Ticked by default and said plainly; unticking it is respected.
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [pending, startTransition] = useTransition();
   const codeRef = useRef<HTMLInputElement>(null);
 
@@ -100,7 +102,7 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
     setError(null);
 
     startTransition(async () => {
-      const result = await verifyCode(phone, code, next);
+      const result = await verifyCode(phone, code, next, whatsappOptIn);
       // A success redirects inside the action and never returns; reaching here
       // means it failed.
       if (result && !result.ok) {
@@ -187,7 +189,13 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
         {locale === 'hi' ? `कोड डालें` : 'Enter the code'}
       </label>
       <p className="mt-1 text-body3 text-ink-muted">
-        {locale === 'hi' ? `+91 ${phone} पर भेजा गया` : `Sent to +91 ${phone}`}
+        {devCode
+          ? locale === 'hi'
+            ? `+91 ${phone} के लिए`
+            : `For +91 ${phone}`
+          : locale === 'hi'
+            ? `+91 ${phone} पर WhatsApp पर भेजा गया`
+            : `Sent on WhatsApp to +91 ${phone}`}
       </p>
 
       <input
@@ -212,8 +220,8 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
       {devCode && (
         <p className="mt-3 rounded-box bg-info-bg px-3 py-2 text-body3 text-info">
           {locale === 'hi'
-            ? `कोई SMS सेवा नहीं जुड़ी है। कोड: ${devCode}`
-            : `No SMS provider is configured, so nothing was sent. Your code is ${devCode}.`}
+            ? `कोड भेजने की कोई सेवा नहीं जुड़ी है। कोड: ${devCode}`
+            : `No WhatsApp sign-in is configured, so nothing was sent. Your code is ${devCode}.`}
         </p>
       )}
 
@@ -230,6 +238,20 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
           {locale === 'hi' ? 'नया कोड भेज दिया।' : 'A new code is on its way.'}
         </p>
       )}
+
+      <label className="mt-4 flex items-start gap-2 text-body3 text-ink-muted">
+        <input
+          type="checkbox"
+          checked={whatsappOptIn}
+          onChange={(event) => setWhatsappOptIn(event.target.checked)}
+          className="mt-0.5 size-4 shrink-0 accent-current"
+        />
+        <span>
+          {locale === 'hi'
+            ? 'ऑर्डर, भुगतान और डिलीवरी की जानकारी WhatsApp पर भेजें। कभी भी STOP लिखकर बंद करें।'
+            : 'Send order, payment and delivery updates on WhatsApp. Reply STOP any time to turn them off.'}
+        </span>
+      </label>
 
       <Button type="submit" size="lg" block disabled={pending || code.length !== 6} className="mt-4">
         {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}

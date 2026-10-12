@@ -24,8 +24,9 @@ export async function verifyCode(
   phone: string,
   code: string,
   next: string,
+  whatsappOptIn: boolean,
 ): Promise<ActionResult<Omit<CustomerSessionDto, 'token'>>> {
-  const result = await (await api()).storefront.verifyOtp.mutate({ phone, code });
+  const result = await (await api()).storefront.verifyOtp.mutate({ phone, code, whatsappOptIn });
   if (!result.ok) return result;
 
   const { token, ...customer } = result.data;

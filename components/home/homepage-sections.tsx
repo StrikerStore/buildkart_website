@@ -1,8 +1,9 @@
-import type { StorefrontSectionDto } from '@StrikerStore/contract';
+import type { StorefrontCardDto, StorefrontSectionDto } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 import { SectionHeader } from '@/components/ui/section-header';
 import { CategoryTile } from '@/components/catalog/category-tile';
 import { ProductCard } from '@/components/catalog/product-card';
+import { RecentlyViewed } from '@/components/catalog/recently-viewed';
 import { BannerStrip } from './banner-strip';
 import { CustomerReviews } from './customer-reviews';
 import { TrustStrip } from './trust-strip';
@@ -18,9 +19,12 @@ import { TrustStrip } from './trust-strip';
  */
 export function HomepageSections({
   sections,
+  seen,
   locale,
 }: {
   sections: StorefrontSectionDto[];
+  /** This shopper's recently viewed products, for a RECENTLY_VIEWED section. */
+  seen: StorefrontCardDto[];
   locale: Locale;
 }) {
   return (
@@ -116,6 +120,19 @@ export function HomepageSections({
                 markers={section.markers}
                 promiseHours={section.promiseHours}
                 locale={locale}
+              />
+            );
+
+          // The API only says where the rail goes; the products are this
+          // shopper's own, read from their cookie. Hides itself below two.
+          case 'RECENTLY_VIEWED':
+            return (
+              <RecentlyViewed
+                key={section.id}
+                cards={seen}
+                title={(locale === 'hi' && section.titleHi) || section.titleEn}
+                locale={locale}
+                className="page-w page-x py-5"
               />
             );
         }
