@@ -1,5 +1,6 @@
 import type { StorefrontCardDto, StorefrontSectionDto } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
+import { cn } from '@/lib/cn';
 import { SectionHeader } from '@/components/ui/section-header';
 import { CategoryTile } from '@/components/catalog/category-tile';
 import { ProductCard } from '@/components/catalog/product-card';
@@ -39,11 +40,29 @@ export function HomepageSections({
                   titleHi={section.titleHi}
                   locale={locale}
                 />
-                {/* Four across on a phone. Three left the tiles larger than
-                    they need to be and pushed the row below off the fold. */}
-                <div className="grid grid-cols-4 gap-2 md:grid-cols-6 lg:grid-cols-8">
+                {/*
+                 * Four across on a phone. Three left the tiles larger than
+                 * they need to be and pushed the row below off the fold.
+                 *
+                 * A wrapping flex row rather than a CSS grid, because a grid
+                 * cannot centre a row it does not fill. Each tile is sized to
+                 * exactly a 4/6/8-column track (the width less its share of
+                 * the gaps), so a left-aligned grid looks as it always did and
+                 * the owner's alignment only moves a short row.
+                 */}
+                <div
+                  className={cn(
+                    'flex flex-wrap gap-2',
+                    section.align === 'center' && 'justify-center',
+                  )}
+                >
                   {section.categories.map((category) => (
-                    <CategoryTile key={category.slug} category={category} locale={locale} />
+                    <div
+                      key={category.slug}
+                      className="w-[calc((100%_-_1.5rem)/4)] md:w-[calc((100%_-_2.5rem)/6)] lg:w-[calc((100%_-_3.5rem)/8)]"
+                    >
+                      <CategoryTile category={category} locale={locale} />
+                    </div>
                   ))}
                 </div>
               </section>
