@@ -26,6 +26,8 @@ export function VariantPicker({
   quantities,
   locale,
   productName,
+  handle,
+  pixelName,
   bulkTierBasis,
   offer,
   details,
@@ -37,6 +39,9 @@ export function VariantPicker({
   locale: Locale;
   /** For the bulk sheet's subtitle — it opens over the page, not beside it. */
   productName: string;
+  /** The product's handle and English name, for the Meta Pixel's AddToCart. */
+  handle: string;
+  pixelName: string;
   /** How this product's rungs read, so the ladder is worded once. */
   bulkTierBasis: BulkTierBasis;
   /**
@@ -178,6 +183,7 @@ export function VariantPicker({
                 locale={locale}
                 size="lg"
                 label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
+                pixel={{ handle, name: pixelName, price: selected.price }}
               />
             ) : (
               <p className="rounded-box bg-surface-muted py-3 text-center text-cta2 text-ink-muted">
@@ -273,6 +279,7 @@ export function VariantPicker({
                   locale={locale}
                   size="lg"
                   label={locale === 'hi' ? 'कार्ट में डालें' : 'Add to cart'}
+                  pixel={{ handle, name: pixelName, price: selected.price }}
                 />
               ) : (
                 <span className="inline-flex h-[52px] w-full items-center justify-center rounded-box bg-surface-muted text-cta2 text-ink-muted">

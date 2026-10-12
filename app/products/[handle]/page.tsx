@@ -10,6 +10,8 @@ import { ProductCard } from '@/components/catalog/product-card';
 import { RateStamp } from '@/components/catalog/rate-stamp';
 import { Gallery } from '@/components/product/gallery';
 import { RecordView } from '@/components/product/record-view';
+import { TrackEvent } from '@/components/analytics/track-event';
+import { CURRENCY, toValue } from '@/lib/meta-pixel';
 import { RecentlyViewed } from '@/components/catalog/recently-viewed';
 import { recentlyViewed } from '@/lib/recently-viewed';
 import { DeliveryLine } from '@/components/product/delivery-line';
@@ -147,6 +149,8 @@ export default async function ProductPage({ params }: Props) {
               quantities={quantities}
               locale={locale}
               productName={name}
+              handle={product.handle}
+              pixelName={product.nameEn}
               bulkTierBasis={product.bulkTierBasis}
               offer={<CashbackOffer rules={settings.wallet} locale={locale} />}
               details={
@@ -236,6 +240,26 @@ export default async function ProductPage({ params }: Props) {
 
       {/* Fires after paint. Nothing on screen waits for it. */}
       <RecordView handle={product.handle} />
+
+      {/*
+        * Meta Pixel ViewContent. The value is the lowest variant price — the
+        * "from" price a shopper sees first — since no variant is chosen yet.
+        */}
+      <TrackEvent
+        name="ViewContent"
+        params={{
+          content_ids: [product.handle],
+          content_name: product.nameEn,
+          content_type: 'product',
+          ...(product.category ? { content_category: product.category.nameEn } : {}),
+          ...(product.variants.length > 0
+            ? {
+                value: Math.min(...product.variants.map((variant) => toValue(variant.price))),
+                currency: CURRENCY,
+              }
+            : {}),
+        }}
+      />
 
       {/*
         * Product structured data. Rendered from the same DTO the page uses, so

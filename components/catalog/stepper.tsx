@@ -4,6 +4,7 @@ import { ChevronsLeft, ChevronsRight, Minus, Plus } from 'lucide-react';
 import { useOptimistic, useTransition } from 'react';
 import { setCartQuantity } from '@/app/cart/actions';
 import { cn } from '@/lib/cn';
+import { trackAddToCart, type PixelProduct } from '@/lib/meta-pixel';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -39,6 +40,7 @@ export function Stepper({
   size = 'sm',
   onChanged,
   label,
+  pixel,
 }: {
   variantId: string;
   quantity: number;
@@ -52,6 +54,12 @@ export function Stepper({
   onChanged?: () => void;
   /** Overrides "ADD" — the buy bar has room for the full "Add to cart". */
   label?: string;
+  /**
+   * What to tell the Meta Pixel when the count goes up. Optional because the
+   * cart's own steppers adjust lines already counted when they were added;
+   * a caller without it reports nothing.
+   */
+  pixel?: PixelProduct;
 }) {
   const [pending, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(quantity);
@@ -60,6 +68,9 @@ export function Stepper({
   const JUMP = 5;
 
   function change(next: number) {
+    // On the tap, not after the write: an AddToCart is the shopper's intent,
+    // and the pixel should not wait on (or depend on) the server round trip.
+    if (pixel && next > shown) trackAddToCart(pixel, next - shown);
     startTransition(async () => {
       setShown(next);
       await setCartQuantity(variantId, next);

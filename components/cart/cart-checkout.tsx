@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { Briefcase, Home, Loader2, MapPin, User, Wallet } from 'lucide-react';
 import {
   compareMoney,
@@ -27,6 +27,7 @@ import {
   startPayment,
 } from '@/app/cart/checkout-actions';
 import { openRazorpay, submitToPayu } from '@/app/cart/gateway';
+import { CURRENCY, eventId, toValue, track } from '@/lib/meta-pixel';
 import { AddressSheet, addressLine } from './address-sheet';
 
 type PayMode = 'ONLINE' | 'COD' | 'ADVANCE';
@@ -118,12 +119,49 @@ export function CartCheckout({
     (effectiveMode === 'COD' && codTooLarge);
 
   // --- acting --------------------------------------------------------------
+  /*
+   * InitiateCheckout once per visit to this screen, not once per tap: a
+   * shopper who fixes a GSTIN error and taps Pay again has not started a
+   * second checkout. After the address check, because "Add address" opens a
+   * sheet rather than committing to anything.
+   */
+  const checkoutTracked = useRef(false);
+
+  function trackCheckout() {
+    const pixelCart = {
+      content_ids: cart.lines.map((line) => line.handle),
+      content_type: 'product',
+      contents: cart.lines.map((line) => ({
+        id: line.handle,
+        quantity: line.quantity,
+        item_price: toValue(line.unitPrice),
+      })),
+      num_items: cart.itemCount,
+      value: toValue(toPay),
+      currency: CURRENCY,
+    };
+    if (!checkoutTracked.current) {
+      checkoutTracked.current = true;
+      track('InitiateCheckout', pixelCart, eventId('checkout'));
+    }
+    // Online only: COD has no payment details to add, and Meta's funnel reads
+    // AddPaymentInfo as "reached the payment step".
+    if (effectiveMode !== 'COD') {
+      track(
+        'AddPaymentInfo',
+        { ...pixelCart, payment_type: effectiveMode },
+        eventId('payinfo'),
+      );
+    }
+  }
+
   function proceed() {
     setError(null);
     if (!selectedAddress) {
       setSheetOpen(true);
       return;
     }
+    trackCheckout();
     const details = {
       addressId: selectedAddress.id,
       customerNote: note.trim() || undefined,

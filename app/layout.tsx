@@ -11,6 +11,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { CartBar } from '@/components/cart/cart-bar';
 import { LocationProvider } from '@/components/location/location-provider';
+import { MetaPixel } from '@/components/analytics/meta-pixel';
 import './globals.css';
 
 /*
@@ -180,6 +181,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
            */}
           <CartBar count={cartCount(cart)} locale={locale} />
         </LocationProvider>
+
+        {/*
+         * Read per request, not inlined at build: a `NEXT_PUBLIC_` id would be
+         * baked into the standalone bundle and need a rebuild to change. This
+         * layout is dynamic anyway (it reads the cart cookie). Unset — local
+         * dev, previews — means no pixel at all.
+         */}
+        {process.env.META_PIXEL_ID && <MetaPixel pixelId={process.env.META_PIXEL_ID} />}
       </body>
     </html>
   );

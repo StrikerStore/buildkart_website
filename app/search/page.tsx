@@ -4,6 +4,7 @@ import { currentLocale } from '@/lib/locale';
 import { readQuery, type SearchParams } from '@/lib/list-query';
 import { Listing } from '@/components/catalog/listing';
 import { SearchHitTracker } from '@/components/catalog/search-hit-tracker';
+import { TrackEvent } from '@/components/analytics/track-event';
 import { EmptyState } from '@/components/ui/empty-state';
 
 export const metadata: Metadata = {
@@ -53,6 +54,9 @@ export default async function SearchPage({ searchParams }: Props) {
     // Counts the product a shopper opens from here, for the homepage's
     // Trending band.
     <SearchHitTracker>
+      {/* Keyed on the term so a second search from the header box, which
+          reuses this page, reports again. */}
+      <TrackEvent key={query.q} name="Search" params={{ search_string: query.q }} />
       <Listing
         pathname="/search"
         params={search}

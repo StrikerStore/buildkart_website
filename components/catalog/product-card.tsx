@@ -142,6 +142,8 @@ export async function ProductCard({
           <AddButton
             variantId={product.variantId}
             handle={product.handle}
+            name={product.nameEn}
+            price={product.price}
             inStock={product.inStock}
             locale={locale}
           />

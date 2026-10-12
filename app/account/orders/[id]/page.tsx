@@ -9,6 +9,8 @@ import { currentCustomer } from '@/lib/session';
 import { buttonClass } from '@/components/ui/button';
 import { OrderTimeline } from '@/components/orders/order-status';
 import { ReorderButton } from '@/components/orders/reorder-button';
+import { TrackEvent } from '@/components/analytics/track-event';
+import { CURRENCY, toValue } from '@/lib/meta-pixel';
 
 export const metadata: Metadata = {
   title: 'Order',
@@ -65,6 +67,45 @@ export default async function OrderPage({ params, searchParams }: Props) {
                 : `We will call you on ${order.address.phone} to confirm.`}
             </p>
           </div>
+        )}
+
+        {/*
+          * Meta Pixel Purchase — the one place it fires.
+          *
+          * Every way of paying ends here with `?placed=1`: COD and wallet-only
+          * from the checkout button, Razorpay after its confirm, PayU via its
+          * return route (a POST from PayU's domain, which can run no browser
+          * code of its own). So one tag covers them all.
+          *
+          * `purchase-<id>` is deliberate: the server-side Conversions API will
+          * send the same event with the same id, and Meta counts the pair once.
+          * `onceKey` stops a refresh of this URL reporting the sale again.
+          */}
+        {justPlaced && (
+          <TrackEvent
+            name="Purchase"
+            eventId={`purchase-${order.id}`}
+            onceKey={`px:purchase:${order.id}`}
+            params={{
+              content_ids: order.items.flatMap((item) => (item.handle ? [item.handle] : [])),
+              content_type: 'product',
+              contents: order.items.flatMap((item) =>
+                item.handle
+                  ? [
+                      {
+                        id: item.handle,
+                        quantity: item.quantity,
+                        item_price: toValue(item.unitPrice),
+                      },
+                    ]
+                  : [],
+              ),
+              num_items: order.items.reduce((sum, item) => sum + item.quantity, 0),
+              value: toValue(order.grandTotal),
+              currency: CURRENCY,
+              order_id: order.orderNumber,
+            }}
+          />
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3">

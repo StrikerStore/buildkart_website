@@ -15,6 +15,7 @@ import {
   type StorefrontVariantDto,
 } from '@StrikerStore/contract';
 import { setCartQuantity } from '@/app/cart/actions';
+import { trackAddToCart } from '@/lib/meta-pixel';
 import { loadQuickOptions, type QuickOptionsData } from '@/app/products/[handle]/actions';
 import { buttonClass } from '@/components/ui/button';
 import { useVariantSelection, VariantAxes } from '@/components/product/variant-axes';
@@ -229,6 +230,12 @@ function Body({
   function submit(kind: 'cart' | 'buy') {
     if (!selected || qty < 1) return;
     setBusy(kind);
+    // Only the increase: "Update cart" on a line already holding 10 that now
+    // says 12 is two more added, and one that now says 8 is none.
+    trackAddToCart(
+      { handle: data.handle, name: data.nameEn, price: selected.price },
+      qty - (data.quantities[selected.id] ?? 0),
+    );
     startTransition(async () => {
       await setCartQuantity(selected.id, qty);
       if (kind === 'buy') {

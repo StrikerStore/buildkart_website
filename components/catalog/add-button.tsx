@@ -22,11 +22,16 @@ import { Stepper } from './stepper';
 export async function AddButton({
   variantId,
   handle,
+  name,
+  price,
   inStock,
   locale,
 }: {
   variantId: string | null;
   handle: string;
+  /** English name and price, for the Meta Pixel's AddToCart. */
+  name: string;
+  price: string | null;
   inStock: boolean;
   locale: Locale;
 }) {
@@ -40,5 +45,12 @@ export async function AddButton({
 
   if (!variantId) return <QuickOptions handle={handle} locale={locale} />;
 
-  return <Stepper variantId={variantId} quantity={await quantityOf(variantId)} locale={locale} />;
+  return (
+    <Stepper
+      variantId={variantId}
+      quantity={await quantityOf(variantId)}
+      locale={locale}
+      pixel={price ? { handle, name, price } : undefined}
+    />
+  );
 }
