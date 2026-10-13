@@ -2,6 +2,7 @@ import { Check, Circle } from 'lucide-react';
 import type { OrderStatus } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
+import { STORE_TIME_ZONE } from '@StrikerStore/contract';
 
 /**
  * The five states an order moves through, and where this one has reached.
@@ -104,6 +105,7 @@ export function OrderTimeline({
               {at && (
                 <p className="text-body5 text-ink-muted">
                   {new Date(at).toLocaleString(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+                    timeZone: STORE_TIME_ZONE,
                     day: 'numeric',
                     month: 'short',
                     hour: 'numeric',

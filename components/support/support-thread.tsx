@@ -6,6 +6,7 @@ import {
   SUPPORT_MESSAGE_MAX,
   type SupportMessageDto,
   type SupportThreadDto,
+  STORE_TIME_ZONE,
 } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import { tr, type Locale } from '@/lib/i18n';
@@ -185,7 +186,7 @@ function MessageList({ messages, locale }: { messages: SupportMessageDto[]; loca
                 {' · '}
                 {new Date(message.createdAt).toLocaleTimeString(
                   locale === 'hi' ? 'hi-IN' : 'en-IN',
-                  { hour: 'numeric', minute: '2-digit' },
+                  { hour: 'numeric', minute: '2-digit', timeZone: STORE_TIME_ZONE },
                 )}
               </p>
             </div>

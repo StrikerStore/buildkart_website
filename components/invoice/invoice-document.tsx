@@ -1,12 +1,13 @@
-import { formatINR, splitGst, type MyInvoiceDto } from '@StrikerStore/contract';
+import { formatINR, splitGst, storeDateStamp, type MyInvoiceDto } from '@StrikerStore/contract';
 import type { SettingValue } from '@StrikerStore/contract';
 import type { Locale } from '@/lib/i18n';
 
 /** dd/mm/yyyy — how a date is written on a document in India. */
 function inDate(iso: string): string {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+  // The IST calendar date: an invoice raised at 1am IST is that day's, not
+  // the previous day's as UTC would have it.
+  const [year, month, day] = storeDateStamp(new Date(iso)).split('-');
+  return `${day}/${month}/${year}`;
 }
 
 /**

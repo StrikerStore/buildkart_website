@@ -13,7 +13,7 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
-import { formatINR, type WalletRulesDto } from '@StrikerStore/contract';
+import { formatINR, type WalletRulesDto, STORE_TIME_ZONE } from '@StrikerStore/contract';
 import { buttonClass } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
@@ -374,6 +374,7 @@ function WalletArt() {
 
 function shortDate(iso: string, locale: Locale) {
   return new Date(iso).toLocaleDateString(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+    timeZone: STORE_TIME_ZONE,
     day: 'numeric',
     month: 'short',
   });

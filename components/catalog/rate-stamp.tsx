@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import type { Locale } from '@/lib/i18n';
+import { storeDateStamp } from '@StrikerStore/contract';
 
 /**
  * "Rate updated today ✓" — PLAN.md §2's trust signal for volatile lines.
@@ -17,11 +18,8 @@ export function RateStamp({ updatedAt, locale }: { updatedAt: string; locale: Lo
   const updated = new Date(updatedAt);
   if (Number.isNaN(updated.getTime())) return null;
 
-  const now = new Date();
-  const sameDay =
-    updated.getFullYear() === now.getFullYear() &&
-    updated.getMonth() === now.getMonth() &&
-    updated.getDate() === now.getDate();
+  // The shop's today, in IST — not the server's (UTC) or the visitor's.
+  const sameDay = storeDateStamp(updated) === storeDateStamp(new Date());
 
   if (!sameDay) return null;
 

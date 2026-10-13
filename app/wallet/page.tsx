@@ -7,6 +7,7 @@ import {
   formatINR,
   type WalletEntryDto,
   type WalletSummaryDto,
+  STORE_TIME_ZONE,
 } from '@StrikerStore/contract';
 import { api, myWallet, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
@@ -122,6 +123,7 @@ function Heading({ locale }: { locale: Locale }) {
 
 function dateLabel(iso: string, locale: Locale) {
   return new Date(iso).toLocaleDateString(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+    timeZone: STORE_TIME_ZONE,
     day: 'numeric',
     month: 'short',
     year: 'numeric',

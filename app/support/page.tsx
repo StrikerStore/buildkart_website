@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ChevronRight, Plus } from 'lucide-react';
-import { supportTopicLabel } from '@StrikerStore/contract';
+import { supportTopicLabel, STORE_TIME_ZONE } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';
@@ -96,6 +96,7 @@ export default async function SupportPage() {
 
                     <p className="mt-1 text-body4 text-ink-faint">
                       {new Date(ticket.lastMessageAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', {
+                        timeZone: STORE_TIME_ZONE,
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',

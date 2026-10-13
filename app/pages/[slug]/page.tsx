@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { CONTACT_WHATSAPP_NUMBER, whatsappHref } from '@StrikerStore/contract';
+import { CONTACT_WHATSAPP_NUMBER, whatsappHref, STORE_TIME_ZONE } from '@StrikerStore/contract';
 import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 
@@ -94,6 +94,7 @@ export default async function ContentPage({ params }: Props) {
           <p className="mt-1 text-body4 text-ink-faint">
             {hi ? 'अंतिम अपडेट' : 'Last updated'}{' '}
             {new Date(page.publishedAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', {
+              timeZone: STORE_TIME_ZONE,
               day: 'numeric',
               month: 'long',
               year: 'numeric',

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
-import { formatINR } from '@StrikerStore/contract';
+import { formatINR, STORE_TIME_ZONE } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';
@@ -70,6 +70,7 @@ export default async function OrdersPage() {
 
                     <p className="mt-1 text-body4 text-ink-faint">
                       {new Date(order.placedAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', {
+                        timeZone: STORE_TIME_ZONE,
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',

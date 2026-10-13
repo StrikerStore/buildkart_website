@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { CheckCircle2, FileText, MessageSquare, Navigation, Phone } from 'lucide-react';
-import { formatINR } from '@StrikerStore/contract';
+import { formatINR, STORE_TIME_ZONE } from '@StrikerStore/contract';
 import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';
@@ -114,6 +114,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
             <h1 className="text-heading2 text-ink">{order.orderNumber}</h1>
             <p className="mt-0.5 text-body3 text-ink-muted">
               {new Date(order.placedAt).toLocaleString(hi ? 'hi-IN' : 'en-IN', {
+                timeZone: STORE_TIME_ZONE,
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
@@ -376,6 +377,7 @@ function CashbackStatusLine({
   const hi = locale === 'hi';
   const when = releaseAt
     ? new Date(releaseAt).toLocaleString(hi ? 'hi-IN' : 'en-IN', {
+        timeZone: STORE_TIME_ZONE,
         day: 'numeric',
         month: 'short',
         hour: 'numeric',
