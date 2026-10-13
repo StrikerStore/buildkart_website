@@ -292,7 +292,7 @@ function Body({
                       value={draft}
                       onChange={(event) => setQty(event.target.value.replace(/\D/g, '').slice(0, 3))}
                       onBlur={() => setQty(qty)}
-                      className="h-full w-14 border-x border-hairline-strong bg-surface text-center text-cta2 tabular-nums outline-none focus:bg-surface-muted"
+                      className="h-full w-14 border-x border-hairline-strong bg-surface text-center text-cta1 tabular-nums outline-none focus:bg-surface-muted"
                     />
                     <button
                       type="button"

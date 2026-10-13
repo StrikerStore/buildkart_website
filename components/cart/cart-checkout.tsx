@@ -24,11 +24,13 @@ import {
   confirmRazorpay,
   placeOrder,
   reportPaymentFailed,
+  requestCodCode,
   startPayment,
 } from '@/app/cart/checkout-actions';
 import { openRazorpay, submitToPayu } from '@/app/cart/gateway';
 import { CURRENCY, eventId, toValue, track } from '@/lib/meta-pixel';
 import { AddressSheet, addressLine } from './address-sheet';
+import { CodOtpSheet } from './cod-otp-sheet';
 
 type PayMode = 'ONLINE' | 'COD' | 'ADVANCE';
 
@@ -85,6 +87,15 @@ export function CartCheckout({
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(notice);
   const busy = pending || paying;
+
+  /*
+   * Cash on delivery is confirmed with a WhatsApp code before it is placed.
+   * The details are kept as they were when the code was sent, so the order
+   * placed is the one the code was asked for.
+   */
+  const [codStep, setCodStep] = useState<{ phone: string; devCode: string | null } | null>(null);
+  const [codError, setCodError] = useState<string | null>(null);
+  const codDetails = useRef<Parameters<typeof requestCodCode>[0] | null>(null);
 
   // --- what is owed --------------------------------------------------------
   const redemption =
@@ -171,12 +182,15 @@ export function CartCheckout({
 
     startTransition(async () => {
       if (effectiveMode === 'COD') {
-        const result = await placeOrder(details);
-        if (!result.ok) {
-          setError(result.formErrors[0] ?? Object.values(result.fieldErrors)[0] ?? null);
+        // Checked and sent first; the order is placed once the code is in.
+        const sent = await requestCodCode(details);
+        if (!sent.ok) {
+          setError(sent.formErrors[0] ?? Object.values(sent.fieldErrors)[0] ?? null);
           return;
         }
-        router.replace(`/account/orders/${result.data.orderId}?placed=1`);
+        codDetails.current = details;
+        setCodError(null);
+        setCodStep({ phone: sent.data.phone, devCode: sent.data.devCode });
         return;
       }
 
@@ -190,6 +204,40 @@ export function CartCheckout({
       }
       await goToGateway(started.data);
     });
+  }
+
+  function confirmCod(code: string) {
+    const details = codDetails.current;
+    if (!details) return;
+    setCodError(null);
+    startTransition(async () => {
+      const result = await placeOrder({ ...details, codOtp: code });
+      if (result.ok) {
+        router.replace(`/account/orders/${result.data.orderId}?placed=1`);
+        return;
+      }
+      // A wrong or spent code stays in the sheet; anything else is about the
+      // order itself, so the sheet closes and the cart says what is wrong.
+      if (result.fieldErrors.code) {
+        setCodError(result.fieldErrors.code);
+        return;
+      }
+      setCodStep(null);
+      setError(result.formErrors[0] ?? Object.values(result.fieldErrors)[0] ?? null);
+    });
+  }
+
+  async function resendCod(): Promise<boolean> {
+    const details = codDetails.current;
+    if (!details) return false;
+    setCodError(null);
+    const sent = await requestCodCode(details);
+    if (!sent.ok) {
+      setCodError(sent.formErrors[0] ?? Object.values(sent.fieldErrors)[0] ?? null);
+      return false;
+    }
+    setCodStep({ phone: sent.data.phone, devCode: sent.data.devCode });
+    return true;
   }
 
   async function goToGateway(start: PaymentStartDto) {
@@ -431,7 +479,7 @@ export function CartCheckout({
                   onChange={(event) => setGstin(event.target.value)}
                   placeholder={hi ? '15 अक्षर — जैसे 23AABCU9603R1ZM' : 'GST number, e.g. 23AABCU9603R1ZM'}
                   aria-label={hi ? 'GST नंबर' : 'GST number'}
-                  className="mt-2 h-11 w-full rounded-box border border-hairline-strong bg-surface px-3 text-body2 text-ink focus:border-ink focus:outline-none"
+                  className="mt-2 h-11 w-full rounded-box border border-hairline-strong bg-surface px-3 text-body1 text-ink focus:border-ink focus:outline-none"
                 />
               </details>
             )}
@@ -444,7 +492,7 @@ export function CartCheckout({
                 onChange={(event) => setNote(event.target.value.slice(0, 2000))}
                 rows={2}
                 placeholder={hi ? 'जैसे: सुबह 9 बजे से पहले पहुँचा दें' : 'e.g. deliver before 9am, gate is on the side'}
-                className="mt-2 w-full rounded-box border border-hairline-strong bg-surface p-3 text-body2 text-ink focus:border-ink focus:outline-none"
+                className="mt-2 w-full rounded-box border border-hairline-strong bg-surface p-3 text-body1 text-ink focus:border-ink focus:outline-none"
               />
             </details>
           </div>
@@ -484,6 +532,19 @@ export function CartCheckout({
           currentPin={currentPin}
           receiver={receiver}
           onClose={() => setSheetOpen(false)}
+        />
+      )}
+
+      {codStep && (
+        <CodOtpSheet
+          locale={locale}
+          phone={codStep.phone}
+          devCode={codStep.devCode}
+          busy={pending}
+          error={codError}
+          onConfirm={confirmCod}
+          onResend={resendCod}
+          onClose={() => setCodStep(null)}
         />
       )}
     </>

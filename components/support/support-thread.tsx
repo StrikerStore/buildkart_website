@@ -97,7 +97,7 @@ export function SupportThreadView({
           onChange={(event) => setBody(event.target.value.slice(0, SUPPORT_MESSAGE_MAX))}
           placeholder={tr(locale, 'support.reply')}
           aria-label={tr(locale, 'support.messageLabel')}
-          className="w-full rounded-box border border-hairline-strong bg-surface px-4 py-3 text-body2 text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
+          className="w-full rounded-box border border-hairline-strong bg-surface px-4 py-3 text-body1 text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3">

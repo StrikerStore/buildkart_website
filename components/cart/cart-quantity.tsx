@@ -145,7 +145,7 @@ export function CartQuantity({
         }}
         inputMode="numeric"
         aria-label={locale === 'hi' ? 'मात्रा' : 'Quantity'}
-        className="w-12 border-x border-brand/40 bg-surface text-center text-cta2 tabular-nums text-ink focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ink"
+        className="w-12 border-x border-brand/40 bg-surface text-center text-cta1 tabular-nums text-ink focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ink"
       />
 
       <button

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type {
   ActionResult,
+  OtpRequestDto,
   PaymentOutcomeDto,
   PaymentStartDto,
   PlacedOrderDto,
@@ -141,8 +142,25 @@ export async function reportPaymentFailed(sessionId: string, reason?: string): P
   }
 }
 
-/** Placing a cash-on-delivery order — written at once, paid at the door. */
-export async function placeOrder(input: CheckoutDetails): Promise<ActionResult<PlacedOrderDto>> {
+/**
+ * Cash on delivery, step one: check the order and send the confirming code to
+ * the customer's WhatsApp. Nothing is written yet.
+ */
+export async function requestCodCode(input: CheckoutDetails): Promise<ActionResult<OtpRequestDto>> {
+  return (await api()).storefront.requestCodOtp.mutate({
+    ...input,
+    paymentMethod: 'COD',
+    ...(await basket()),
+  });
+}
+
+/**
+ * Cash on delivery, step two: the order is written once the code is right —
+ * paid at the door.
+ */
+export async function placeOrder(
+  input: CheckoutDetails & { codOtp: string },
+): Promise<ActionResult<PlacedOrderDto>> {
   const result = await (await api()).storefront.placeOrder.mutate({
     ...input,
     paymentMethod: 'COD',

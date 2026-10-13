@@ -278,7 +278,9 @@ export function MapPicker({
                 autoFocus
                 placeholder={hi ? 'जैसे: विजय नगर इंदौर' : 'e.g. Vijay Nagar Indore'}
                 aria-label={hi ? 'इलाक़ा खोजें' : 'Search for your area'}
-                className="min-w-0 flex-1 bg-transparent text-body2 text-ink outline-none"
+                // 16px, never less: iOS Safari zooms the whole page into a
+                // text field under 16px on focus, and leaves it zoomed.
+                className="min-w-0 flex-1 bg-transparent text-body1 text-ink outline-none"
               />
               {searchPending && <Loader2 className="size-4 animate-spin text-ink-faint" aria-hidden />}
               <button

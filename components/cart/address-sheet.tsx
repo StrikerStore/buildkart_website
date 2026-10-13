@@ -313,7 +313,7 @@ function PlaceSearch({
           autoFocus
           placeholder={hi ? 'नया पता खोजें' : 'Search a new address'}
           aria-label={hi ? 'पता खोजें' : 'Search a new address'}
-          className="min-w-0 flex-1 bg-transparent text-body2 text-ink outline-none"
+          className="min-w-0 flex-1 bg-transparent text-body1 text-ink outline-none"
         />
         {pending && <Loader2 className="size-4 animate-spin text-ink-faint" aria-hidden />}
         {query && (
