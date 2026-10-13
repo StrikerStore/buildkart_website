@@ -22,6 +22,8 @@
  * match these events.
  */
 
+import { recordVisitForPixel } from './visit';
+
 type Fbq = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;
   queue: unknown[][];
@@ -77,12 +79,19 @@ function installStub(): Fbq {
   return fbq;
 }
 
-/** Idempotent: strict mode and remounts call it more than once. */
-export function initPixel(pixelId: string) {
+/**
+ * Idempotent: strict mode and remounts call it more than once.
+ *
+ * `externalId` is the signed-in customer's id, already SHA-256 hashed on the
+ * server — the same value the API sends with its Conversions API events, so
+ * Meta can tie the browser and server copies to one person.
+ */
+export function initPixel(pixelId: string, externalId?: string | null) {
   if (typeof window === 'undefined' || initialised) return;
   initialised = true;
   const fbq = installStub();
-  fbq('init', pixelId);
+  if (externalId) fbq('init', pixelId, { external_id: externalId });
+  else fbq('init', pixelId);
   for (const [event, params, eventId] of pending.splice(0)) send(fbq, event, params, eventId);
 }
 
@@ -94,6 +103,9 @@ function send(fbq: Fbq, event: PixelEvent, params?: PixelParams, eventId?: strin
 
 export function track(event: PixelEvent, params?: PixelParams, eventId?: string) {
   if (typeof window === 'undefined') return;
+  // The shop's own funnel first, and whether or not the pixel is on: page
+  // views, product views, cart adds and checkouts are also session steps.
+  recordVisitForPixel(event);
   if (!initialised || !window.fbq) {
     // Bounded: if the pixel is off, nothing ever drains this, and a long
     // session should not quietly grow an array of events nobody will send.

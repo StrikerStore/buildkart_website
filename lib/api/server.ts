@@ -10,7 +10,7 @@ import type { MenuHandle, StorefrontAnnouncementsDto } from '@StrikerStore/contr
  * proxy's. The leftmost x-forwarded-for entry is the closest thing to the real
  * client — good enough for attribution, and not trusted for anything else.
  */
-async function clientIp(): Promise<string | null> {
+export async function clientIp(): Promise<string | null> {
   const headerList = await headers();
   const forwarded = headerList.get('x-forwarded-for');
   if (forwarded) {

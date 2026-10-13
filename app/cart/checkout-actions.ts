@@ -12,6 +12,7 @@ import { api } from '@/lib/api/server';
 import { currentCart, currentPromo, currentUnloading } from '@/lib/cart';
 import { CART_COOKIE, PROMO_COOKIE, UNLOADING_COOKIE } from '@/lib/cart-shared';
 import { chooseSavedAddress } from '@/app/location/actions';
+import { orderAttribution } from '@/lib/attribution-server';
 
 /**
  * What the cart knows about the order — everything except how it is paid.
@@ -45,10 +46,11 @@ type CheckoutDetails = {
  * the cookie too, so the order matches what the cart showed.
  */
 async function basket() {
-  const [lines, promo, unloading] = await Promise.all([
+  const [lines, promo, unloading, attribution] = await Promise.all([
     currentCart(),
     currentPromo(),
     currentUnloading(),
+    orderAttribution(),
   ]);
   return {
     // Already in the book; nothing to file.
@@ -56,6 +58,9 @@ async function basket() {
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
     ...(promo ? { discountCode: promo } : {}),
     unloading,
+    // Where the shopper came from, for the shop's reports and Meta's
+    // Conversions API. Read from cookies and headers here, never from the page.
+    attribution,
   };
 }
 

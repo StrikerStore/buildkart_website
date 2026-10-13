@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { announcementBar, api, storeSettings } from '@/lib/api/server';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentLocale, htmlLang } from '@/lib/locale';
 import { currentLocation } from '@/lib/location';
+import { currentCustomer } from '@/lib/session';
 import { siteUrl } from '@/lib/site';
 import { BrandTagline } from '@/components/layout/brand-tagline';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -12,6 +14,8 @@ import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { CartBar } from '@/components/cart/cart-bar';
 import { LocationProvider } from '@/components/location/location-provider';
 import { MetaPixel } from '@/components/analytics/meta-pixel';
+import { AttributionCapture } from '@/components/analytics/attribution-capture';
+import { PageViews } from '@/components/analytics/page-views';
 import './globals.css';
 
 /*
@@ -131,11 +135,14 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, cart, location, announcements] = await Promise.all([
+  const pixelId = process.env.META_PIXEL_ID;
+  const [locale, cart, location, announcements, customer] = await Promise.all([
     currentLocale(),
     currentCart(),
     currentLocation(),
     announcementBar(),
+    // Already asked for by the header; `cache` makes this free.
+    pixelId ? currentCustomer() : null,
   ]);
 
   return (
@@ -188,7 +195,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
          * layout is dynamic anyway (it reads the cart cookie). Unset — local
          * dev, previews — means no pixel at all.
          */}
-        {process.env.META_PIXEL_ID && <MetaPixel pixelId={process.env.META_PIXEL_ID} />}
+        {pixelId && (
+          <MetaPixel
+            pixelId={pixelId}
+            /* Hashed here, so the raw id never reaches the page. The API's
+               Conversions API events send the same hash. */
+            externalId={
+              customer ? createHash('sha256').update(customer.id).digest('hex') : null
+            }
+          />
+        )}
+
+        {/* Where this visit came from, for the order it may turn into.
+            First-party and independent of the pixel. */}
+        <AttributionCapture />
+
+        {/* A page view per navigation — the shop's own sessions always, and
+            the pixel when it is on. */}
+        <PageViews />
       </body>
     </html>
   );
