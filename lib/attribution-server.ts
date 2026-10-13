@@ -3,6 +3,7 @@ import { cookies, headers } from 'next/headers';
 import { ATTRIBUTION_COOKIE, parseAttribution } from './attribution';
 import { clientIp } from './api/server';
 import { SESSION_COOKIE_NAME } from './visit';
+import { CONSENT_COOKIE, parseConsent } from './consent';
 
 /**
  * The `attribution` an order is placed with: the landing cookie, Meta's two
@@ -31,5 +32,8 @@ export async function orderAttribution() {
     ipAddress: ip ?? undefined,
     // The visit this order closes, so its session counts as converted.
     sessionId: store.get(SESSION_COOKIE_NAME)?.value,
+    // A shopper who declined on the consent banner is left out of Meta's
+    // server-side events as well as the pixel.
+    adConsent: parseConsent(store.get(CONSENT_COOKIE)?.value) ?? undefined,
   };
 }

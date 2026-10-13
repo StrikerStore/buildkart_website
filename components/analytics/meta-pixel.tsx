@@ -2,6 +2,8 @@
 
 import Script from 'next/script';
 import { useEffect } from 'react';
+import { readCookie } from '@/lib/browser-cookies';
+import { CONSENT_COOKIE } from '@/lib/consent';
 import { initPixel } from '@/lib/meta-pixel';
 
 /**
@@ -23,14 +25,25 @@ import { initPixel } from '@/lib/meta-pixel';
 export function MetaPixel({
   pixelId,
   externalId,
+  consentRequired = false,
 }: {
   pixelId: string;
   /** SHA-256 of the signed-in customer's id; see `initPixel`. */
   externalId?: string | null;
+  /** The owner's consent banner is on: start revoked unless already granted. */
+  consentRequired?: boolean;
 }) {
   useEffect(() => {
-    initPixel(pixelId, externalId);
-  }, [pixelId, externalId]);
+    let granted = true;
+    if (consentRequired) {
+      try {
+        granted = readCookie(CONSENT_COOKIE) === 'granted';
+      } catch {
+        granted = false;
+      }
+    }
+    initPixel(pixelId, externalId, { consentGranted: granted });
+  }, [pixelId, externalId, consentRequired]);
 
   return (
     <>

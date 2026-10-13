@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MessageCircle, MessageSquare, Phone } from 'lucide-react';
 import { whatsappHref } from '@StrikerStore/contract';
+import { ContactLink } from '@/components/analytics/contact-link';
 import { api, storeSettings } from '@/lib/api/server';
 import { tr, type Locale } from '@/lib/i18n';
 import { FooterFold } from './footer-fold';
@@ -144,16 +145,18 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                 </Link>
 
                 {store.supportPhone && (
-                  <a
+                  <ContactLink
+                    method="phone"
                     href={`tel:${store.supportPhone}`}
                     className="inline-flex h-[var(--tap)] items-center gap-2 rounded-box border border-hairline-strong px-4 text-cta2 text-ink hover:bg-surface-muted"
                   >
                     <Phone className="size-4" aria-hidden />
                     {tr(locale, 'footer.callUs')}
-                  </a>
+                  </ContactLink>
                 )}
                 {whatsapp && (
-                  <a
+                  <ContactLink
+                    method="whatsapp"
                     href={whatsapp}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -161,7 +164,7 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                   >
                     <MessageCircle className="size-4" aria-hidden />
                     {tr(locale, 'footer.whatsapp')}
-                  </a>
+                  </ContactLink>
                 )}
               </div>
             </div>
@@ -241,9 +244,13 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                   {store.supportPhone && (
                     <p>
                       <span className="text-ink">{tr(locale, 'footer.phone')}: </span>
-                      <a href={`tel:${store.supportPhone}`} className="hover:text-ink">
+                      <ContactLink
+                        method="phone"
+                        href={`tel:${store.supportPhone}`}
+                        className="hover:text-ink"
+                      >
                         {store.supportPhone}
-                      </a>
+                      </ContactLink>
                     </p>
                   )}
 

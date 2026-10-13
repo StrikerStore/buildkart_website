@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { eventId as freshEventId, track, type PixelEvent, type PixelParams } from '@/lib/meta-pixel';
+import {
+  eventId as freshEventId,
+  track,
+  type PixelEvent,
+  type PixelParams,
+} from '@/lib/meta-pixel';
 
 /**
  * Fires one Meta Pixel event when it mounts. Renders nothing.

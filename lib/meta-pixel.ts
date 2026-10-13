@@ -49,7 +49,9 @@ export type PixelEvent =
   | 'AddToCart'
   | 'InitiateCheckout'
   | 'AddPaymentInfo'
-  | 'Purchase';
+  | 'Purchase'
+  | 'CompleteRegistration'
+  | 'Contact';
 
 export type PixelParams = Record<string, unknown>;
 
@@ -85,14 +87,33 @@ function installStub(): Fbq {
  * `externalId` is the signed-in customer's id, already SHA-256 hashed on the
  * server — the same value the API sends with its Conversions API events, so
  * Meta can tie the browser and server copies to one person.
+ *
+ * `consentGranted: false` starts the pixel **revoked**: Meta's library loads
+ * and accepts calls but sends nothing until `grantConsent()` — the shop's
+ * consent banner, when the owner has switched it on.
  */
-export function initPixel(pixelId: string, externalId?: string | null) {
+export function initPixel(
+  pixelId: string,
+  externalId?: string | null,
+  { consentGranted = true }: { consentGranted?: boolean } = {},
+) {
   if (typeof window === 'undefined' || initialised) return;
   initialised = true;
   const fbq = installStub();
+  if (!consentGranted) fbq('consent', 'revoke');
   if (externalId) fbq('init', pixelId, { external_id: externalId });
   else fbq('init', pixelId);
   for (const [event, params, eventId] of pending.splice(0)) send(fbq, event, params, eventId);
+}
+
+/** The shopper accepted on the consent banner: the pixel may send from now on. */
+export function grantConsent() {
+  if (typeof window !== 'undefined') window.fbq?.('consent', 'grant');
+}
+
+/** The shopper declined: nothing more is sent. */
+export function revokeConsent() {
+  if (typeof window !== 'undefined') window.fbq?.('consent', 'revoke');
 }
 
 function send(fbq: Fbq, event: PixelEvent, params?: PixelParams, eventId?: string) {

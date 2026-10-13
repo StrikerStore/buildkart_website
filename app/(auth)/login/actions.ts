@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation';
 import type { ActionResult, CustomerSessionDto, OtpRequestDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { SESSION_COOKIE } from '@/lib/session';
+import { orderAttribution } from '@/lib/attribution-server';
+import { REGISTERED_COOKIE } from '@/lib/registration';
 
 /**
  * Sign-in, in two steps.
@@ -26,12 +28,32 @@ export async function verifyCode(
   next: string,
   whatsappOptIn: boolean,
 ): Promise<ActionResult<Omit<CustomerSessionDto, 'token'>>> {
-  const result = await (await api()).storefront.verifyOtp.mutate({ phone, code, whatsappOptIn });
+  const result = await (
+    await api()
+  ).storefront.verifyOtp.mutate({
+    phone,
+    code,
+    whatsappOptIn,
+    // Browser ids, user agent and consent, for the server copy of Meta's
+    // CompleteRegistration when this sign-in creates the account.
+    attribution: await orderAttribution(),
+  });
   if (!result.ok) return result;
 
   const { token, ...customer } = result.data;
+  const store = await cookies();
 
-  (await cookies()).set(SESSION_COOKIE, token, {
+  /*
+   * A new account: leave its id for `<RegistrationEvent>`, which fires the
+   * browser copy of CompleteRegistration on the page the redirect lands on —
+   * nothing after `redirect()` runs in the page that submitted the form.
+   * Readable by script on purpose, short-lived, and not a credential.
+   */
+  if (customer.isNewCustomer) {
+    store.set(REGISTERED_COOKIE, customer.id, { maxAge: 600, path: '/', sameSite: 'lax' });
+  }
+
+  store.set(SESSION_COOKIE, token, {
     maxAge: result.data.expiresInSeconds,
     path: '/',
     sameSite: 'lax',

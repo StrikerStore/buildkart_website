@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ChevronRight, MessageCircle, MessageSquare, Package, Phone } from 'lucide-react';
 import { whatsappHref } from '@StrikerStore/contract';
+import { ContactLink } from '@/components/analytics/contact-link';
 import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 
@@ -58,7 +59,8 @@ export default async function HelpPage() {
         {/* --- talk to a person -------------------------------------------- */}
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {store.supportPhone && (
-            <a
+            <ContactLink
+              method="phone"
               href={`tel:${store.supportPhone}`}
               className="flex min-h-[64px] items-center gap-3 rounded-card border border-brand bg-brand-tint px-4 py-3 hover:bg-brand/20"
             >
@@ -67,11 +69,12 @@ export default async function HelpPage() {
                 <span className="block text-heading6 text-ink">{hi ? 'कॉल करें' : 'Call us'}</span>
                 <span className="block text-body3 text-ink-muted">{store.supportPhone}</span>
               </span>
-            </a>
+            </ContactLink>
           )}
 
           {whatsapp && (
-            <a
+            <ContactLink
+              method="whatsapp"
               href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
@@ -86,7 +89,7 @@ export default async function HelpPage() {
                   {hi ? 'फ़ोटो भेज सकते हैं' : 'Send a photo of what you need'}
                 </span>
               </span>
-            </a>
+            </ContactLink>
           )}
         </div>
 

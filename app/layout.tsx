@@ -16,6 +16,8 @@ import { LocationProvider } from '@/components/location/location-provider';
 import { MetaPixel } from '@/components/analytics/meta-pixel';
 import { AttributionCapture } from '@/components/analytics/attribution-capture';
 import { PageViews } from '@/components/analytics/page-views';
+import { ConsentBanner } from '@/components/analytics/consent-banner';
+import { RegistrationEvent } from '@/components/analytics/registration-event';
 import './globals.css';
 
 /*
@@ -120,6 +122,13 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: hi ? 'hi_IN' : 'en_IN',
     },
     twitter: { card: 'summary_large_image', title: homeTitle, description },
+    /*
+     * Meta's domain verification, from Admin → Settings → Marketing. Optional
+     * chaining because an older API does not send `marketing` at all.
+     */
+    ...(settings.marketing?.domainVerification
+      ? { other: { 'facebook-domain-verification': settings.marketing.domainVerification } }
+      : {}),
   };
 }
 
@@ -135,15 +144,24 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const pixelId = process.env.META_PIXEL_ID;
-  const [locale, cart, location, announcements, customer] = await Promise.all([
+  const [locale, cart, location, announcements, settings, customer] = await Promise.all([
     currentLocale(),
     currentCart(),
     currentLocation(),
     announcementBar(),
+    // Per-request cached; the header and most pages read it anyway.
+    storeSettings(),
     // Already asked for by the header; `cache` makes this free.
-    pixelId ? currentCustomer() : null,
+    currentCustomer(),
   ]);
+  /*
+   * This service's own META_PIXEL_ID wins, so a preview can point at a test
+   * pixel; otherwise the one the API reports — set in Admin → Settings →
+   * Marketing, or as META_PIXEL_ID on the API service. Optional chaining
+   * because an older API does not send `marketing` at all.
+   */
+  const pixelId = process.env.META_PIXEL_ID?.trim() || settings.marketing?.metaPixelId || null;
+  const askConsent = Boolean(pixelId && settings.marketing?.consentBanner);
 
   return (
     <html lang={htmlLang(locale)} className={notoDevanagari.variable}>
@@ -200,11 +218,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             pixelId={pixelId}
             /* Hashed here, so the raw id never reaches the page. The API's
                Conversions API events send the same hash. */
-            externalId={
-              customer ? createHash('sha256').update(customer.id).digest('hex') : null
-            }
+            externalId={customer ? createHash('sha256').update(customer.id).digest('hex') : null}
+            consentRequired={askConsent}
           />
         )}
+
+        {/* Only when the owner asks for consent, and only for Meta. */}
+        {askConsent && <ConsentBanner locale={locale} />}
+
+        {/* Meta's CompleteRegistration, the first page after a new sign-up. */}
+        <RegistrationEvent />
 
         {/* Where this visit came from, for the order it may turn into.
             First-party and independent of the pixel. */}

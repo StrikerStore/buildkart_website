@@ -9,6 +9,7 @@ import { currentCustomer } from '@/lib/session';
 import { buttonClass } from '@/components/ui/button';
 import { OrderTimeline } from '@/components/orders/order-status';
 import { ReorderButton } from '@/components/orders/reorder-button';
+import { ContactLink } from '@/components/analytics/contact-link';
 import { TrackEvent } from '@/components/analytics/track-event';
 import { CURRENCY, toValue } from '@/lib/meta-pixel';
 
@@ -331,13 +332,14 @@ export default async function OrderPage({ params, searchParams }: Props) {
           </Link>
 
           {settings.store.supportPhone && (
-            <a
+            <ContactLink
+              method="phone"
               href={`tel:${settings.store.supportPhone}`}
               className="flex items-center justify-center gap-2 rounded-card border border-hairline bg-surface px-4 py-3 text-cta2 text-ink hover:bg-surface-muted"
             >
               <Phone className="size-4" aria-hidden />
               {hi ? 'इस ऑर्डर के बारे में कॉल करें' : 'Call us about this order'}
-            </a>
+            </ContactLink>
           )}
         </div>
       </div>
