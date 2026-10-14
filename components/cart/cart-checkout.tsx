@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
-import { Briefcase, Home, Loader2, MapPin, User, Wallet } from 'lucide-react';
+import { Briefcase, Home, Loader2, MapPin, Moon, User, Wallet } from 'lucide-react';
 import {
   compareMoney,
   formatINR,
@@ -497,6 +497,15 @@ export function CartCheckout({
             </details>
           </div>
         )}
+
+        {/* Heavy vehicles are barred from no-entry zones in the day, so the
+            customer should know before ordering that theirs may come at night. */}
+        <p className="flex items-start gap-2 rounded-box bg-info-bg px-3 py-2 text-body3 text-info">
+          <Moon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {hi
+            ? 'नो-एंट्री क्षेत्रों में डिलीवरी रात में की जाती है।'
+            : 'Delivery in no-entry areas is done at night.'}
+        </p>
 
         {walletApplied !== '0.00' && (
           <div className="flex justify-between text-body2">

@@ -8,6 +8,7 @@ import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';
 import { buttonClass } from '@/components/ui/button';
 import { OrderTimeline } from '@/components/orders/order-status';
+import { DeliveryCountdown } from '@/components/orders/delivery-countdown';
 import { ReorderButton } from '@/components/orders/reorder-button';
 import { ContactLink } from '@/components/analytics/contact-link';
 import { TrackEvent } from '@/components/analytics/track-event';
@@ -145,6 +146,13 @@ export default async function OrderPage({ params, searchParams }: Props) {
             <ReorderButton orderId={order.id} locale={locale} />
           </div>
         </div>
+
+        {/* Confirmed until delivered: when it is due, counting down. */}
+        {order.delivery && (
+          <div className="mt-5">
+            <DeliveryCountdown delivery={order.delivery} locale={locale} />
+          </div>
+        )}
 
         <div className="mt-5">
           <OrderTimeline status={order.status} timeline={order.timeline} locale={locale} />
