@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
 import type { MyActiveDeliveryDto } from '@StrikerStore/contract';
 import { loadCartThumbs, type CartThumb } from '@/app/cart/actions';
@@ -40,9 +40,9 @@ import type { Locale } from '@/lib/i18n';
  *
  * **On the home screen it also carries the orders on their way**, each as its
  * own capsule counting down to delivery (`OrderCapsule`). With more than one
- * capsule the bar becomes a swipeable rail: each capsule takes most of the
- * width, so the next one peeks in from the edge, and dots underneath say how
- * many there are and which is showing.
+ * capsule the bar becomes a swipeable rail: every capsule keeps its own width,
+ * the one showing sits in the centre exactly where a lone capsule would, and
+ * the next peeks in from the right edge.
  */
 const HIDE_ON = ['/cart', '/checkout'];
 
@@ -136,28 +136,21 @@ export function CartBar({
     });
   }, [count]);
 
-  const slots: Array<{ key: string; label: string; render: (wide: boolean) => ReactNode }> = [];
+  const slots: Array<{ key: string; node: ReactNode }> = [];
   if (drawCart) {
     slots.push({
       key: 'cart',
-      label: locale === 'hi' ? 'कार्ट दिखाएँ' : 'Show cart',
-      render: (wide) => (
-        <CartCapsule count={shown} thumbs={thumbs} locale={locale} wide={wide} hidden={hidden} />
-      ),
+      node: <CartCapsule count={shown} thumbs={thumbs} locale={locale} hidden={hidden} />,
     });
   }
   if (drawOrders) {
     for (const order of deliveries) {
       slots.push({
         key: order.id,
-        label: locale === 'hi' ? `ऑर्डर ${order.orderNumber} दिखाएँ` : `Show order ${order.orderNumber}`,
-        render: (wide) => (
-          <OrderCapsule order={order} locale={locale} wide={wide} hidden={hidden} />
-        ),
+        node: <OrderCapsule order={order} locale={locale} hidden={hidden} />,
       });
     }
   }
-  const many = slots.length > 1;
 
   /*
    * Room at the end of the page for whatever is fixed over it, sized to what
@@ -165,7 +158,6 @@ export function CartBar({
    * with an empty cart left a band of blank footer under the closed fold with
    * nothing floating over it. Product routes also clear the buy bar, which the
    * page's own bottom padding cannot do — the tagline and footer come after it.
-   * The rail's dots add a row, so a bar of several capsules asks for more.
    */
   const aboveBuyBar = matches(ABOVE_BUY_BAR);
   const spacer = aboveBuyBar
@@ -174,9 +166,7 @@ export function CartBar({
       : 'h-[calc(var(--buy-bar-h)+5rem)]'
     : hidden
       ? null
-      : many
-        ? 'h-28'
-        : 'h-24';
+      : 'h-24';
 
   return (
     <>
@@ -190,10 +180,10 @@ export function CartBar({
           aboveBuyBar ? 'bottom-[calc(var(--buy-bar-h)+0.75rem)]' : 'bottom-3',
         )}
       >
-        {many ? (
+        {slots.length > 1 ? (
           <CapsuleRail slots={slots} hidden={hidden} locale={locale} />
         ) : (
-          <div className="flex justify-center px-3">{slots[0]?.render(false)}</div>
+          <div className="flex justify-center px-3">{slots[0]?.node}</div>
         )}
       </div>
     </>
@@ -236,81 +226,66 @@ function useActiveDeliveries(enabled: boolean): MyActiveDeliveryDto[] {
 /**
  * Several capsules, side by side, one swipe apart.
  *
- * Each takes most of the width rather than all of it, so the next one shows
- * at the edge — the plainest sign there is more to see. The dots underneath
- * say how many and which, and each jumps to its capsule for anyone who taps
- * rather than swipes. They sit on a dark pill of their own, because the bar
- * floats over whatever the page has at the bottom: a photo, a banner, white.
+ * Each keeps its own width, the same as when it floats alone. The rail is
+ * padded by half its width on both sides, which is what lets *any* capsule —
+ * the first and the last included — snap to the exact centre. So the one
+ * showing sits where a lone capsule would, and the bar does not shift between
+ * the home screen and every other page. The next one peeks in from the right
+ * edge: the plainest sign there is more to see.
+ *
+ * A scroller clips whatever overflows it, the capsules' shadows included. The
+ * vertical padding gives the shadow room and the negative margin takes that
+ * room back, so the capsule's height on screen does not move either.
  */
 function CapsuleRail({
   slots,
   hidden,
   locale,
 }: {
-  slots: Array<{ key: string; label: string; render: (wide: boolean) => ReactNode }>;
+  slots: Array<{ key: string; node: ReactNode }>;
   hidden: boolean;
   locale: Locale;
 }) {
   const rail = useRef<HTMLDivElement>(null);
-  const [scrolledTo, setActive] = useState(0);
-  // An order delivered while its capsule was showing takes its slot with it.
-  const active = Math.min(scrolledTo, slots.length - 1);
 
-  // Which capsule is showing, from how far along the rail is.
-  const onScroll = () => {
+  /*
+   * Rests on the first capsule, centred.
+   *
+   * At scroll zero the half-width padding would leave the first capsule
+   * starting at the middle of the screen. Run again each time the bar comes
+   * back into view: `display: none` throws a scroller's position away, so a
+   * shopper returning from the cart would otherwise find it there too.
+   */
+  useLayoutEffect(() => {
     const el = rail.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    setActive(max > 0 ? Math.round((el.scrollLeft / max) * (slots.length - 1)) : 0);
-  };
-
-  const showSlot = (index: number) => {
-    rail.current?.children[index]?.scrollIntoView({
-      behavior: 'smooth',
-      inline: 'start',
-      block: 'nearest',
-    });
-  };
+    const first = el?.firstElementChild;
+    if (hidden || !el || !first) return;
+    const box = el.getBoundingClientRect();
+    const slot = first.getBoundingClientRect();
+    el.scrollLeft += slot.left + slot.width / 2 - (box.left + box.width / 2);
+  }, [hidden]);
 
   return (
-    <div>
-      {/* `--rail-pad` matches the padding, so snapping keeps the gutter. */}
-      <div
-        ref={rail}
-        onScroll={onScroll}
-        className="rail flex gap-2 px-3 [--rail-pad:0.75rem]"
-        role="group"
-        aria-label={locale === 'hi' ? 'कार्ट और ऑर्डर' : 'Cart and orders'}
-      >
-        {slots.map((slot) => (
-          <div key={slot.key} className="w-[86%]">
-            {slot.render(true)}
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-1.5 flex justify-center" aria-hidden={hidden || undefined}>
-        <div className="flex items-center rounded-pill bg-ink/70 px-1">
-          {slots.map((slot, index) => (
-            <button
-              key={slot.key}
-              type="button"
-              onClick={() => showSlot(index)}
-              tabIndex={hidden ? -1 : undefined}
-              aria-label={slot.label}
-              aria-current={index === active || undefined}
-              className="grid h-4 place-items-center px-0.5"
-            >
-              <span
-                className={cn(
-                  'block h-1.5 rounded-full transition-all duration-200',
-                  index === active ? 'w-4 bg-ink-inverted' : 'w-1.5 bg-ink-inverted/50',
-                )}
-              />
-            </button>
-          ))}
+    <div
+      ref={rail}
+      className="rail -my-4 flex gap-3 px-[50%] py-4"
+      role="group"
+      aria-label={locale === 'hi' ? 'कार्ट और ऑर्डर' : 'Cart and orders'}
+    >
+      {slots.map((slot) => (
+        <div
+          key={slot.key}
+          // Short of the screen, so even a long Hindi label leaves the next
+          // capsule an edge to peek from.
+          className="max-w-[calc(100vw-4rem)]"
+          // Centre, not the rail's usual start. Inline, because `.rail > *`
+          // is hand-written into the utilities layer after Tailwind's own
+          // classes and would beat `snap-center`.
+          style={{ scrollSnapAlign: 'center' }}
+        >
+          {slot.node}
         </div>
-      </div>
+      ))}
     </div>
   );
 }
@@ -320,14 +295,11 @@ function CartCapsule({
   count,
   thumbs,
   locale,
-  wide,
   hidden,
 }: {
   count: number;
   thumbs: CartThumb[];
   locale: Locale;
-  /** Filling a slot in the scrolling bar, rather than sized to its content. */
-  wide: boolean;
   /** Leaving: out of the tab order and the accessibility tree. */
   hidden: boolean;
 }) {
@@ -344,10 +316,7 @@ function CartCapsule({
       // The arrow replaced the words, so the link needs its name back —
       // without this a screen reader announces a chevron and nothing else.
       aria-label={locale === 'hi' ? `कार्ट देखें, ${count} सामान` : `View cart, ${count} ${items}`}
-      className={cn(
-        'h-14 items-center gap-3 rounded-pill bg-buy py-1.5 pr-1.5 pl-2 text-buy-foreground shadow-sheet',
-        wide ? 'flex w-full' : 'inline-flex max-w-full',
-      )}
+      className="inline-flex h-14 max-w-full items-center gap-3 rounded-pill bg-buy py-1.5 pr-1.5 pl-2 text-buy-foreground shadow-sheet"
     >
       {/*
        * The cart's first few products, overlapping, each ringed in the pill's
@@ -380,7 +349,7 @@ function CartCapsule({
         )}
       </span>
 
-      <span className={cn('min-w-0 pr-2 leading-tight', wide && 'flex-1')}>
+      <span className="min-w-0 pr-2 leading-tight">
         <span className="block truncate text-heading5">
           {locale === 'hi' ? 'कार्ट देखें' : 'View cart'}
         </span>

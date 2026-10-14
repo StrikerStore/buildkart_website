@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { ChevronRight, Clock, Truck } from 'lucide-react';
 import type { MyActiveDeliveryDto } from '@StrikerStore/contract';
-import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import { clockParts, readPromise, useNow } from './delivery-countdown';
 
@@ -19,13 +18,10 @@ import { clockParts, readPromise, useNow } from './delivery-countdown';
 export function OrderCapsule({
   order,
   locale,
-  wide,
   hidden,
 }: {
   order: MyActiveDeliveryDto;
   locale: Locale;
-  /** Filling a slot in the scrolling bar, rather than sized to its content. */
-  wide: boolean;
   /** Leaving: out of the tab order and the accessibility tree. */
   hidden: boolean;
 }) {
@@ -61,10 +57,7 @@ export function OrderCapsule({
           ? `ऑर्डर ${order.orderNumber}, ${day} ${time} तक पहुँचेगा`
           : `Order ${order.orderNumber}, arriving by ${time} ${day}`
       }
-      className={cn(
-        'h-14 items-center gap-3 rounded-pill bg-ink py-1.5 pr-1.5 pl-2 text-ink-inverted shadow-sheet',
-        wide ? 'flex w-full' : 'inline-flex max-w-full',
-      )}
+      className="inline-flex h-14 max-w-full items-center gap-3 rounded-pill bg-ink py-1.5 pr-1.5 pl-2 text-ink-inverted shadow-sheet"
     >
       <span
         className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink"
@@ -73,7 +66,7 @@ export function OrderCapsule({
         <Icon className="size-[18px]" />
       </span>
 
-      <span className={cn('min-w-0 pr-2 leading-tight', wide && 'flex-1')}>
+      <span className="min-w-0 pr-2 leading-tight">
         <span className="block truncate text-heading5 tabular-nums">{title}</span>
         <span className="block truncate text-body4 text-ink-inverted/75">
           {counting ? `${order.orderNumber} · ${by}` : order.orderNumber}
