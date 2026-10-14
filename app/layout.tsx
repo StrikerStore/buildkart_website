@@ -204,7 +204,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
            * tagline and footer follow `<main>`, so padding there would open a
            * gap mid-page while leaving the footer — the real end — uncovered.
            */}
-          <CartBar count={cartCount(cart)} locale={locale} />
+          <CartBar count={cartCount(cart)} locale={locale} signedIn={customer !== null} />
         </LocationProvider>
 
         {/*

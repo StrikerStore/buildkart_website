@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
+import type { MyActiveDeliveryDto } from '@StrikerStore/contract';
 import { loadCartThumbs, type CartThumb } from '@/app/cart/actions';
+import { loadActiveDeliveries } from '@/app/account/actions';
+import { OrderCapsule } from '@/components/orders/order-capsule';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 
@@ -34,6 +37,12 @@ import type { Locale } from '@/lib/i18n';
  *
  * Still hidden on the cart and checkout themselves, where it would be a link to
  * the page you are already on, floating over the real controls.
+ *
+ * **On the home screen it also carries the orders on their way**, each as its
+ * own capsule counting down to delivery (`OrderCapsule`). With more than one
+ * capsule the bar becomes a swipeable rail: each capsule takes most of the
+ * width, so the next one peeks in from the edge, and dots underneath say how
+ * many there are and which is showing.
  */
 const HIDE_ON = ['/cart', '/checkout'];
 
@@ -48,10 +57,34 @@ const HIDE_ON = ['/cart', '/checkout'];
  */
 const ABOVE_BUY_BAR = ['/products'];
 
-export function CartBar({ count, locale }: { count: number; locale: Locale }) {
+/** Where the order countdowns show. Exact paths: the home screen, not everything under it. */
+const ORDERS_ON = ['/'];
+
+/**
+ * How often the home screen re-reads the orders on their way, so a confirmed,
+ * revised or delivered order shows without a reload. The countdown itself
+ * ticks in the browser; this only catches the shop's changes.
+ */
+const DELIVERIES_REFRESH_MS = 30_000;
+
+export function CartBar({
+  count,
+  locale,
+  signedIn,
+}: {
+  count: number;
+  locale: Locale;
+  signedIn: boolean;
+}) {
   const pathname = usePathname();
   const matches = (paths: string[]) =>
     paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+
+  const ordersHere = signedIn && ORDERS_ON.includes(pathname);
+  const deliveries = useActiveDeliveries(ordersHere);
+
+  const showCart = count > 0 && !matches(HIDE_ON);
+  const showOrders = ordersHere && deliveries.length > 0;
 
   /*
    * Always rendered, hidden by attribute rather than by returning null.
@@ -62,7 +95,7 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
    * possible; `display: none` in the hidden state keeps it out of the layout,
    * the tab order and the accessibility tree once it has gone.
    */
-  const hidden = count === 0 || matches(HIDE_ON);
+  const hidden = !showCart && !showOrders;
 
   /*
    * The last count worth showing, held through the exit.
@@ -70,12 +103,19 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
    * The capsule spends about a quarter-second leaving, and it is still on
    * screen for all of it — reading the live count would flip the label to
    * "View cart · 0 items" for exactly as long as the shopper can still see it.
+   * Which capsules were up is held for the same reason: leaving the home
+   * screen with only an order showing should drop that capsule, not blank it.
    */
   const [lastCount, setLastCount] = useState(count);
   if (count > 0 && count !== lastCount) setLastCount(count);
   const shown = count > 0 ? count : lastCount;
 
-  const items = locale === 'hi' ? 'सामान' : shown === 1 ? 'Item' : 'Items';
+  const [held, setHeld] = useState({ cart: showCart, orders: showOrders });
+  if (!hidden && (held.cart !== showCart || held.orders !== showOrders)) {
+    setHeld({ cart: showCart, orders: showOrders });
+  }
+  const drawCart = hidden ? held.cart : showCart;
+  const drawOrders = hidden ? held.orders : showOrders;
 
   /*
    * The product faces in the stack.
@@ -96,12 +136,36 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
     });
   }, [count]);
 
+  const slots: Array<{ key: string; label: string; render: (wide: boolean) => ReactNode }> = [];
+  if (drawCart) {
+    slots.push({
+      key: 'cart',
+      label: locale === 'hi' ? 'कार्ट दिखाएँ' : 'Show cart',
+      render: (wide) => (
+        <CartCapsule count={shown} thumbs={thumbs} locale={locale} wide={wide} hidden={hidden} />
+      ),
+    });
+  }
+  if (drawOrders) {
+    for (const order of deliveries) {
+      slots.push({
+        key: order.id,
+        label: locale === 'hi' ? `ऑर्डर ${order.orderNumber} दिखाएँ` : `Show order ${order.orderNumber}`,
+        render: (wide) => (
+          <OrderCapsule order={order} locale={locale} wide={wide} hidden={hidden} />
+        ),
+      });
+    }
+  }
+  const many = slots.length > 1;
+
   /*
    * Room at the end of the page for whatever is fixed over it, sized to what
    * is actually there. It used to be a flat 96px in the layout, which on a page
    * with an empty cart left a band of blank footer under the closed fold with
    * nothing floating over it. Product routes also clear the buy bar, which the
    * page's own bottom padding cannot do — the tagline and footer come after it.
+   * The rail's dots add a row, so a bar of several capsules asks for more.
    */
   const aboveBuyBar = matches(ABOVE_BUY_BAR);
   const spacer = aboveBuyBar
@@ -110,7 +174,9 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
       : 'h-[calc(var(--buy-bar-h)+5rem)]'
     : hidden
       ? null
-      : 'h-24';
+      : many
+        ? 'h-28'
+        : 'h-24';
 
   return (
     <>
@@ -118,76 +184,219 @@ export function CartBar({ count, locale }: { count: number; locale: Locale }) {
       <div
         data-hidden={hidden}
         className={cn(
-          'cart-capsule fixed inset-x-0 z-30 flex justify-center px-3 md:hidden print:hidden',
+          'cart-capsule fixed inset-x-0 z-30 md:hidden print:hidden',
           // `--buy-bar-h` is defined once in globals.css and is the buy bar's
           // height; keeping the number there stops the two drifting apart.
           aboveBuyBar ? 'bottom-[calc(var(--buy-bar-h)+0.75rem)]' : 'bottom-3',
         )}
       >
-        <Link
-          href="/cart"
-          // Unreachable while it is leaving. `display: none` handles this once the
-          // exit finishes, but for those few frames the link is still laid out,
-          // and a capsule on its way out should not be tabbable or announced.
-          tabIndex={hidden ? -1 : undefined}
-          aria-hidden={hidden || undefined}
-          // The arrow replaced the words, so the link needs its name back —
-          // without this a screen reader announces a chevron and nothing else.
-          aria-label={
-            locale === 'hi' ? `कार्ट देखें, ${shown} सामान` : `View cart, ${shown} ${items}`
-          }
-          className="inline-flex h-14 max-w-full items-center gap-3 rounded-pill bg-buy py-1.5 pr-1.5 pl-2 text-buy-foreground shadow-sheet"
-        >
-          {/*
-           * The cart's first few products, overlapping, each ringed in the pill's
-           * own green so the edges read as a stack rather than a smudge. Until the
-           * faces arrive — or if the cart has no photos — a single cart disc holds
-           * the space, so the pill never changes width under the shopper's thumb.
-           */}
-          <span className="flex shrink-0 items-center" aria-hidden>
-            {thumbs.length > 0 ? (
-              thumbs.map((thumb, index) => (
-                <span
-                  key={index}
-                  className={cn(
-                    'grid size-10 place-items-center overflow-hidden rounded-full bg-surface ring-2 ring-buy',
-                    index > 0 && '-ml-4',
-                  )}
-                >
-                  {thumb.src ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumb.src} alt="" className="size-full object-cover" />
-                  ) : (
-                    <ShoppingCart className="size-4 text-buy" />
-                  )}
-                </span>
-              ))
-            ) : (
-              <span className="grid size-10 place-items-center rounded-full bg-surface text-buy">
-                <ShoppingCart className="size-[18px]" />
-              </span>
-            )}
-          </span>
-
-          <span className="min-w-0 pr-2 leading-tight">
-            <span className="block truncate text-heading5">
-              {locale === 'hi' ? 'कार्ट देखें' : 'View cart'}
-            </span>
-            <span className="block truncate text-body4 text-buy-foreground/85">
-              {shown} {items}
-            </span>
-          </span>
-
-          {/* A darker disc of the same green: the arrow is the way forward, and
-            it reads as a button inside the pill rather than a decoration. */}
-          <span
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-buy-dark"
-            aria-hidden
-          >
-            <ChevronRight className="size-5" />
-          </span>
-        </Link>
+        {many ? (
+          <CapsuleRail slots={slots} hidden={hidden} locale={locale} />
+        ) : (
+          <div className="flex justify-center px-3">{slots[0]?.render(false)}</div>
+        )}
       </div>
     </>
+  );
+}
+
+/**
+ * The orders on their way, read after paint and kept fresh while `enabled`.
+ *
+ * Re-read on a timer and whenever the tab comes back into view, and only while
+ * it is visible — a phone left on the home screen in a pocket asks nothing of
+ * the server. Answers are kept while disabled, so the capsule still has its
+ * words for the quarter-second it takes to leave.
+ */
+function useActiveDeliveries(enabled: boolean): MyActiveDeliveryDto[] {
+  const [deliveries, setDeliveries] = useState<MyActiveDeliveryDto[]>([]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let current = true;
+    const load = () => {
+      if (document.visibilityState !== 'visible') return;
+      loadActiveDeliveries().then((next) => {
+        if (current) setDeliveries(next);
+      });
+    };
+    load();
+    const timer = setInterval(load, DELIVERIES_REFRESH_MS);
+    document.addEventListener('visibilitychange', load);
+    return () => {
+      current = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', load);
+    };
+  }, [enabled]);
+
+  return deliveries;
+}
+
+/**
+ * Several capsules, side by side, one swipe apart.
+ *
+ * Each takes most of the width rather than all of it, so the next one shows
+ * at the edge — the plainest sign there is more to see. The dots underneath
+ * say how many and which, and each jumps to its capsule for anyone who taps
+ * rather than swipes. They sit on a dark pill of their own, because the bar
+ * floats over whatever the page has at the bottom: a photo, a banner, white.
+ */
+function CapsuleRail({
+  slots,
+  hidden,
+  locale,
+}: {
+  slots: Array<{ key: string; label: string; render: (wide: boolean) => ReactNode }>;
+  hidden: boolean;
+  locale: Locale;
+}) {
+  const rail = useRef<HTMLDivElement>(null);
+  const [scrolledTo, setActive] = useState(0);
+  // An order delivered while its capsule was showing takes its slot with it.
+  const active = Math.min(scrolledTo, slots.length - 1);
+
+  // Which capsule is showing, from how far along the rail is.
+  const onScroll = () => {
+    const el = rail.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setActive(max > 0 ? Math.round((el.scrollLeft / max) * (slots.length - 1)) : 0);
+  };
+
+  const showSlot = (index: number) => {
+    rail.current?.children[index]?.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'start',
+      block: 'nearest',
+    });
+  };
+
+  return (
+    <div>
+      {/* `--rail-pad` matches the padding, so snapping keeps the gutter. */}
+      <div
+        ref={rail}
+        onScroll={onScroll}
+        className="rail flex gap-2 px-3 [--rail-pad:0.75rem]"
+        role="group"
+        aria-label={locale === 'hi' ? 'कार्ट और ऑर्डर' : 'Cart and orders'}
+      >
+        {slots.map((slot) => (
+          <div key={slot.key} className="w-[86%]">
+            {slot.render(true)}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-1.5 flex justify-center" aria-hidden={hidden || undefined}>
+        <div className="flex items-center rounded-pill bg-ink/70 px-1">
+          {slots.map((slot, index) => (
+            <button
+              key={slot.key}
+              type="button"
+              onClick={() => showSlot(index)}
+              tabIndex={hidden ? -1 : undefined}
+              aria-label={slot.label}
+              aria-current={index === active || undefined}
+              className="grid h-4 place-items-center px-0.5"
+            >
+              <span
+                className={cn(
+                  'block h-1.5 rounded-full transition-all duration-200',
+                  index === active ? 'w-4 bg-ink-inverted' : 'w-1.5 bg-ink-inverted/50',
+                )}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The cart's capsule: the faces of what is in it, the count, and the way on. */
+function CartCapsule({
+  count,
+  thumbs,
+  locale,
+  wide,
+  hidden,
+}: {
+  count: number;
+  thumbs: CartThumb[];
+  locale: Locale;
+  /** Filling a slot in the scrolling bar, rather than sized to its content. */
+  wide: boolean;
+  /** Leaving: out of the tab order and the accessibility tree. */
+  hidden: boolean;
+}) {
+  const items = locale === 'hi' ? 'सामान' : count === 1 ? 'Item' : 'Items';
+
+  return (
+    <Link
+      href="/cart"
+      // Unreachable while it is leaving. `display: none` handles this once the
+      // exit finishes, but for those few frames the link is still laid out,
+      // and a capsule on its way out should not be tabbable or announced.
+      tabIndex={hidden ? -1 : undefined}
+      aria-hidden={hidden || undefined}
+      // The arrow replaced the words, so the link needs its name back —
+      // without this a screen reader announces a chevron and nothing else.
+      aria-label={locale === 'hi' ? `कार्ट देखें, ${count} सामान` : `View cart, ${count} ${items}`}
+      className={cn(
+        'h-14 items-center gap-3 rounded-pill bg-buy py-1.5 pr-1.5 pl-2 text-buy-foreground shadow-sheet',
+        wide ? 'flex w-full' : 'inline-flex max-w-full',
+      )}
+    >
+      {/*
+       * The cart's first few products, overlapping, each ringed in the pill's
+       * own green so the edges read as a stack rather than a smudge. Until the
+       * faces arrive — or if the cart has no photos — a single cart disc holds
+       * the space, so the pill never changes width under the shopper's thumb.
+       */}
+      <span className="flex shrink-0 items-center" aria-hidden>
+        {thumbs.length > 0 ? (
+          thumbs.map((thumb, index) => (
+            <span
+              key={index}
+              className={cn(
+                'grid size-10 place-items-center overflow-hidden rounded-full bg-surface ring-2 ring-buy',
+                index > 0 && '-ml-4',
+              )}
+            >
+              {thumb.src ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thumb.src} alt="" className="size-full object-cover" />
+              ) : (
+                <ShoppingCart className="size-4 text-buy" />
+              )}
+            </span>
+          ))
+        ) : (
+          <span className="grid size-10 place-items-center rounded-full bg-surface text-buy">
+            <ShoppingCart className="size-[18px]" />
+          </span>
+        )}
+      </span>
+
+      <span className={cn('min-w-0 pr-2 leading-tight', wide && 'flex-1')}>
+        <span className="block truncate text-heading5">
+          {locale === 'hi' ? 'कार्ट देखें' : 'View cart'}
+        </span>
+        <span className="block truncate text-body4 text-buy-foreground/85">
+          {count} {items}
+        </span>
+      </span>
+
+      {/* A darker disc of the same green: the arrow is the way forward, and
+        it reads as a button inside the pill rather than a decoration. */}
+      <span
+        className="grid size-11 shrink-0 place-items-center rounded-full bg-buy-dark"
+        aria-hidden
+      >
+        <ChevronRight className="size-5" />
+      </span>
+    </Link>
   );
 }

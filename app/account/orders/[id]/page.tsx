@@ -9,6 +9,7 @@ import { currentCustomer } from '@/lib/session';
 import { buttonClass } from '@/components/ui/button';
 import { OrderTimeline } from '@/components/orders/order-status';
 import { DeliveryCountdown } from '@/components/orders/delivery-countdown';
+import { LiveOrderRefresh } from '@/components/orders/live-order-refresh';
 import { ReorderButton } from '@/components/orders/reorder-button';
 import { ContactLink } from '@/components/analytics/contact-link';
 import { TrackEvent } from '@/components/analytics/track-event';
@@ -56,17 +57,13 @@ export default async function OrderPage({ params, searchParams }: Props) {
 
   return (
     <div className="page-w page-x py-6">
+      <LiveOrderRefresh status={order.status} />
       <div className="mx-auto max-w-2xl">
         {justPlaced && (
           <div className="mb-5 rounded-card border border-success/20 bg-success-bg p-4">
             <p className="flex items-center gap-2 text-heading4 text-success">
               <CheckCircle2 className="size-5" aria-hidden />
               {hi ? 'ऑर्डर हो गया!' : 'Order placed'}
-            </p>
-            <p className="mt-1 text-body2 text-ink">
-              {hi
-                ? `हम ${order.address.phone} पर कॉल करके कन्फ़र्म करेंगे।`
-                : `We will call you on ${order.address.phone} to confirm.`}
             </p>
           </div>
         )}
@@ -147,7 +144,9 @@ export default async function OrderPage({ params, searchParams }: Props) {
           </div>
         </div>
 
-        {/* Confirmed until delivered: when it is due, counting down. */}
+        {/* From placing until delivered: when it is due, counting down. An
+            order still in its auto-confirm minute is promised from the moment
+            it confirms itself, so the confirmation screen shows it too. */}
         {order.delivery && (
           <div className="mt-5">
             <DeliveryCountdown delivery={order.delivery} locale={locale} />

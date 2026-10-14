@@ -1,14 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Clock, Truck } from 'lucide-react';
 import { STORE_TIME_ZONE, storeDateStamp, type DeliveryPromiseDto } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
-
-/** How often the page re-reads the order, so a new "out for delivery" time shows up. */
-const REFRESH_MS = 60_000;
 
 /**
  * "Arriving in 3h 12m 05s" — the delivery promise, counting down.
@@ -16,8 +12,9 @@ const REFRESH_MS = 60_000;
  * The promise is worked out on the server (`deliveryPromiseFor`): four hours
  * from confirmation inside the delivery window, the next morning outside it,
  * and the time the shop gave once the order is out for delivery. This only
- * draws it, and re-reads the order every minute so a revised time from the
- * shop replaces the old countdown without the customer refreshing.
+ * draws it. The order page keeps itself current (`LiveOrderRefresh`), so a
+ * revised time from the shop replaces the old countdown without the customer
+ * refreshing.
  *
  * The clock starts after mount. The server renders the "by" time alone, so the
  * first paint never disagrees with the browser's clock.
@@ -30,34 +27,9 @@ export function DeliveryCountdown({
   locale: Locale;
 }) {
   const hi = locale === 'hi';
-  const router = useRouter();
-  const [now, setNow] = useState<number | null>(null);
-
-  useEffect(() => {
-    setNow(Date.now());
-    const tick = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-
-  useEffect(() => {
-    const refresh = setInterval(() => {
-      if (document.visibilityState === 'visible') router.refresh();
-    }, REFRESH_MS);
-    return () => clearInterval(refresh);
-  }, [router]);
-
-  const by = new Date(delivery.by);
-  const startsAt = delivery.countdownFrom ? Date.parse(delivery.countdownFrom) : null;
-  const waiting = now !== null && startsAt !== null && now < startsAt;
-  const remaining = now === null ? null : by.getTime() - now;
+  const now = useNow();
+  const { waiting, remaining, time, day } = readPromise(delivery, now, hi);
   const scheduled = delivery.kind === 'SCHEDULED';
-
-  const time = by.toLocaleTimeString(hi ? 'hi-IN' : 'en-IN', {
-    timeZone: STORE_TIME_ZONE,
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-  const day = relativeDay(by, now === null ? new Date() : new Date(now), hi);
   const headline = hi ? `${day} ${time} तक पहुँचेगा` : `Arriving by ${time} ${day}`;
 
   return (
@@ -107,13 +79,61 @@ export function DeliveryCountdown({
   );
 }
 
+/**
+ * The browser's clock, ticking every second. Null until mounted, so nothing
+ * that reads it can disagree with the server's render.
+ */
+export function useNow(): number | null {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNow(Date.now());
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  return now;
+}
+
+/**
+ * Where a promise stands at `now`, and the words for when it is due — shared by
+ * this card and the home screen's capsule, so the two always say the same.
+ */
+export function readPromise(delivery: DeliveryPromiseDto, now: number | null, hi: boolean) {
+  const by = new Date(delivery.by);
+  const startsAt = delivery.countdownFrom ? Date.parse(delivery.countdownFrom) : null;
+
+  return {
+    /** A next-morning order overnight: say "by", do not count down. */
+    waiting: now !== null && startsAt !== null && now < startsAt,
+    /** Null until the clock has started. */
+    remaining: now === null ? null : by.getTime() - now,
+    time: by.toLocaleTimeString(hi ? 'hi-IN' : 'en-IN', {
+      timeZone: STORE_TIME_ZONE,
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+    day: relativeDay(by, now === null ? new Date() : new Date(now), hi),
+  };
+}
+
+/** Whole hours, minutes and seconds in `ms`. */
+export function clockParts(ms: number): { hours: number; minutes: number; seconds: number } {
+  const total = Math.floor(ms / 1000);
+  return {
+    hours: Math.floor(total / 3600),
+    minutes: Math.floor((total % 3600) / 60),
+    seconds: total % 60,
+  };
+}
+
 /** Hours, minutes and seconds, each in its own box. */
 function Clockface({ ms, hi }: { ms: number; hi: boolean }) {
-  const total = Math.floor(ms / 1000);
+  const { hours, minutes, seconds } = clockParts(ms);
   const parts = [
-    { value: Math.floor(total / 3600), label: hi ? 'घंटे' : 'hours' },
-    { value: Math.floor((total % 3600) / 60), label: hi ? 'मिनट' : 'min' },
-    { value: total % 60, label: hi ? 'सेकंड' : 'sec' },
+    { value: hours, label: hi ? 'घंटे' : 'hours' },
+    { value: minutes, label: hi ? 'मिनट' : 'min' },
+    { value: seconds, label: hi ? 'सेकंड' : 'sec' },
   ];
 
   return (

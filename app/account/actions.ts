@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import type {
   ActionResult,
+  MyActiveDeliveryDto,
   MyAddressDto,
   MyProfileDto,
   OnlineGateway,
@@ -72,6 +73,24 @@ export async function deleteAddress(id: string): Promise<ActionResult<void>> {
 
 export async function listAddresses(): Promise<MyAddressDto[]> {
   return (await api()).storefront.myAddresses.query();
+}
+
+/**
+ * The customer's orders still on their way, for the home screen's countdown
+ * capsule.
+ *
+ * Fetched by the capsule after paint and polled while the home screen is open,
+ * never by the layout — that would put an order query on every page view of
+ * every visitor. Swallows errors into "nothing to show": signed out, a blip,
+ * an API older than the endpoint. The capsule is a reminder, and must never be
+ * the thing that breaks the page it floats over.
+ */
+export async function loadActiveDeliveries(): Promise<MyActiveDeliveryDto[]> {
+  try {
+    return await (await api()).storefront.myActiveDeliveries.query();
+  } catch {
+    return [];
+  }
 }
 
 /**
