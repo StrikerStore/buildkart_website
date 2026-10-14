@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
 import type { MyActiveDeliveryDto } from '@StrikerStore/contract';
 import { loadCartThumbs, type CartThumb } from '@/app/cart/actions';
@@ -136,18 +136,57 @@ export function CartBar({
     });
   }, [count]);
 
+  /*
+   * The cart capsule's width, for the order capsules beside it to match.
+   *
+   * Measured rather than fixed, because the cart's own width moves: one face
+   * or three, "1 Item" or "12 Items". Watched, so the orders follow it when the
+   * faces arrive after paint. A zero is a bar that is `display: none` on its
+   * way out or back, not a width, and keeps the last real one.
+   */
+  const cartRef = useRef<HTMLAnchorElement>(null);
+  const [cartWidth, setCartWidth] = useState<number | null>(null);
+  const matchCart = drawCart && drawOrders;
+  useLayoutEffect(() => {
+    const el = cartRef.current;
+    if (!matchCart || !el) return;
+    const measure = () => {
+      if (el.offsetWidth > 0) setCartWidth(el.offsetWidth);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [matchCart]);
+
+  // Cart first, then the orders, latest first — the order the API sends them.
   const slots: Array<{ key: string; node: ReactNode }> = [];
   if (drawCart) {
     slots.push({
       key: 'cart',
-      node: <CartCapsule count={shown} thumbs={thumbs} locale={locale} hidden={hidden} />,
+      node: (
+        <CartCapsule
+          ref={cartRef}
+          count={shown}
+          thumbs={thumbs}
+          locale={locale}
+          hidden={hidden}
+        />
+      ),
     });
   }
   if (drawOrders) {
     for (const order of deliveries) {
       slots.push({
         key: order.id,
-        node: <OrderCapsule order={order} locale={locale} hidden={hidden} />,
+        node: (
+          <OrderCapsule
+            order={order}
+            locale={locale}
+            matchWidth={matchCart ? cartWidth : null}
+            hidden={hidden}
+          />
+        ),
       });
     }
   }
@@ -292,11 +331,14 @@ function CapsuleRail({
 
 /** The cart's capsule: the faces of what is in it, the count, and the way on. */
 function CartCapsule({
+  ref,
   count,
   thumbs,
   locale,
   hidden,
 }: {
+  /** For the bar to measure: the order capsules beside it match its width. */
+  ref?: Ref<HTMLAnchorElement>;
   count: number;
   thumbs: CartThumb[];
   locale: Locale;
@@ -307,6 +349,7 @@ function CartCapsule({
 
   return (
     <Link
+      ref={ref}
       href="/cart"
       // Unreachable while it is leaving. `display: none` handles this once the
       // exit finishes, but for those few frames the link is still laid out,

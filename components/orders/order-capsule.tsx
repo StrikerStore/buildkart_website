@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChevronRight, Clock, Truck } from 'lucide-react';
 import type { MyActiveDeliveryDto } from '@StrikerStore/contract';
+import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import { clockParts, readPromise, useNow } from './delivery-countdown';
 
@@ -14,14 +15,25 @@ import { clockParts, readPromise, useNow } from './delivery-countdown';
  * and they should read as siblings, never as the same button. The words come
  * from the order page's own countdown (`readPromise`), so the capsule and the
  * page it opens cannot disagree about when the lorry arrives.
+ *
+ * **Held to the cart capsule's width** when the two share the bar, so the rail
+ * reads as one row of equal pills. That leaves about "View cart" worth of room
+ * for words, which is why it says two short things, small over large —
+ * "Arriving in" over the ticking clock — and leaves the order number and the
+ * full sentence to its accessible name and the page it opens. The cart's width
+ * is a floor, not a cap: should the clock ever need more room, the capsule
+ * grows a little rather than cutting a countdown off with an ellipsis.
  */
 export function OrderCapsule({
   order,
   locale,
+  matchWidth,
   hidden,
 }: {
   order: MyActiveDeliveryDto;
   locale: Locale;
+  /** The cart capsule's width in px, to match. Null sizes it to its content. */
+  matchWidth: number | null;
   /** Leaving: out of the tab order and the accessibility tree. */
   hidden: boolean;
 }) {
@@ -29,28 +41,22 @@ export function OrderCapsule({
   const now = useNow();
   const { waiting, remaining, time, day } = readPromise(order.delivery, now, hi);
   const Icon = order.delivery.kind === 'SCHEDULED' ? Truck : Clock;
-  const by = hi ? `${day} ${time} तक` : `by ${time} ${day}`;
 
   const counting = remaining !== null && !waiting && remaining > 0;
   const overdue = remaining !== null && !waiting && remaining <= 0;
-  const title = counting
-    ? hi
-      ? `${clock(remaining)} में पहुँचेगा`
-      : `Arriving in ${clock(remaining)}`
+  const [label, value] = counting
+    ? [hi ? 'पहुँचने में' : 'Arriving in', clock(remaining)]
     : overdue
-      ? hi
-        ? 'बस पहुँचने ही वाला है'
-        : 'Arriving any moment now'
-      : hi
-        ? `${day} ${time} तक पहुँचेगा`
-        : `Arriving by ${time} ${day}`;
+      ? [hi ? 'डिलीवरी' : 'Arriving', hi ? 'अभी' : 'Now']
+      : // Not counting yet: a next-morning order overnight says when, not how long.
+        [hi ? day : `${day.charAt(0).toUpperCase()}${day.slice(1)} by`, time];
 
   return (
     <Link
       href={`/account/orders/${order.id}`}
       tabIndex={hidden ? -1 : undefined}
       aria-hidden={hidden || undefined}
-      // A name that does not change every second: the ticking title is for
+      // A name that does not change every second: the ticking clock is for
       // the eye, and a screen reader re-announcing it would be noise.
       aria-label={
         hi
@@ -58,6 +64,7 @@ export function OrderCapsule({
           : `Order ${order.orderNumber}, arriving by ${time} ${day}`
       }
       className="inline-flex h-14 max-w-full items-center gap-3 rounded-pill bg-ink py-1.5 pr-1.5 pl-2 text-ink-inverted shadow-sheet"
+      style={matchWidth ? { minWidth: matchWidth } : undefined}
     >
       <span
         className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink"
@@ -66,11 +73,10 @@ export function OrderCapsule({
         <Icon className="size-[18px]" />
       </span>
 
-      <span className="min-w-0 pr-2 leading-tight">
-        <span className="block truncate text-heading5 tabular-nums">{title}</span>
-        <span className="block truncate text-body4 text-ink-inverted/75">
-          {counting ? `${order.orderNumber} · ${by}` : order.orderNumber}
-        </span>
+      {/* Grows to the cart's width when held to it, so the arrow stays at the end. */}
+      <span className={cn('min-w-0 pr-2 leading-tight', matchWidth && 'flex-1')}>
+        <span className="block truncate text-body4 text-ink-inverted/75">{label}</span>
+        <span className="block truncate text-heading5 tabular-nums">{value}</span>
       </span>
 
       <span
@@ -83,8 +89,13 @@ export function OrderCapsule({
   );
 }
 
-/** "03:12:05". Hours are not capped: a time the shop gave can be a day out. */
+/**
+ * "3:12:05". No leading zero on the hours — that one digit is what lets the
+ * clock fit a capsule held to the cart's width. Hours are not capped: a time
+ * the shop gave can be a day out.
+ */
 function clock(ms: number): string {
   const { hours, minutes, seconds } = clockParts(ms);
-  return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':');
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${hours}:${pad(minutes)}:${pad(seconds)}`;
 }
