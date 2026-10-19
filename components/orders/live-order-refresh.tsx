@@ -4,8 +4,17 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { OrderStatus } from '@StrikerStore/contract';
 
-/** The statuses that can still change while the customer watches. */
-const OPEN: OrderStatus[] = ['PLACED', 'CONFIRMED', 'PACKED', 'OUT_FOR_DELIVERY'];
+/**
+ * The statuses that can still change while the customer watches — including
+ * part delivered, where the next load can go out at any moment.
+ */
+const OPEN: OrderStatus[] = [
+  'PLACED',
+  'CONFIRMED',
+  'PACKED',
+  'OUT_FOR_DELIVERY',
+  'PARTIALLY_DELIVERED',
+];
 
 /**
  * Waiting on confirmation. It lands about a minute after placing, and with it

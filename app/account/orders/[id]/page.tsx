@@ -9,6 +9,7 @@ import { currentCustomer } from '@/lib/session';
 import { buttonClass } from '@/components/ui/button';
 import { OrderTimeline } from '@/components/orders/order-status';
 import { DeliveryCountdown } from '@/components/orders/delivery-countdown';
+import { OrderDeliveries } from '@/components/orders/order-deliveries';
 import { LiveOrderRefresh } from '@/components/orders/live-order-refresh';
 import { ReorderButton } from '@/components/orders/reorder-button';
 import { ContactLink } from '@/components/analytics/contact-link';
@@ -157,6 +158,25 @@ export default async function OrderPage({ params, searchParams }: Props) {
           <OrderTimeline status={order.status} timeline={order.timeline} locale={locale} />
         </div>
 
+        {/* Sent in loads: what came, what is on the way, what is still to come. */}
+        <div className="mt-5 empty:hidden">
+          <OrderDeliveries order={order} locale={locale} />
+        </div>
+
+        {order.closedShort && (
+          <div className="mt-5 rounded-card border border-hairline bg-info-bg p-4 text-body3 text-info">
+            <p className="text-heading7">
+              {hi ? 'कुछ सामान नहीं भेजा जा सका' : 'Part of this order could not be sent'}
+            </p>
+            <p className="mt-1">
+              {hi
+                ? 'जो सामान नहीं पहुँचा, वह आपके बिल से हटा दिया गया है।'
+                : 'What did not arrive has been taken off your bill.'}
+              {order.closedShort.reason ? ` (${order.closedShort.reason})` : ''}
+            </p>
+          </div>
+        )}
+
         <section className="mt-5 rounded-card border border-hairline bg-surface">
           <h2 className="border-b border-hairline px-4 py-3 text-heading5 text-ink">
             {hi ? 'सामान' : 'Items'}
@@ -183,6 +203,10 @@ export default async function OrderPage({ params, searchParams }: Props) {
                     <p className="text-body4 text-ink-muted">
                       {formatINR(item.unitPrice)}
                       {unit ? ` ${unit}` : ''} × {item.quantity}
+                      {item.orderedQuantity !== null &&
+                        (hi
+                          ? ` (${item.orderedQuantity} मंगाए थे)`
+                          : ` (${item.orderedQuantity} ordered)`)}
                     </p>
                   </div>
                   <span className="shrink-0 text-heading6 text-ink">

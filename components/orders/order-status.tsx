@@ -21,6 +21,7 @@ const LABELS: Record<OrderStatus, { en: string; hi: string }> = {
   OUT_FOR_DELIVERY: { en: 'Out for delivery', hi: 'रास्ते में' },
   DELIVERED: { en: 'Delivered', hi: 'पहुँच गया' },
   CANCELLED: { en: 'Cancelled', hi: 'रद्द' },
+  PARTIALLY_DELIVERED: { en: 'Partly delivered', hi: 'आंशिक डिलीवरी' },
 };
 
 export function statusLabel(status: OrderStatus, locale: Locale): string {
@@ -72,7 +73,10 @@ export function OrderTimeline({
   }
 
   const reachedAt = new Map(timeline.map((entry) => [entry.status, entry.at]));
-  const position = FLOW.indexOf(status);
+  // Part of it in, the rest to come: drawn at the out-for-delivery step, under
+  // its own name — anywhere else the whole ladder would grey out.
+  const partly = status === 'PARTIALLY_DELIVERED';
+  const position = FLOW.indexOf(partly ? 'OUT_FOR_DELIVERY' : status);
 
   return (
     <ol className="rounded-card border border-hairline bg-surface p-4">
@@ -101,7 +105,11 @@ export function OrderTimeline({
             </div>
 
             <div className={cn('pb-4', !done && 'opacity-50')}>
-              <p className="text-heading7 text-ink">{statusLabel(step, locale)}</p>
+              <p className="text-heading7 text-ink">
+                {partly && step === 'OUT_FOR_DELIVERY'
+                  ? statusLabel('PARTIALLY_DELIVERED', locale)
+                  : statusLabel(step, locale)}
+              </p>
               {at && (
                 <p className="text-body5 text-ink-muted">
                   {new Date(at).toLocaleString(locale === 'hi' ? 'hi-IN' : 'en-IN', {
