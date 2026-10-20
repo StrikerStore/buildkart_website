@@ -67,11 +67,30 @@ const nextConfig = {
    * for nobody. `payment` is left at the browser default, which the gateways'
    * own frames rely on.
    *
-   * The CSP stops at framing, plugins and `<base>` — directives that cannot
-   * break a script. A script allowlist (Meta, Google Maps, the gateways, the
-   * media host) is a separate step, trialled report-only first.
+   * The enforced CSP stops at framing, plugins and `<base>` — directives that
+   * cannot break a script. The full allowlist below is **report-only**: it
+   * blocks nothing, and posts what it *would* block to `/api/csp-report`, so it
+   * can be checked against real traffic before it is ever enforced. Images may
+   * come from any https host — the media domain is the API's to name at
+   * runtime, and an image is the least dangerous thing a page loads. Scripts
+   * are the point, and they are listed exactly.
    */
   async headers() {
+    const reportOnly = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://checkout.razorpay.com https://maps.googleapis.com https://maps.gstatic.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://*.facebook.com https://connect.facebook.net https://*.razorpay.com https://maps.googleapis.com https://*.r2.cloudflarestorage.com",
+      "frame-src 'self' https://*.razorpay.com",
+      "form-action 'self' https://secure.payu.in https://test.payu.in",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      'report-uri /api/csp-report',
+    ].join('; ');
+
     return [
       {
         source: '/:path*',
@@ -85,6 +104,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
           },
+          { key: 'Content-Security-Policy-Report-Only', value: reportOnly },
         ],
       },
     ];

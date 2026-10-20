@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { after } from 'next/server';
 import type { BulkTierBasis, StorefrontProductDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
+import { allowsAnalytics, CONSENT_COOKIE } from '@/lib/consent';
 import { currentCart } from '@/lib/cart';
 import { imageUrl, IMAGE } from '@/lib/media';
 import {
@@ -46,6 +47,8 @@ export async function recordViewed(handle: string): Promise<void> {
    * after paint, so a crawler or a link preview fetching the HTML is never
    * counted. After the response, so the cookie write never waits on it.
    */
+  // Only with a yes to analytics on the cookie banner.
+  if (!allowsAnalytics(store.get(CONSENT_COOKIE)?.value)) return;
   const client = await api();
   after(() =>
     client.storefront.recordProductSignal.mutate({ kind: 'VIEW', handle }).catch(() => {}),

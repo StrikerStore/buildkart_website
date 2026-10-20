@@ -74,6 +74,14 @@ export default async function SettingsPage() {
               {hi ? 'मैसेज और गोपनीयता' : 'Messages and privacy'}
             </h2>
             <PrivacyControls initial={privacy} locale={locale} />
+            <Link
+              href="/account/privacy"
+              className="mt-2 inline-block text-body3 text-brand-text underline"
+            >
+              {hi
+                ? 'अपना डेटा डाउनलोड करें, सुधारें या मिटाने का अनुरोध करें'
+                : 'Download, correct or ask us to delete your data'}
+            </Link>
           </section>
         )}
 

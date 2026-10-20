@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { api } from '@/lib/api/server';
+import { allowsAnalytics, CONSENT_COOKIE } from '@/lib/consent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,9 +16,14 @@ export const dynamic = 'force-dynamic';
  *
  * Always 204. The shopper has already left for the product page; there is
  * nobody to report a failure to, and a counter that misses a click is fine.
+ *
+ * Counted only with a yes to analytics on the cookie banner.
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!allowsAnalytics(request.cookies.get(CONSENT_COOKIE)?.value)) {
+      return new NextResponse(null, { status: 204 });
+    }
     const body: unknown = await request.json();
     const handle =
       body && typeof body === 'object' && 'handle' in body && typeof body.handle === 'string'

@@ -1,7 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ChevronRight, LogOut, MapPin, MessageSquare, Package, Settings, Wallet } from 'lucide-react';
+import {
+  ChevronRight,
+  LogOut,
+  MapPin,
+  MessageSquare,
+  Package,
+  Settings,
+  ShieldCheck,
+  Wallet,
+} from 'lucide-react';
 import { currentLocale } from '@/lib/locale';
 import { currentCustomer } from '@/lib/session';
 import { signOut } from '@/app/(auth)/login/actions';
@@ -30,6 +39,7 @@ export default async function AccountPage() {
     { href: '/account/orders', icon: Package, label: hi ? 'मेरे ऑर्डर' : 'My orders' },
     { href: '/account/addresses', icon: MapPin, label: hi ? 'पते' : 'Addresses' },
     { href: '/account/settings', icon: Settings, label: hi ? 'सेटिंग्स' : 'Settings' },
+    { href: '/account/privacy', icon: ShieldCheck, label: hi ? 'गोपनीयता और डेटा' : 'Privacy and data' },
     { href: '/wallet', icon: Wallet, label: hi ? 'वॉलेट' : 'Wallet' },
     /*
      * Signed in, "Help" means the conversations they already have with us —

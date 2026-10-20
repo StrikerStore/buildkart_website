@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import type { CartCouponDto, CartDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
+import { allowsAnalytics, CONSENT_COOKIE } from '@/lib/consent';
 import { currentCart, currentPromo, pricedCart } from '@/lib/cart';
 import { currentLocation } from '@/lib/location';
 import {
@@ -46,7 +47,9 @@ export async function setCartQuantity(variantId: string, qty: number): Promise<{
    */
   const had = before.find((line) => line.variantId === variantId)?.qty ?? 0;
   const has = lines.find((line) => line.variantId === variantId)?.qty ?? 0;
-  if (has > had) {
+  // Counted only with a yes to analytics on the cookie banner, like every
+  // other measure of what a shopper does.
+  if (has > had && allowsAnalytics(store.get(CONSENT_COOKIE)?.value)) {
     const client = await api();
     after(() =>
       client.storefront.recordProductSignal.mutate({ kind: 'CART', variantId }).catch(() => {}),

@@ -4,9 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import type {
   ActionResult,
+  OtpRequestDto,
   MyActiveDeliveryDto,
   MyAddressDto,
+  MyErasureDto,
   MyPrivacyDto,
+  MyPrivacyRequestDto,
   MyProfileDto,
   OnlineGateway,
 } from '@StrikerStore/contract';
@@ -121,5 +124,63 @@ export async function removeSavedCard(
     revalidatePath('/account/settings');
     revalidatePath('/checkout');
   }
+  return result;
+}
+
+// --- the customer's rights (DPDP Act §§11-14) -----------------------------
+
+/** Correcting the email the shop holds. Blank removes it. */
+export async function saveEmail(email: string): Promise<ActionResult<MyPrivacyDto>> {
+  const result = await (await api()).storefront.saveEmail.mutate({ email });
+  if (result.ok) revalidatePath('/account/privacy');
+  return result;
+}
+
+/** Naming, changing or removing the nominee. All blank removes them. */
+export async function saveNominee(input: {
+  name: string;
+  relation: string;
+  phone: string;
+}): Promise<ActionResult<MyPrivacyDto>> {
+  const result = await (await api()).storefront.saveNominee.mutate(input);
+  if (result.ok) revalidatePath('/account/privacy');
+  return result;
+}
+
+/** A correction, a deletion or a complaint, to the grievance officer's queue. */
+export async function createPrivacyRequest(input: {
+  type: 'ERASURE' | 'CORRECTION' | 'GRIEVANCE';
+  details: string;
+}): Promise<ActionResult<MyPrivacyRequestDto>> {
+  const result = await (await api()).storefront.createPrivacyRequest.mutate(input);
+  if (result.ok) revalidatePath('/account/privacy');
+  return result;
+}
+
+/** Withdrawing a request the shop has not started on. */
+export async function cancelPrivacyRequest(id: string): Promise<ActionResult<void>> {
+  const result = await (await api()).storefront.cancelPrivacyRequest.mutate({ id });
+  if (result.ok) revalidatePath('/account/privacy');
+  return result;
+}
+
+// --- deleting the account ---------------------------------------------------
+
+/** Step one: a code on WhatsApp, so only the phone's owner can do this. */
+export async function requestErasureCode(): Promise<ActionResult<OtpRequestDto>> {
+  return (await api()).storefront.requestErasureCode.mutate();
+}
+
+/** Step two: the code. The deletion is then scheduled a week out. */
+export async function confirmErasure(code: string): Promise<ActionResult<MyErasureDto>> {
+  const result = await (await api()).storefront.confirmErasure.mutate({ code });
+  if (result.ok) revalidatePath('/account/privacy');
+  return result;
+}
+
+/** Changing their mind, any time before it runs. */
+export async function cancelErasure(): Promise<ActionResult<MyErasureDto>> {
+  const result = await (await api()).storefront.cancelErasure.mutate();
+  if (result.ok) revalidatePath('/account/privacy');
   return result;
 }

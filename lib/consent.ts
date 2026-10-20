@@ -28,6 +28,15 @@ export function parseConsent(value: string | undefined | null): ConsentChoices |
 }
 
 /**
+ * Whether this browser said yes to analytics, from its `bk_consent` cookie
+ * value. For the server-side senders — the trending signals and the visit
+ * beacon — which must check for themselves rather than trust the page.
+ */
+export function allowsAnalytics(value: string | undefined | null): boolean {
+  return parseConsent(value)?.analytics === true;
+}
+
+/**
  * The answers as the API takes them with an order or a sign-in. Absent when
  * the banner was never answered — which the API treats exactly like a no.
  */
