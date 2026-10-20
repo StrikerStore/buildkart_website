@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ChevronRight, MessageCircle, MessageSquare, Package, Phone } from 'lucide-react';
-import { whatsappHref } from '@StrikerStore/contract';
+import { PRIVACY_NOTICE_PATH, whatsappHref } from '@StrikerStore/contract';
 import { ContactLink } from '@/components/analytics/contact-link';
 import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
@@ -38,6 +38,9 @@ export default async function HelpPage() {
 
   const hi = locale === 'hi';
   const { store, commerce } = settings;
+  // Optional chaining: an older API does not send it at all.
+  const officer = settings.privacy;
+  const hasOfficer = Boolean(officer && (officer.name || officer.email || officer.phone));
   const whatsapp = whatsappHref(store.whatsappNumber);
   /*
    * A contact page belongs in the footer, not in this list: it is a WhatsApp
@@ -185,6 +188,44 @@ export default async function HelpPage() {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {/*
+          * The grievance officer, published where people look for help (DPDP
+          * Rules 2025, rule 9): who answers questions about personal data, and
+          * how quickly. Shown only once the owner has named someone.
+          */}
+        {hasOfficer && officer && (
+          <section className="mt-6">
+            <h2 className="mb-2 text-heading6 text-ink-muted">
+              {hi ? 'आपका डेटा और शिकायत' : 'Your data and grievances'}
+            </h2>
+            <div className="rounded-card border border-hairline bg-surface px-4 py-3 text-body3 text-ink-muted">
+              <p className="text-ink">
+                {officer.designation || (hi ? 'शिकायत अधिकारी' : 'Grievance Officer')}
+                {officer.name && <span className="block text-heading6">{officer.name}</span>}
+              </p>
+              {officer.email && (
+                <a href={`mailto:${officer.email}`} className="mt-1 block underline">
+                  {officer.email}
+                </a>
+              )}
+              {officer.phone && (
+                <a href={`tel:${officer.phone}`} className="block underline">
+                  {officer.phone}
+                </a>
+              )}
+              {officer.address && <p className="mt-1 whitespace-pre-line">{officer.address}</p>}
+              <p className="mt-2">
+                {hi
+                  ? `अपने डेटा से जुड़े सवाल, सुधार या मिटाने के अनुरोध, या शिकायत यहाँ भेजें। हम ${officer.responseDays} दिनों में जवाब देते हैं। `
+                  : `Write here with questions about your data, to correct or erase it, or with a complaint. We reply within ${officer.responseDays} days. `}
+                <Link href={PRIVACY_NOTICE_PATH} className="underline">
+                  {hi ? 'गोपनीयता सूचना' : 'Privacy Notice'}
+                </Link>
+              </p>
+            </div>
           </section>
         )}
 

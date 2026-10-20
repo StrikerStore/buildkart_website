@@ -9,6 +9,7 @@ import { signOut } from '@/app/(auth)/login/actions';
 import { LanguagePicker } from '@/components/account/language-picker';
 import { GstinField } from '@/components/account/gstin-field';
 import { SavedCards } from '@/components/account/saved-cards';
+import { PrivacyControls } from '@/components/account/privacy-controls';
 import { api } from '@/lib/api/server';
 
 export const metadata: Metadata = {
@@ -19,17 +20,17 @@ export const metadata: Metadata = {
 /**
  * Settings.
  *
- * Deliberately short: the language the shop speaks to you in, the area it
- * delivers to, and the cards a payment gateway remembers for you. Everything
- * else a settings page usually holds (notifications, marketing consent) either
- * does not exist yet or would be a checkbox with nothing behind it.
+ * Deliberately short: the language the shop speaks to you in, the messages it
+ * may send you and what it may measure, the area it delivers to, and the cards
+ * a payment gateway remembers for you.
  */
 export default async function SettingsPage() {
-  const [locale, customer, location, profile, savedCards] = await Promise.all([
+  const [locale, customer, location, profile, privacy, savedCards] = await Promise.all([
     currentLocale(),
     currentCustomer(),
     currentLocation(),
     api().then((client) => client.storefront.myProfile.query()),
+    api().then((client) => client.storefront.myPrivacy.query().catch(() => null)),
     // A gateway that is down hides the list; it must not break the page.
     api().then((client) => client.storefront.savedCards.query().catch(() => [])),
   ]);
@@ -66,6 +67,15 @@ export default async function SettingsPage() {
           </h2>
           <GstinField initial={profile?.gstin ?? null} name={customer.name} locale={locale} />
         </section>
+
+        {privacy && (
+          <section className="mt-6">
+            <h2 className="mb-2 text-heading6 text-ink-muted">
+              {hi ? 'मैसेज और गोपनीयता' : 'Messages and privacy'}
+            </h2>
+            <PrivacyControls initial={privacy} locale={locale} />
+          </section>
+        )}
 
         <section className="mt-6">
           <h2 className="mb-2 text-heading6 text-ink-muted">

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { api } from '@/lib/api/server';
 import { LOCATION_COOKIE, parseLocation } from '@/lib/location-shared';
+import { CONSENT_COOKIE, parseConsent } from '@/lib/consent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,13 +16,21 @@ export const dynamic = 'force-dynamic';
  * validates the rest and drops what it does not like.
  *
  * The area is the `bk_area` cookie the location picker sets: its city, or just
- * its pincode for the API to name. It is what the city reports count. `api()` forwards the customer's session, so a
- * signed-in shopper's visit is tied to them.
+ * its pincode for the API to name. It is what the city reports count.
+ *
+ * Checked here too, not only in the page: an event from a browser that has
+ * not said yes to analytics is dropped, whatever sent it.
+ *
+ * `api()` forwards the customer's session, so a signed-in shopper's visit is
+ * tied to them.
  *
  * Always 204, and quickly: there is nobody to report a failure to.
  */
 export async function POST(request: NextRequest) {
   try {
+    if (parseConsent(request.cookies.get(CONSENT_COOKIE)?.value)?.analytics !== true) {
+      return new NextResponse(null, { status: 204 });
+    }
     const text = await request.text();
     // A session event is a few hundred bytes; anything bigger is not one.
     if (text.length > 4096) return new NextResponse(null, { status: 204 });

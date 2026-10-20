@@ -57,6 +57,38 @@ const nextConfig = {
    * traced output the same way rather than assuming where it landed.
    */
   output: 'standalone',
+
+  /*
+   * Security headers on every page.
+   *
+   * Framing is limited to this site, so a page that collects an address or a
+   * payment cannot be overlaid by someone else's. Location is allowed for this
+   * site alone (the delivery-area picker asks for it); camera and microphone
+   * for nobody. `payment` is left at the browser default, which the gateways'
+   * own frames rely on.
+   *
+   * The CSP stops at framing, plugins and `<base>` — directives that cannot
+   * break a script. A script allowlist (Meta, Google Maps, the gateways, the
+   * media host) is a separate step, trialled report-only first.
+   */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

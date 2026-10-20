@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { CONTACT_WHATSAPP_NUMBER, whatsappHref, STORE_TIME_ZONE } from '@StrikerStore/contract';
+import {
+  CONTACT_WHATSAPP_NUMBER,
+  fillPrivacyTokens,
+  whatsappHref,
+  STORE_TIME_ZONE,
+} from '@StrikerStore/contract';
 import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
 
@@ -62,9 +67,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ContentPage({ params }: Props) {
   const { slug } = await params;
 
-  const [locale, page] = await Promise.all([
+  const [locale, page, settings] = await Promise.all([
     currentLocale(),
     api().then((client) => client.content.publishedPage.query({ slug })),
+    storeSettings().catch(() => null),
   ]);
 
   if (!page) notFound();
@@ -83,7 +89,14 @@ export default async function ContentPage({ params }: Props) {
    * showing a Hindi reader an empty policy. A half-translated shop is the
    * normal state of one; an empty terms page is never the intended outcome.
    */
-  const body = (hi && page.bodyHtmlHi) || page.bodyHtmlEn;
+  const stored = (hi && page.bodyHtmlHi) || page.bodyHtmlEn;
+  /*
+   * The grievance officer is filled in here, at render, from Settings →
+   * Privacy — so the published Privacy Notice always names whoever answers
+   * privacy requests today, without the page being edited. Values are escaped.
+   * An older API without the setting leaves the tokens as they are.
+   */
+  const body = stored && settings?.privacy ? fillPrivacyTokens(stored, settings.privacy) : stored;
 
   return (
     <div className="page-w page-x py-6">

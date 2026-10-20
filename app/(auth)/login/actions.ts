@@ -1,12 +1,20 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { ActionResult, CustomerSessionDto, OtpRequestDto } from '@StrikerStore/contract';
+import {
+  NOTICE_VERSION,
+  serializeConsentCookie,
+  type ActionResult,
+  type CustomerSessionDto,
+  type OtpRequestDto,
+} from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { SESSION_COOKIE } from '@/lib/session';
 import { orderAttribution } from '@/lib/attribution-server';
+import { CONSENT_COOKIE, CONSENT_MAX_AGE, parseConsent } from '@/lib/consent';
 import { REGISTERED_COOKIE } from '@/lib/registration';
 
 /**
@@ -26,22 +34,46 @@ export async function verifyCode(
   phone: string,
   code: string,
   next: string,
-  whatsappOptIn: boolean,
+  said: { ageConfirmed: boolean; whatsappOffers: boolean },
 ): Promise<ActionResult<Omit<CustomerSessionDto, 'token'>>> {
   const result = await (
     await api()
   ).storefront.verifyOtp.mutate({
     phone,
     code,
-    whatsappOptIn,
-    // Browser ids, user agent and consent, for the server copy of Meta's
-    // CompleteRegistration when this sign-in creates the account.
+    ageConfirmed: said.ageConfirmed,
+    whatsappMarketing: said.whatsappOffers,
+    noticeVersion: NOTICE_VERSION,
+    // The cookie-banner answers, and — only where they allow it — browser ids
+    // and user agent for the server copy of Meta's CompleteRegistration.
     attribution: await orderAttribution(),
   });
   if (!result.ok) return result;
 
   const { token, ...customer } = result.data;
   const store = await cookies();
+
+  /*
+   * The account answered the cookie banner more recently somewhere else (or
+   * this device never has): put that answer here, so a "no" given on another
+   * phone is not overruled by an old "yes" on this one — and nobody is asked
+   * twice.
+   */
+  const device = parseConsent(store.get(CONSENT_COOKIE)?.value);
+  const account = customer.consent;
+  if (account && (!device || device.at < Date.parse(account.at))) {
+    store.set(
+      CONSENT_COOKIE,
+      serializeConsentCookie({
+        id: device?.id ?? randomUUID(),
+        analytics: account.analytics,
+        marketing: account.marketing,
+        at: Date.parse(account.at),
+        v: NOTICE_VERSION,
+      }),
+      { maxAge: CONSENT_MAX_AGE, path: '/', sameSite: 'lax' },
+    );
+  }
 
   /*
    * A new account: leave its id for `<RegistrationEvent>`, which fires the

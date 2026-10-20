@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { MessageCircle, MessageSquare, Phone } from 'lucide-react';
-import { whatsappHref } from '@StrikerStore/contract';
+import { PRIVACY_NOTICE_PATH, TERMS_PATH, whatsappHref } from '@StrikerStore/contract';
 import { ContactLink } from '@/components/analytics/contact-link';
+import { PrivacyChoicesButton } from '@/components/analytics/privacy-choices-button';
 import { api, storeSettings } from '@/lib/api/server';
 import { tr, type Locale } from '@/lib/i18n';
 import { FooterFold } from './footer-fold';
@@ -277,9 +278,26 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
             )}
           </div>
 
-          <p className="mt-8 border-t border-hairline pt-4 text-body4 text-ink-faint">
-            © {year} {name}. {tr(locale, 'footer.rights')}
-          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-hairline pt-4 text-body4 text-ink-faint">
+            <p className="mr-auto">
+              © {year} {name}. {tr(locale, 'footer.rights')}
+            </p>
+            {/*
+              * Hard-coded, not from the owner's menu: the Privacy Notice and the
+              * way to change a cookie answer must be reachable from every page
+              * whatever the menu holds (DPDP Act §5, §6(4)).
+              */}
+            <Link href={PRIVACY_NOTICE_PATH} className="hover:text-ink hover:underline">
+              {locale === 'hi' ? 'गोपनीयता सूचना' : 'Privacy Notice'}
+            </Link>
+            <Link href={TERMS_PATH} className="hover:text-ink hover:underline">
+              {locale === 'hi' ? 'नियम और शर्तें' : 'Terms'}
+            </Link>
+            <PrivacyChoicesButton
+              label={locale === 'hi' ? 'गोपनीयता विकल्प' : 'Privacy choices'}
+              className="hover:text-ink hover:underline"
+            />
+          </div>
         </FooterFold>
       </div>
     </footer>

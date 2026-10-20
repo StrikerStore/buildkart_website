@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useTransition } from 'react';
-import { isValidIndianMobile, mobileInputValue } from '@StrikerStore/contract';
+import { isValidIndianMobile, mobileInputValue, PRIVACY_NOTICE_PATH } from '@StrikerStore/contract';
 import { Bell, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
@@ -56,6 +57,21 @@ export function NotifyForm({
     });
   }
 
+  /*
+   * What the number is for, said before the button that sends it. Pressing
+   * the button under this is the yes the API records (DPDP Act §6).
+   */
+  const notice = (
+    <p className="mt-1.5 text-body4 text-ink-muted">
+      {hi
+        ? 'यह नंबर सिर्फ़ यह बताने के लिए इस्तेमाल होगा कि हमने यहाँ डिलीवरी शुरू कर दी है (WhatsApp पर)। '
+        : 'We will use this number only to tell you, on WhatsApp, when we start delivering here. '}
+      <Link href={PRIVACY_NOTICE_PATH} className="underline">
+        {hi ? 'गोपनीयता सूचना' : 'Privacy Notice'}
+      </Link>
+    </p>
+  );
+
   if (done) {
     return (
       <p className="mt-3 flex items-center gap-2 text-body2 text-success">
@@ -90,6 +106,7 @@ export function NotifyForm({
         <p className="mt-1.5 text-body4 text-ink-muted">
           {hi ? 'हम इस नंबर पर बताएंगे' : 'We will let you know on'} +91 {signedInPhone}
         </p>
+        {notice}
 
         {error && (
           <p role="alert" className="mt-2 text-body3 text-error">
@@ -132,6 +149,7 @@ export function NotifyForm({
           {hi ? 'बताएं' : 'Notify me'}
         </Button>
       </div>
+      {notice}
 
       {error && (
         <p role="alert" className="mt-2 text-body3 text-error">

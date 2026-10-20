@@ -280,6 +280,12 @@ export function LocationPicker({
           )}
           {hi ? 'मेरी लोकेशन इस्तेमाल करें' : 'Use my current location'}
         </Button>
+        {/* Why the browser is about to ask, before it asks. */}
+        <p className="mt-1.5 text-center text-body4 text-ink-faint">
+          {hi
+            ? 'लोकेशन सिर्फ़ डिलीवरी जाँचने और पता लगाने के लिए — विज्ञापनों के लिए नहीं।'
+            : 'Your location is used only to check delivery and place your address — never for ads.'}
+        </p>
 
         <button
           type="button"

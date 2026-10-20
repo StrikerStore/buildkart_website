@@ -198,6 +198,12 @@ export function PinMap({
               {hi ? 'डिलीवरी की जगह चुनें' : 'Select a delivery location'}
             </p>
             {locateError && <p className="mt-2 text-center text-body4 text-error">{locateError}</p>}
+            {/* Why the browser may ask, before it does. */}
+            <p className="mt-1 text-center text-body4 text-ink-faint">
+              {hi
+                ? 'लोकेशन सिर्फ़ डिलीवरी की जगह तय करने के लिए।'
+                : 'Your location is used only to place the delivery pin.'}
+            </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button type="button" variant="quiet" onClick={onSearch}>
                 {hi ? 'जगह खोजें' : 'Search Location'}

@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
+import { cookies } from 'next/headers';
 import { announcementBar, api, storeSettings } from '@/lib/api/server';
+import { CONSENT_COOKIE, parseConsent } from '@/lib/consent';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentLocale, htmlLang } from '@/lib/locale';
 import { currentLocation } from '@/lib/location';
@@ -144,7 +146,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, cart, location, announcements, settings, customer] = await Promise.all([
+  const [locale, cart, location, announcements, settings, customer, cookieStore] = await Promise.all([
     currentLocale(),
     currentCart(),
     currentLocation(),
@@ -153,6 +155,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     storeSettings(),
     // Already asked for by the header; `cache` makes this free.
     currentCustomer(),
+    cookies(),
   ]);
   /*
    * This service's own META_PIXEL_ID wins, so a preview can point at a test
@@ -161,7 +164,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
    * because an older API does not send `marketing` at all.
    */
   const pixelId = process.env.META_PIXEL_ID?.trim() || settings.marketing?.metaPixelId || null;
-  const askConsent = Boolean(pixelId && settings.marketing?.consentBanner);
+  // For the pixel's first paint only; the banner and the pixel re-read the
+  // cookie in the browser, and nothing loads from Meta without a yes.
+  const marketingGranted = parseConsent(cookieStore.get(CONSENT_COOKIE)?.value)?.marketing === true;
 
   return (
     <html lang={htmlLang(locale)} className={notoDevanagari.variable}>
@@ -219,22 +224,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             /* Hashed here, so the raw id never reaches the page. The API's
                Conversions API events send the same hash. */
             externalId={customer ? createHash('sha256').update(customer.id).digest('hex') : null}
-            consentRequired={askConsent}
+            initialGranted={marketingGranted}
           />
         )}
 
-        {/* Only when the owner asks for consent, and only for Meta. */}
-        {askConsent && <ConsentBanner locale={locale} />}
+        {/* Always: the shop's own analytics need a yes as much as Meta does. */}
+        <ConsentBanner locale={locale} />
 
         {/* Meta's CompleteRegistration, the first page after a new sign-up. */}
         <RegistrationEvent />
 
         {/* Where this visit came from, for the order it may turn into.
-            First-party and independent of the pixel. */}
+            First-party, and only with a yes to analytics. */}
         <AttributionCapture />
 
-        {/* A page view per navigation — the shop's own sessions always, and
-            the pixel when it is on. */}
+        {/* A page view per navigation — to the shop's own sessions and to the
+            pixel, each only with its own yes. */}
         <PageViews />
       </body>
     </html>

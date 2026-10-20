@@ -17,10 +17,13 @@
  *     same idle rule Shopify and Google Analytics use. Every event renews it.
  *
  * Neither is a credential or carries anything about the person. The beacon is
- * first-party, so an ad blocker that stops the Meta Pixel does not stop it.
+ * first-party, so an ad blocker that stops the Meta Pixel does not stop it —
+ * but it still waits for a yes to analytics on the cookie banner, and sets no
+ * cookie at all before one.
  */
 import { readCookie, writeCookie } from './browser-cookies';
 import { touchFromLocation } from './attribution';
+import { analyticsAllowed } from './consent-state';
 import type { PixelEvent } from './meta-pixel';
 
 export const VISITOR_COOKIE = 'bk_vid';
@@ -49,6 +52,9 @@ function newId(): string {
 
 export function recordVisit(event: VisitEvent) {
   if (typeof window === 'undefined') return;
+  // Nothing — not even the two ids — until the shopper has said yes to
+  // analytics on the banner. See `lib/consent.ts`.
+  if (!analyticsAllowed()) return;
   try {
     const visitorId = readCookie(VISITOR_COOKIE) || newId();
     const sessionId = readCookie(SESSION_COOKIE_NAME) || newId();

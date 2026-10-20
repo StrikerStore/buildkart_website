@@ -1,7 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
-import { indianMobileError, mobileInputValue } from '@StrikerStore/contract';
+import {
+  indianMobileError,
+  mobileInputValue,
+  PRIVACY_NOTICE_PATH,
+  TERMS_PATH,
+} from '@StrikerStore/contract';
 import { ArrowLeft, Loader2, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
@@ -25,8 +31,13 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [devCode, setDevCode] = useState<string | null>(null);
-  // Ticked by default and said plainly; unticking it is respected.
-  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
+  /*
+   * Both start unticked. The age box is required — no code is sent without it
+   * — and the offers box is a separate, optional yes. Order updates need no
+   * box: they come with the order, and are said plainly on the code step.
+   */
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [whatsappOffers, setWhatsappOffers] = useState(false);
   const [pending, startTransition] = useTransition();
   const codeRef = useRef<HTMLInputElement>(null);
 
@@ -102,7 +113,7 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
     setError(null);
 
     startTransition(async () => {
-      const result = await verifyCode(phone, code, next, whatsappOptIn);
+      const result = await verifyCode(phone, code, next, { ageConfirmed, whatsappOffers });
       // A success redirects inside the action and never returns; reaching here
       // means it failed.
       if (result && !result.ok) {
@@ -156,11 +167,43 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
           </p>
         )}
 
+        {/*
+          * The notice, before the number is sent anywhere: what it is for, and
+          * where the full story is (DPDP Act §5).
+          */}
+        <p className="mt-3 text-body4 text-ink-muted">
+          {locale === 'hi'
+            ? 'आपका नंबर सिर्फ़ लॉगिन, आपके ऑर्डर और उनकी डिलीवरी के लिए इस्तेमाल होगा। '
+            : 'Your number is used to sign you in, and for your orders and their delivery. '}
+          <Link href={PRIVACY_NOTICE_PATH} className="underline">
+            {locale === 'hi' ? 'गोपनीयता सूचना' : 'Privacy Notice'}
+          </Link>
+          {' · '}
+          <Link href={TERMS_PATH} className="underline">
+            {locale === 'hi' ? 'नियम और शर्तें' : 'Terms'}
+          </Link>
+        </p>
+
+        <label className="mt-3 flex items-start gap-2 text-body3 text-ink">
+          <input
+            type="checkbox"
+            checked={ageConfirmed}
+            onChange={(event) => setAgeConfirmed(event.target.checked)}
+            required
+            className="mt-0.5 size-4 shrink-0 accent-current"
+          />
+          <span>
+            {locale === 'hi'
+              ? 'मेरी उम्र 18 साल या उससे ज़्यादा है। नियम और शर्तें मुझे मंज़ूर हैं।'
+              : 'I am 18 or older, and I accept the Terms.'}
+          </span>
+        </label>
+
         <Button
           type="submit"
           size="lg"
           block
-          disabled={pending || phone.length !== 10}
+          disabled={pending || phone.length !== 10 || !ageConfirmed}
           className="mt-4"
         >
           {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
@@ -239,17 +282,25 @@ export function LoginForm({ locale, next }: { locale: Locale; next: string }) {
         </p>
       )}
 
-      <label className="mt-4 flex items-start gap-2 text-body3 text-ink-muted">
+      {/* Order updates come with the order, so they are stated, not asked —
+          with where to turn them off. Offers are a separate, unticked yes. */}
+      <p className="mt-4 text-body4 text-ink-muted">
+        {locale === 'hi'
+          ? 'ऑर्डर, भुगतान और डिलीवरी की जानकारी WhatsApp पर आएगी। अकाउंट → सेटिंग्स में कभी भी बंद करें।'
+          : 'We send order, payment and delivery updates on WhatsApp. Turn them off any time in Account → Settings.'}
+      </p>
+
+      <label className="mt-3 flex items-start gap-2 text-body3 text-ink-muted">
         <input
           type="checkbox"
-          checked={whatsappOptIn}
-          onChange={(event) => setWhatsappOptIn(event.target.checked)}
+          checked={whatsappOffers}
+          onChange={(event) => setWhatsappOffers(event.target.checked)}
           className="mt-0.5 size-4 shrink-0 accent-current"
         />
         <span>
           {locale === 'hi'
-            ? 'ऑर्डर, भुगतान और डिलीवरी की जानकारी WhatsApp पर भेजें। कभी भी STOP लिखकर बंद करें।'
-            : 'Send order, payment and delivery updates on WhatsApp. Reply STOP any time to turn them off.'}
+            ? 'ऑफ़र और नए सामान की जानकारी भी WhatsApp पर भेजें। (ज़रूरी नहीं)'
+            : 'Also send me offers and new products on WhatsApp. (Optional)'}
         </span>
       </label>
 

@@ -14,16 +14,52 @@ export type AttachmentState = {
 
 const EMPTY: AttachmentState = { value: null, previewUrl: null, uploading: false, error: null };
 
-/** Reads intrinsic dimensions so the bubble can reserve the right aspect box. */
-async function readDimensions(file: File): Promise<{ width?: number; height?: number }> {
+/** The longest edge a support photo is kept at — plenty to see a crack or a label. */
+const MAX_EDGE = 1600;
+const JPEG_QUALITY = 0.85;
+
+type Prepared = { file: File; width?: number; height?: number };
+
+/**
+ * The photo as it will be stored: re-drawn onto a canvas, scaled down to
+ * `MAX_EDGE`, and saved as a JPEG.
+ *
+ * Re-drawing is the point, not only the size. A phone photo carries EXIF
+ * metadata — often the GPS position it was taken at, which for a building
+ * site is the customer's address. A canvas copy keeps the pixels and nothing
+ * else. It also keeps the file small, since stored photos are served as-is
+ * rather than resized on the way out.
+ *
+ * Falls back to the original when the browser cannot decode or encode it; the
+ * upload must still work.
+ */
+async function prepare(file: File): Promise<Prepared> {
   try {
     const bitmap = await createImageBitmap(file);
-    const dimensions = { width: bitmap.width, height: bitmap.height };
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('No canvas');
+    // A transparent screenshot would otherwise turn black as a JPEG.
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
-    return dimensions;
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
+    );
+    if (!blob) throw new Error('No blob');
+
+    const name = `${file.name.replace(/\.[^.]+$/, '') || 'photo'}.jpg`;
+    return { file: new File([blob], name, { type: 'image/jpeg' }), width, height };
   } catch {
-    // Cosmetic only — an unreadable image still uploads fine.
-    return {};
+    return { file };
   }
 }
 
@@ -50,14 +86,16 @@ export function useAttachment(failureMessage: string) {
   }, []);
 
   const choose = useCallback(
-    async (file: File) => {
+    async (original: File) => {
       if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
-      const preview = URL.createObjectURL(file);
+      const preview = URL.createObjectURL(original);
       objectUrl.current = preview;
 
       setState({ value: null, previewUrl: preview, uploading: true, error: null });
 
       try {
+        const { file, width, height } = await prepare(original);
+
         const presign = await fetch('/api/support/attachment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -87,10 +125,8 @@ export function useAttachment(failureMessage: string) {
         });
         if (!put.ok) throw new Error(failureMessage);
 
-        const dimensions = await readDimensions(file);
-
         setState({
-          value: { r2Key, mime: file.type, sizeBytes: file.size, ...dimensions },
+          value: { r2Key, mime: file.type, sizeBytes: file.size, width, height },
           previewUrl: preview,
           uploading: false,
           error: null,

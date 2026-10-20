@@ -7,7 +7,9 @@ import { Briefcase, Home, Loader2, MapPin, Moon, User, Wallet } from 'lucide-rea
 import {
   compareMoney,
   formatINR,
+  PRIVACY_NOTICE_PATH,
   quotePartialCod,
+  TERMS_PATH,
   quoteWalletRedemption,
   subtractMoney,
   type CartDto,
@@ -517,6 +519,24 @@ export function CartCheckout({
         {error && (
           <p role="alert" className="rounded-box bg-error-bg px-3 py-2 text-body3 text-error">
             {error}
+          </p>
+        )}
+
+        {/* What placing the order agrees to, and what the receiver's details
+            are for — said before the button, not after (DPDP Act §5). */}
+        {signedIn && (
+          <p className="text-body4 text-ink-muted">
+            {hi ? 'ऑर्डर करके आप ' : 'By placing this order you accept the '}
+            <Link href={TERMS_PATH} className="underline">
+              {hi ? 'नियम और शर्तें' : 'Terms'}
+            </Link>
+            {hi
+              ? ' स्वीकार करते हैं। आपका पता और सामान लेने वाले का नाम-नंबर सिर्फ़ यह ऑर्डर पहुँचाने के लिए इस्तेमाल होते हैं — '
+              : '. Your address and the receiver’s name and number are used only to deliver this order — see our '}
+            <Link href={PRIVACY_NOTICE_PATH} className="underline">
+              {hi ? 'गोपनीयता सूचना' : 'Privacy Notice'}
+            </Link>
+            {hi ? ' देखें।' : '.'}
           </p>
         )}
 

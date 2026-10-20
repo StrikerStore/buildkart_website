@@ -6,6 +6,7 @@ import type {
   ActionResult,
   MyActiveDeliveryDto,
   MyAddressDto,
+  MyPrivacyDto,
   MyProfileDto,
   OnlineGateway,
 } from '@StrikerStore/contract';
@@ -56,6 +57,20 @@ export async function saveProfile(
   }
 
   if (result.ok) revalidatePath('/', 'layout');
+  return result;
+}
+
+/**
+ * WhatsApp updates or offers, on or off — one switch per call. Turning one off
+ * is the same call as turning it on, which is the point: taking a yes back must
+ * be no harder than giving it.
+ */
+export async function savePrivacy(input: {
+  whatsappUpdates?: boolean;
+  whatsappOffers?: boolean;
+}): Promise<ActionResult<MyPrivacyDto>> {
+  const result = await (await api()).storefront.savePrivacy.mutate(input);
+  if (result.ok) revalidatePath('/account/settings');
   return result;
 }
 

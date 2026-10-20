@@ -9,6 +9,7 @@ import type {
   PlaceLocationDto,
   PlaceSuggestionDto,
 } from '@StrikerStore/contract';
+import { NOTICE_VERSION } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import {
   ADDRESS_COOKIE,
@@ -335,7 +336,13 @@ export async function requestAreaForMe(pincode: string): Promise<ActionResult<vo
     };
   }
 
-  return (await api()).storefront.requestArea.mutate({ pincode, phone: customer.phone });
+  return (await api()).storefront.requestArea.mutate({
+    pincode,
+    phone: customer.phone,
+    // The button press, under the form's notice, is the yes.
+    consent: true,
+    noticeVersion: NOTICE_VERSION,
+  });
 }
 
 /**
@@ -347,5 +354,10 @@ export async function requestAreaForMe(pincode: string): Promise<ActionResult<vo
  * worst a mistyped or invented number costs is one row the owner rings once.
  */
 export async function requestArea(pincode: string, phone: string): Promise<ActionResult<void>> {
-  return (await api()).storefront.requestArea.mutate({ pincode, phone });
+  return (await api()).storefront.requestArea.mutate({
+    pincode,
+    phone,
+    consent: true,
+    noticeVersion: NOTICE_VERSION,
+  });
 }

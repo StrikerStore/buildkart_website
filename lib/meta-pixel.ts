@@ -22,6 +22,7 @@
  * match these events.
  */
 
+import { marketingAllowed } from './consent-state';
 import { recordVisitForPixel } from './visit';
 
 type Fbq = ((...args: unknown[]) => void) & {
@@ -84,34 +85,29 @@ function installStub(): Fbq {
 /**
  * Idempotent: strict mode and remounts call it more than once.
  *
+ * Called only once the shopper has said yes to marketing on the cookie banner
+ * — `<MetaPixel>` does not load Meta's library before that — so the pixel
+ * starts granted.
+ *
  * `externalId` is the signed-in customer's id, already SHA-256 hashed on the
  * server — the same value the API sends with its Conversions API events, so
  * Meta can tie the browser and server copies to one person.
- *
- * `consentGranted: false` starts the pixel **revoked**: Meta's library loads
- * and accepts calls but sends nothing until `grantConsent()` — the shop's
- * consent banner, when the owner has switched it on.
  */
-export function initPixel(
-  pixelId: string,
-  externalId?: string | null,
-  { consentGranted = true }: { consentGranted?: boolean } = {},
-) {
+export function initPixel(pixelId: string, externalId?: string | null) {
   if (typeof window === 'undefined' || initialised) return;
   initialised = true;
   const fbq = installStub();
-  if (!consentGranted) fbq('consent', 'revoke');
   if (externalId) fbq('init', pixelId, { external_id: externalId });
   else fbq('init', pixelId);
   for (const [event, params, eventId] of pending.splice(0)) send(fbq, event, params, eventId);
 }
 
-/** The shopper accepted on the consent banner: the pixel may send from now on. */
+/** The shopper said yes again after taking it back, on the same page. */
 export function grantConsent() {
   if (typeof window !== 'undefined') window.fbq?.('consent', 'grant');
 }
 
-/** The shopper declined: nothing more is sent. */
+/** The shopper took their yes back: nothing more is sent from this page. */
 export function revokeConsent() {
   if (typeof window !== 'undefined') window.fbq?.('consent', 'revoke');
 }
@@ -126,7 +122,11 @@ export function track(event: PixelEvent, params?: PixelParams, eventId?: string)
   if (typeof window === 'undefined') return;
   // The shop's own funnel first, and whether or not the pixel is on: page
   // views, product views, cart adds and checkouts are also session steps.
+  // (That beacon asks for its own consent.)
   recordVisitForPixel(event);
+  // Nothing for Meta without a yes — not even queued, so a yes given later
+  // cannot release what was seen before it.
+  if (!marketingAllowed()) return;
   if (!initialised || !window.fbq) {
     // Bounded: if the pixel is off, nothing ever drains this, and a long
     // session should not quietly grow an array of events nobody will send.
