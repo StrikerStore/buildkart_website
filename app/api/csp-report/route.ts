@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Where the browser reports what the report-only Content Security Policy
+ * Where test the browser reports what the report-only Content Security Policy
  * would have blocked (see `next.config.mjs`). Nothing is blocked; this is how
  * the allowlist is checked against real traffic before it is enforced.
  *
