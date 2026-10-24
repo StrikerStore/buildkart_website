@@ -336,13 +336,13 @@ function ConfirmedPanel({
           {hi ? `${result.area.promiseHours} घंटे में` : `in ${result.area.promiseHours} hours`}
         </p>
 
-        <p className="mt-1 text-body3 text-ink-muted">
-          {hi ? 'डिलीवरी शुल्क' : 'Delivery'}: {formatINR(result.area.deliveryCharge)}
-          {result.area.freeAbove &&
-            (hi
-              ? ` · ${formatINR(result.area.freeAbove)} से ऊपर मुफ़्त`
-              : ` · free above ${formatINR(result.area.freeAbove)}`)}
-        </p>
+        {result.area.freeAbove && (
+          <p className="mt-1 text-body3 text-ink-muted">
+            {hi
+              ? `${formatINR(result.area.freeAbove)} से ऊपर के ऑर्डर पर फ़्री डिलीवरी`
+              : `Free delivery on orders above ${formatINR(result.area.freeAbove)}`}
+          </p>
+        )}
       </div>
     );
   }
@@ -423,9 +423,13 @@ function SavedPanel({ result, locale }: { result: PincodeCheck; locale: Locale }
         {result.promiseHours !== null &&
           (hi ? ` · ${result.promiseHours} घंटे में` : ` · in ${result.promiseHours} hours`)}
       </p>
-      <p className="mt-1 text-body3 text-ink-muted">
-        {hi ? 'डिलीवरी शुल्क' : 'Delivery'}: {formatINR(result.deliveryCharge)}
-      </p>
+      {result.freeAbove && (
+        <p className="mt-1 text-body3 text-ink-muted">
+          {hi
+            ? `${formatINR(result.freeAbove)} से ऊपर के ऑर्डर पर फ़्री डिलीवरी`
+            : `Free delivery on orders above ${formatINR(result.freeAbove)}`}
+        </p>
+      )}
     </div>
   );
 }

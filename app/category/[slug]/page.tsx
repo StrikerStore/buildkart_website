@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
+import { currentPoint } from '@/lib/location';
 import { readQuery, type SearchParams } from '@/lib/list-query';
 import { Breadcrumb } from '@/components/catalog/breadcrumb';
 import { Listing } from '@/components/catalog/listing';
@@ -58,15 +59,17 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
-  const [{ slug }, search, locale] = await Promise.all([
+  const [{ slug }, search, locale, point] = await Promise.all([
     params,
     searchParams,
     currentLocale(),
+    currentPoint(),
   ]);
 
   const page = await (await api()).storefront.category.query({
     slug,
     ...readQuery(search),
+    ...point,
   });
 
   // The API answers a missing category with `null` rather than throwing, so

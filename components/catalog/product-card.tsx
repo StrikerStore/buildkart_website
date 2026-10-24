@@ -82,15 +82,18 @@ export async function ProductCard({
       </div>
 
       {/*
-       * Free delivery, on every tile.
+       * Free delivery — on distance-priced products only. Their price already
+       * includes carrying them to the shopper; a flat-priced product pays a
+       * delivery charge on the order, and saying "free" on it would be a
+       * promise the cart then breaks.
        *
        * Directly under the photo and above everything variable, because the
        * price row is pinned to the bottom by `mt-auto`: anything placed after
        * it lands at a different height on every card, depending on whether
-       * that card carries a bulk rate. Here it sits on a fixed line and the
-       * grid keeps its rhythm.
+       * that card carries a bulk rate. A flat-priced card keeps the same line,
+       * empty, so the grid keeps its rhythm.
        */}
-      <p className="mb-2">
+      <p className={cn('mb-2', product.pricingKind !== 'DISTANCE' && 'invisible')} aria-hidden={product.pricingKind !== 'DISTANCE'}>
         <Badge tone="SUCCESS">{locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}</Badge>
       </p>
 
@@ -134,6 +137,7 @@ export async function ProductCard({
           compareAtPrice={product.compareAtPrice}
           unitLabelEn={product.unitLabelEn}
           unitLabelHi={product.unitLabelHi}
+          priceIsFrom={product.priceIsFrom}
           locale={locale}
         />
 

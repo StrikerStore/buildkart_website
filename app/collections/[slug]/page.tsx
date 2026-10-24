@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
+import { currentPoint } from '@/lib/location';
 import { readQuery, type SearchParams } from '@/lib/list-query';
 import { Breadcrumb } from '@/components/catalog/breadcrumb';
 import { Listing } from '@/components/catalog/listing';
@@ -37,9 +38,18 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
  * comes from, and that is the server's business.
  */
 export default async function CollectionPage({ params, searchParams }: Props) {
-  const [{ slug }, search, locale] = await Promise.all([params, searchParams, currentLocale()]);
+  const [{ slug }, search, locale, point] = await Promise.all([
+    params,
+    searchParams,
+    currentLocale(),
+    currentPoint(),
+  ]);
 
-  const page = await (await api()).storefront.collection.query({ slug, ...readQuery(search) });
+  const page = await (await api()).storefront.collection.query({
+    slug,
+    ...readQuery(search),
+    ...point,
+  });
   if (!page) notFound();
 
   const name = (locale === 'hi' && page.collection.nameHi) || page.collection.nameEn;

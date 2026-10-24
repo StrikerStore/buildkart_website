@@ -1,5 +1,6 @@
 import { api, storeSettings } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
+import { currentPoint } from '@/lib/location';
 import { siteUrl } from '@/lib/site';
 import { Hero } from '@/components/home/hero';
 import { HomepageSections } from '@/components/home/homepage-sections';
@@ -24,7 +25,9 @@ export const metadata = { alternates: { canonical: '/' } };
 export default async function HomePage() {
   const [locale, home, settings, seen] = await Promise.all([
     currentLocale(),
-    api().then((c) => c.storefront.home.query()),
+    // Priced for where the shopper is: a distance-priced product's card says
+    // what it costs delivered here.
+    Promise.all([api(), currentPoint()]).then(([c, point]) => c.storefront.home.query(point)),
     storeSettings(),
     recentlyViewed(),
   ]);

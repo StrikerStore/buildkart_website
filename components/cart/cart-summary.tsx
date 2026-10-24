@@ -76,28 +76,35 @@ export function CartSummary({
         />
 
         {/*
-          Only when the basket is actually splitting. One warehouse is the
-          ordinary case and needs no explanation, but two is a total that looks
-          wrong until you know it covers two vans — so the breakdown appears
-          exactly when the number stops being self-evident.
+          How the charge was reached — the order-value part and the distance
+          part — because "₹245 delivery" on its own is a number to argue with,
+          and "₹200 for the order + ₹45 for 7.4 km" is one to accept. An
+          estimate until a pin is set, and said so.
         */}
-        {cart.deliveryCharge !== '0.00' && (cart.delivery?.legs.length ?? 0) > 1 && (
-          <ul className="text-muted-foreground -mt-1 flex flex-col gap-0.5 pl-3 text-xs">
-            {cart.delivery?.legs.map((leg) => (
-              <li key={leg.warehouseId} className="flex items-center justify-between gap-2">
-                <span className="truncate">
-                  {leg.warehouseName} · {leg.roadKm} km
-                </span>
-                <span className="tabular shrink-0">
-                  {leg.charge === '0.00'
-                    ? locale === 'hi'
-                      ? 'मुफ़्त'
-                      : 'Free'
-                    : formatINR(leg.charge)}
-                </span>
-              </li>
-            ))}
-          </ul>
+        {cart.delivery?.serviced && cart.deliveryCharge !== '0.00' && (
+          <p className="-mt-1 text-right text-body5 text-ink-muted">
+            {locale === 'hi'
+              ? `ऑर्डर पर ${formatINR(cart.delivery.slabBase)} + दूरी ${formatINR(cart.delivery.distanceCharge)}`
+              : `${formatINR(cart.delivery.slabBase)} order value + ${formatINR(cart.delivery.distanceCharge)} distance`}
+            {cart.delivery.roadKm !== null && ` · ${cart.delivery.roadKm} km`}
+            {!cart.delivery.located && (locale === 'hi' ? ' · अनुमान' : ' · estimate')}
+          </p>
+        )}
+
+        {/* Every line is distance-priced: there is nothing to deliver for. */}
+        {cart.delivery?.serviced && !cart.delivery.hasFlatLines && cart.lines.length > 0 && (
+          <p className="-mt-1 text-right text-body5 text-ink-muted">
+            {locale === 'hi' ? 'डिलीवरी सामान के भाव में शामिल' : 'Delivery is included in the prices'}
+          </p>
+        )}
+
+        {/* The nudge toward free delivery, while it is in reach of being met. */}
+        {cart.delivery?.freeShortfall && cart.deliveryCharge !== '0.00' && (
+          <p className="-mt-1 text-right text-body5 text-brand-text">
+            {locale === 'hi'
+              ? `${formatINR(cart.delivery.freeShortfall)} और जोड़ें, डिलीवरी फ़्री`
+              : `Add ${formatINR(cart.delivery.freeShortfall)} more for free delivery`}
+          </p>
         )}
 
         {cart.unloadingCharge !== '0.00' && (

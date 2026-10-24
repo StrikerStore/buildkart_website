@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { api, storeSettings } from '@/lib/api/server';
 import { currentCart } from '@/lib/cart';
 import { currentLocale } from '@/lib/locale';
+import { currentPoint } from '@/lib/location';
 import { imageUrl, IMAGE } from '@/lib/media';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/catalog/breadcrumb';
@@ -46,10 +47,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const [{ handle }, locale] = await Promise.all([params, currentLocale()]);
+  const [{ handle }, locale, point] = await Promise.all([params, currentLocale(), currentPoint()]);
 
   const [product, cart, settings] = await Promise.all([
-    (await api()).storefront.product.query({ handle }),
+    // Priced for where the shopper is, like every card that led here.
+    (await api()).storefront.product.query({ handle, ...point }),
     currentCart(),
     storeSettings(),
   ]);
@@ -118,6 +120,9 @@ export default async function ProductPage({ params }: Props) {
             <DeliveryLine
               fallbackHours={settings.commerce.promiseHours}
               codEnabled={settings.commerce.codEnabled}
+              pricingKind={product.pricingKind}
+              located={product.located}
+              rules={settings.deliveryCharges}
               locale={locale}
             />
           </div>

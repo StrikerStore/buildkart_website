@@ -349,12 +349,11 @@ export function MapPicker({
                 {hi ? 'यहाँ डिलीवरी होती है' : 'We deliver here'}
                 <span className="text-ink-muted">
                   {resolved.area.promiseHours}
-                  {hi ? ' घंटे' : ' hours'} ·{' '}
-                  {Number(resolved.area.deliveryCharge) > 0
-                    ? formatINR(resolved.area.deliveryCharge)
-                    : hi
-                      ? 'मुफ़्त डिलीवरी'
-                      : 'free delivery'}
+                  {hi ? ' घंटे' : ' hours'}
+                  {resolved.area.freeAbove &&
+                    (hi
+                      ? ` · ${formatINR(resolved.area.freeAbove)} से ऊपर फ़्री डिलीवरी`
+                      : ` · free delivery above ${formatINR(resolved.area.freeAbove)}`)}
                 </span>
               </p>
             ) : (

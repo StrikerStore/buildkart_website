@@ -22,6 +22,24 @@ export const currentLocation = cache(async (): Promise<StoredLocation | null> =>
   return parseLocation((await cookies()).get(LOCATION_COOKIE)?.value);
 });
 
+/**
+ * Where the shopper is, for pricing distance-priced products — spread into
+ * every catalogue query, so a card, a product page and the cart all quote the
+ * price for here. Empty when no area is chosen yet: those products then show
+ * their price at the warehouse, as "from".
+ *
+ * Read off the cookie, which a shopper can edit — and harmless for it: this
+ * only moves a preview. What is charged is priced again from the address the
+ * order is sent to.
+ */
+export const currentPoint = cache(async (): Promise<{ latitude?: number; longitude?: number }> => {
+  const location = await currentLocation();
+  if (!location?.latitude || !location.longitude) return {};
+  const latitude = Number(location.latitude);
+  const longitude = Number(location.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : {};
+});
+
 /** The saved address chosen for delivery, if any. Validated against the book by the caller. */
 export const currentAddressId = cache(async (): Promise<string | null> => {
   const raw = (await cookies()).get(ADDRESS_COOKIE)?.value ?? '';

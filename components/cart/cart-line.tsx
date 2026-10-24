@@ -68,6 +68,19 @@ export async function CartLine({ line, locale }: { line: CartLineDto; locale: Lo
           )}
         </p>
 
+        {/*
+          * Delivery is in this line's price, so it is not part of the delivery
+          * charge below — said on the row, where a shopper comparing it with
+          * the charge will look.
+          */}
+        {line.pricingKind === 'DISTANCE' && (
+          <p className="mt-1">
+            <span className="inline-flex items-center rounded-pill bg-success-bg px-2 py-0.5 text-heading9 text-success-fg">
+              {locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}
+            </span>
+          </p>
+        )}
+
         {/* Which rung is paying off, not just that one is. */}
         {line.appliedTier && (
           <p className="mt-0.5 text-body5 text-success">

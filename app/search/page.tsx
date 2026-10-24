@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { api } from '@/lib/api/server';
+import { currentPoint } from '@/lib/location';
 import { currentLocale } from '@/lib/locale';
 import { readQuery, type SearchParams } from '@/lib/list-query';
 import { Listing } from '@/components/catalog/listing';
@@ -48,7 +49,10 @@ export default async function SearchPage({ searchParams }: Props) {
     );
   }
 
-  const result = await (await api()).storefront.search.query(query);
+  const result = await (await api()).storefront.search.query({
+    ...query,
+    ...(await currentPoint()),
+  });
 
   return (
     // Counts the product a shopper opens from here, for the homepage's

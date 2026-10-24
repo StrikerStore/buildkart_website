@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { cache } from 'react';
 import type { StorefrontCardDto } from '@StrikerStore/contract';
 import { api } from './api/server';
+import { currentPoint } from './location';
 import { parseSeen, SEEN_COOKIE } from './recently-viewed-shared';
 
 export * from './recently-viewed-shared';
@@ -23,7 +24,10 @@ const seenCards = cache(async (): Promise<StorefrontCardDto[]> => {
   if (handles.length === 0) return [];
 
   try {
-    return await (await api()).storefront.cardsByHandles.query({ handles });
+    return await (await api()).storefront.cardsByHandles.query({
+      handles,
+      ...(await currentPoint()),
+    });
   } catch {
     return [];
   }

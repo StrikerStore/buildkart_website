@@ -16,9 +16,12 @@ export function PriceBlock({
   compareAtPrice,
   unitLabelEn,
   unitLabelHi,
+  priceIsFrom = false,
   locale,
   size = 'card',
 }: Pick<StorefrontCardDto, 'price' | 'compareAtPrice' | 'unitLabelEn' | 'unitLabelHi'> & {
+  /** A distance-priced product shown without a location: its price at the warehouse. */
+  priceIsFrom?: boolean;
   locale: Locale;
   size?: 'card' | 'page';
 }) {
@@ -37,6 +40,11 @@ export function PriceBlock({
 
   return (
     <span className="flex flex-wrap items-baseline gap-x-1.5">
+      {priceIsFrom && (
+        <span className={cn('text-ink-muted', size === 'page' ? 'text-body2' : 'text-body5')}>
+          {locale === 'hi' ? 'से शुरू' : 'from'}
+        </span>
+      )}
       <span className={cn('text-ink', size === 'page' ? 'text-heading2' : 'text-heading5')}>
         {formatINR(price)}
       </span>

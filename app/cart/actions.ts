@@ -8,8 +8,8 @@ import { after } from 'next/server';
 import type { CartCouponDto, CartDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { allowsAnalytics, CONSENT_COOKIE } from '@/lib/consent';
-import { currentCart, currentPromo, pricedCart } from '@/lib/cart';
-import { currentLocation } from '@/lib/location';
+import { currentCart, currentPromo, currentUnloading, pricedCart } from '@/lib/cart';
+import { currentLocation, currentPoint } from '@/lib/location';
 import {
   CART_COOKIE,
   CART_MAX_AGE,
@@ -174,15 +174,21 @@ export async function loadCartThumbs(): Promise<CartThumb[]> {
  * needs.
  */
 export async function loadCoupons(): Promise<CartCouponDto[]> {
-  const [lines, location, promo] = await Promise.all([
+  const [lines, location, promo, point, unloading] = await Promise.all([
     currentCart(),
     currentLocation(),
     currentPromo(),
+    currentPoint(),
+    currentUnloading(),
   ]);
 
+  // The same pin and unloading choice as the cart, so a free-delivery coupon
+  // is judged against the delivery charge the shopper is looking at.
   return (await api()).storefront.coupons.query({
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
     ...(location ? { pincode: location.pincode } : {}),
+    ...point,
+    unloading,
     ...(promo ? { appliedCode: promo } : {}),
   });
 }

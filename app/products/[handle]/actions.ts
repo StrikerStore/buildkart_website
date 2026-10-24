@@ -6,6 +6,7 @@ import type { BulkTierBasis, StorefrontProductDto } from '@StrikerStore/contract
 import { api } from '@/lib/api/server';
 import { allowsAnalytics, CONSENT_COOKIE } from '@/lib/consent';
 import { currentCart } from '@/lib/cart';
+import { currentPoint } from '@/lib/location';
 import { imageUrl, IMAGE } from '@/lib/media';
 import {
   parseSeen,
@@ -77,8 +78,9 @@ export type QuickOptionsData = {
  * the description, FAQs and related products stay on the product page.
  */
 export async function loadQuickOptions(handle: string): Promise<QuickOptionsData | null> {
+  const point = await currentPoint();
   const [product, cart] = await Promise.all([
-    (await api()).storefront.product.query({ handle }),
+    (await api()).storefront.product.query({ handle, ...point }),
     currentCart(),
   ]);
   if (!product) return null;

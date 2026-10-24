@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { api } from '@/lib/api/server';
+import { currentPoint } from '@/lib/location';
 import { imageUrl, IMAGE } from '@/lib/media';
 
 export const runtime = 'nodejs';
@@ -48,7 +49,11 @@ export async function GET(request: NextRequest) {
   if (q.length < 2) return NextResponse.json([], { headers: { 'Cache-Control': 'no-store' } });
 
   try {
-    const rows = await (await api()).storefront.suggest.query({ q, limit: LIMIT });
+    const rows = await (await api()).storefront.suggest.query({
+      q,
+      limit: LIMIT,
+      ...(await currentPoint()),
+    });
 
     const suggestions: SuggestionRow[] = await Promise.all(
       rows.map(async (row) => ({
