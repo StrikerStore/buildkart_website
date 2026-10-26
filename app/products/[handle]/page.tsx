@@ -122,7 +122,7 @@ export default async function ProductPage({ params }: Props) {
               codEnabled={settings.commerce.codEnabled}
               pricingKind={product.pricingKind}
               located={product.located}
-              rules={settings.deliveryCharges}
+              freeAbove={settings.deliveryCharges.freeAbove}
               locale={locale}
             />
           </div>
