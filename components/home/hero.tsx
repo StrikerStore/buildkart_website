@@ -2,15 +2,16 @@ import Link from 'next/link';
 import type { StorefrontBannerDto } from '@StrikerStore/contract';
 import { imageSrcSet, imageUrl, IMAGE, SRCSET } from '@/lib/media';
 import type { Locale } from '@/lib/i18n';
+import { HeroRail } from './hero-rail';
 
 /**
  * The hero.
  *
- * A CSS scroll-snap rail, not a JavaScript carousel. There is no autoplay, no
- * timer and no library: a hero that moves on its own is a hero that swaps the
- * offer out from under a thumb already travelling toward it, and on a slow
- * connection the carousel script is often the largest thing on the page.
- * Swiping works because the browser does it.
+ * A CSS scroll-snap rail, not a carousel library: swiping works because the
+ * browser does it, and the slides render here on the server. With more than one
+ * banner the rail also advances itself every three seconds — the owner's call —
+ * through `HeroRail`, a few lines of script that only move the rail and hold
+ * still while anyone is touching, hovering or focused on it.
  *
  * The first banner loads eagerly with `fetchPriority="high"` — it is almost
  * always the Largest Contentful Paint, and lazy-loading it is the single most
@@ -39,7 +40,7 @@ export async function Hero({
 
   return (
     <div className="page-w page-x pt-3">
-      <div className="rail flex gap-3 rounded-card">
+      <HeroRail count={usable.length}>
         {usable.map(({ banner, mobile, desktop, srcSet }, index) => {
           const title = (locale === 'hi' && banner.titleHi) || banner.titleEn;
 
@@ -87,7 +88,7 @@ export async function Hero({
             </div>
           );
         })}
-      </div>
+      </HeroRail>
     </div>
   );
 }
