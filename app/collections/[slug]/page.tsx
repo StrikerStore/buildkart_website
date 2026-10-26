@@ -24,7 +24,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     title: name,
     description: page.collection.description ?? undefined,
     alternates: { canonical: `/collections/${slug}` },
-    robots: Object.keys(search).length > 0 ? { index: false, follow: true } : undefined,
+    // Spread, not `robots: undefined` — see the category page.
+    ...(Object.keys(search).length > 0 ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

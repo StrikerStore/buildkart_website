@@ -52,9 +52,12 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
      * that is why pagination uses links — but they are also near-duplicates of
      * page 1, and letting a crawler index forty filter permutations of the same
      * twenty products is how a small catalogue buries itself.
+     *
+     * Spread rather than `robots: undefined`: Next merges every key a page
+     * returns, an undefined one included, so that would wipe the layout's
+     * site-wide noindex while the shop is closed to crawlers.
      */
-    robots:
-      Object.keys(search).length > 0 ? { index: false, follow: true } : undefined,
+    ...(Object.keys(search).length > 0 ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
