@@ -75,22 +75,6 @@ export function CartSummary({
           tone={cart.deliveryCharge === '0.00' ? 'success' : undefined}
         />
 
-        {/*
-          How the charge was reached — the order-value part and the distance
-          part — because "₹245 delivery" on its own is a number to argue with,
-          and "₹200 for the order + ₹45 for 7.4 km" is one to accept. An
-          estimate until a pin is set, and said so.
-        */}
-        {cart.delivery?.serviced && cart.deliveryCharge !== '0.00' && (
-          <p className="-mt-1 text-right text-body5 text-ink-muted">
-            {locale === 'hi'
-              ? `ऑर्डर पर ${formatINR(cart.delivery.slabBase)} + दूरी ${formatINR(cart.delivery.distanceCharge)}`
-              : `${formatINR(cart.delivery.slabBase)} order value + ${formatINR(cart.delivery.distanceCharge)} distance`}
-            {cart.delivery.roadKm !== null && ` · ${cart.delivery.roadKm} km`}
-            {!cart.delivery.located && (locale === 'hi' ? ' · अनुमान' : ' · estimate')}
-          </p>
-        )}
-
         {/* Every line is distance-priced: there is nothing to deliver for. */}
         {cart.delivery?.serviced && !cart.delivery.hasFlatLines && cart.lines.length > 0 && (
           <p className="-mt-1 text-right text-body5 text-ink-muted">
