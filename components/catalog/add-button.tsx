@@ -11,7 +11,7 @@ import { Stepper } from './stepper';
  * the first HTML, with no hydration flash of the wrong control.
  *
  *   - single sellable variant  → a stepper that starts at ADD
- *   - several variants         → Options, which opens a sheet to pick the size
+ *   - several variants         → ADD, which opens a sheet to pick the size
  *                                and quantity, with Add to cart and Buy now
  *   - nothing sellable         → a disabled label
  *

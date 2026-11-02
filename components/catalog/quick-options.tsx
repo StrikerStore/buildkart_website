@@ -23,7 +23,7 @@ import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 
 /**
- * The card's Options button, and the sheet it opens.
+ * The card's ADD button for a product with several sizes, and the sheet it opens.
  *
  * A multi-variant product cannot be added from a card — the card would have to
  * pick 12 mm on the shopper's behalf — so this used to be a link to the product
@@ -70,7 +70,9 @@ export function QuickOptions({ handle, locale }: { handle: string; locale: Local
         aria-expanded={open}
         className="inline-flex h-10 items-center rounded-box border border-buy bg-surface px-3 text-cta3 text-buy hover:bg-success-bg"
       >
-        {locale === 'hi' ? 'चुनें' : 'Options'}
+        {/* The same word as the single-variant card's button, so every card
+            reads the same. It still opens the sheet to pick a size first. */}
+        {locale === 'hi' ? 'जोड़ें' : 'ADD'}
       </button>
 
       {open &&

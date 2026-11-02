@@ -70,7 +70,7 @@ export type QuickOptionsData = {
 };
 
 /**
- * The product behind a card's Options button, loaded when the sheet opens.
+ * The product behind a multi-size card's ADD button, loaded when the sheet opens.
  *
  * On open rather than with the grid: every multi-variant card on a page would
  * otherwise carry its whole variant list and ladders into the HTML, for a sheet

@@ -9,9 +9,10 @@ import { HeroRail } from './hero-rail';
  *
  * A CSS scroll-snap rail, not a carousel library: swiping works because the
  * browser does it, and the slides render here on the server. With more than one
- * banner the rail also advances itself every three seconds — the owner's call —
- * through `HeroRail`, a few lines of script that only move the rail and hold
- * still while anyone is touching, hovering or focused on it.
+ * banner the rail also advances itself every five seconds, always forwards in a
+ * loop — the owner's call — through `HeroRail`, a few lines of script that only
+ * move the rail and hold still while anyone is touching, hovering or focused on
+ * it.
  *
  * The first banner loads eagerly with `fetchPriority="high"` — it is almost
  * always the Largest Contentful Paint, and lazy-loading it is the single most

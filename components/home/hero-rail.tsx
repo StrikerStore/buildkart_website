@@ -1,34 +1,49 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useRef, type ReactElement, type ReactNode } from 'react';
 
 /** How long each banner stays before the next slides in. The owner's choice. */
-const ADVANCE_MS = 3000;
+const ADVANCE_MS = 5000;
 
 /**
- * The hero's rail, advancing itself every three seconds.
+ * How long the rail must be still before it counts as stopped. `scrollend`
+ * would say so directly, but older Safari never fires it.
+ */
+const SETTLE_MS = 150;
+
+/**
+ * The hero's rail, advancing itself every five seconds, always forwards.
  *
  * Only the movement lives here. The slides are rendered on the server and
  * passed in as children, and this moves the same CSS scroll-snap rail a thumb
  * moves — so swiping works exactly as it did, and a page whose script has not
  * loaded yet still shows every banner.
  *
+ * **It loops rather than rewinding.** A copy of the first banner sits after the
+ * last. The rail slides forward onto the copy, and the moment it stops there it
+ * jumps, without animation, to the real first banner, which looks identical.
+ * Scrolling back from the last banner to the first used to sweep past every
+ * banner in reverse. The copy is `inert` and hidden from screen readers, so it
+ * is never a second tab stop or a second announcement of the same offer.
+ *
  * A hero that moves on its own can swap the offer out from under a thumb
  * already travelling toward it, so it holds still whenever someone is using
  * it: a finger on it, a mouse over it, keyboard focus inside it, or the tab in
  * the background. After a swipe it carries on from wherever the shopper left
- * it, three seconds after they let go. Someone who has asked their phone for
+ * it, five seconds after they let go. Someone who has asked their phone for
  * reduced motion gets a still hero they swipe themselves.
  */
 export function HeroRail({ count, children }: { count: number; children: ReactNode }) {
   const railRef = useRef<HTMLDivElement>(null);
+  const first = Children.toArray(children)[0];
+  const loops = count > 1 && isValidElement(first);
 
   useEffect(() => {
     const rail = railRef.current;
-    if (!rail || count < 2) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!rail || !loops) return;
 
     let timer: number | undefined;
+    let settle: number | undefined;
     /*
      * Why it is holding still, by source. Separate reasons rather than one flag,
      * so the mouse leaving does not restart a rail that still has keyboard
@@ -45,8 +60,26 @@ export function HeroRail({ count, children }: { count: number; children: ReactNo
     };
 
     /*
+     * Resting on the copy means one lap is done: go to the real first banner,
+     * instantly, so the swap cannot be seen. Never while a finger is down: the
+     * rail is still in the shopper's hand.
+     */
+    const wrapIfOnCopy = () => {
+      if (holds.has('touch')) return;
+      if (currentIndex(slides()) >= count) rail.scrollTo({ left: 0, behavior: 'instant' });
+    };
+    const onScroll = () => {
+      window.clearTimeout(settle);
+      settle = window.setTimeout(wrapIfOnCopy, SETTLE_MS);
+    };
+    rail.addEventListener('scroll', onScroll, { passive: true });
+
+    // A still hero still loops when swiped; it just never moves by itself.
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /*
      * Banners after the first are lazy-loaded, so without this the next one can
-     * slide in as an empty box on a slow connection. Asking for it a full three
+     * slide in as an empty box on a slow connection. Asking for it a full five
      * seconds early gives it time to arrive.
      */
     const warmUp = (slide: HTMLElement | undefined) => {
@@ -62,19 +95,20 @@ export function HeroRail({ count, children }: { count: number; children: ReactNo
 
     const advance = () => {
       const all = slides();
-      const next = (currentIndex(all) + 1) % all.length;
+      // Never past the copy: from it, the next banner is the real second one.
+      const current = currentIndex(all) % count;
+      const next = current + 1;
       // Into the rail's own scroll position, never `scrollIntoView` — that
       // would also drag the page back up to the hero if the shopper had
       // scrolled past it.
       rail.scrollTo({ left: all[next]!.offsetLeft - all[0]!.offsetLeft, behavior: 'smooth' });
-      schedule(next);
+      schedule(next % count);
     };
 
-    const schedule = (from = currentIndex(slides())) => {
+    const schedule = (from = currentIndex(slides()) % count) => {
       stop();
-      if (holds.size > 0 || document.hidden) return;
-      const all = slides();
-      warmUp(all[(from + 1) % all.length]);
+      if (reduced || holds.size > 0 || document.hidden) return;
+      warmUp(slides()[from + 1]);
       timer = window.setTimeout(advance, ADVANCE_MS);
     };
 
@@ -84,6 +118,8 @@ export function HeroRail({ count, children }: { count: number; children: ReactNo
     };
     const release = (reason: 'touch' | 'hover' | 'focus') => {
       holds.delete(reason);
+      // A swipe that ended on the copy, and has already stopped moving.
+      if (reason === 'touch') onScroll();
       schedule();
     };
 
@@ -123,6 +159,8 @@ export function HeroRail({ count, children }: { count: number; children: ReactNo
 
     return () => {
       stop();
+      window.clearTimeout(settle);
+      rail.removeEventListener('scroll', onScroll);
       rail.removeEventListener('touchstart', onTouchStart);
       rail.removeEventListener('touchend', onTouchEnd);
       rail.removeEventListener('touchcancel', onTouchEnd);
@@ -132,11 +170,17 @@ export function HeroRail({ count, children }: { count: number; children: ReactNo
       rail.removeEventListener('focusout', onFocusOut);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [count]);
+  }, [count, loops]);
 
   return (
     <div ref={railRef} className="rail flex gap-3 rounded-card">
       {children}
+      {loops &&
+        cloneElement(first as ReactElement<Record<string, unknown>>, {
+          key: 'loop-copy',
+          'aria-hidden': true,
+          inert: true,
+        })}
     </div>
   );
 }
