@@ -55,7 +55,7 @@ const HIDE_ON = ['/cart', '/checkout'];
  * unselected multi-variant product is a cosmetic oddity; the alternative is a
  * capsule sitting on top of the ADD button on every ordinary product.
  */
-const ABOVE_BUY_BAR = ['/products'];
+export const ABOVE_BUY_BAR = ['/products', '/quote'];
 
 /** Where the order countdowns show. Exact paths: the home screen, not everything under it. */
 const ORDERS_ON = ['/'];

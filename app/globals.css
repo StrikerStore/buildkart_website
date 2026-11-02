@@ -540,6 +540,38 @@
 }
 
 /*
+ * The floating help button's height on a phone, under the point where the
+ * capsule disappears. It stacks above the capsule and the buy bar rather than
+ * beside them, because a three-faced capsule leaves no room at 360px.
+ *
+ * Read from the capsule itself with :has, so whether the cart is empty does not
+ * have to be passed from the layout through to here. The numbers follow the
+ * capsule: 12px from the edge, 56px tall, then an 8px gap.
+ */
+@media (max-width: 47.999rem) {
+  .assist-fab {
+    bottom: 0.75rem;
+  }
+
+  .assist-fab[data-above-buy-bar='true'] {
+    bottom: calc(var(--buy-bar-h) + 0.75rem);
+  }
+
+  body:has(.cart-capsule[data-hidden='false']) .assist-fab {
+    bottom: 4.75rem;
+  }
+
+  body:has(.cart-capsule[data-hidden='false']) .assist-fab[data-above-buy-bar='true'] {
+    bottom: calc(var(--buy-bar-h) + 4.75rem);
+  }
+
+  /* The banner sits over this spot until it is answered, and would half cover it. */
+  body:has([data-consent-banner]) .assist-fab {
+    display: none;
+  }
+}
+
+/*
  * Respect the system setting. A price ticking up under a reduce-motion user is
  * still an animation.
  */

@@ -59,6 +59,7 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
 
   return (
     <div
+      data-consent-banner
       role="dialog"
       aria-live="polite"
       aria-labelledby="consent-title"

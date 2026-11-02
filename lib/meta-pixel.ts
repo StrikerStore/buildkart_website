@@ -52,7 +52,8 @@ export type PixelEvent =
   | 'AddPaymentInfo'
   | 'Purchase'
   | 'CompleteRegistration'
-  | 'Contact';
+  | 'Contact'
+  | 'Lead';
 
 export type PixelParams = Record<string, unknown>;
 

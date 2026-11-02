@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -14,12 +14,20 @@ import { cn } from '@/lib/cn';
  * `size="half"` rises to about half the screen on a phone, for a short list
  * the customer picks from and leaves. `size="full"` takes nearly all of it, for
  * a map or a form that needs the room.
+ *
+ * `placement="corner"` is for something opened from the floating button: on a
+ * desktop the panel sits above that button, instead of the middle of the screen,
+ * with no dimming. A phone gets the same bottom sheet either way.
+ *
+ * Focus stays inside while it is open and goes back where it came from after,
+ * which is what `aria-modal` promises a keyboard or screen reader user.
  */
 export function Sheet({
   title,
   onClose,
   onBack,
   size = 'half',
+  placement = 'center',
   closeLabel = 'Close',
   backLabel = 'Back',
   children,
@@ -31,6 +39,8 @@ export function Sheet({
   /** Shows a back chevron in place of the title's left edge, for staged sheets. */
   onBack?: () => void;
   size?: 'half' | 'full';
+  /** Where it sits from 640px up. A phone always gets the bottom sheet. */
+  placement?: 'center' | 'corner';
   closeLabel?: string;
   backLabel?: string;
   children: React.ReactNode;
@@ -42,6 +52,56 @@ export function Sheet({
    */
   dismissible?: boolean;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * Into the sheet on opening, back out on closing. A layout effect, so it runs
+   * before any child's own effect: the opener is still the focused element, and
+   * a child that then focuses its own field, such as the COD code's first box,
+   * simply takes over from the sheet.
+   */
+  useLayoutEffect(() => {
+    const opener = document.activeElement;
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.contains(document.activeElement)) dialog.focus();
+    return () => {
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, []);
+
+  /** Tab goes round the sheet rather than out into the page behind it. */
+  function keepFocusInside(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Tab') return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const stops = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => element.tabIndex !== -1 && !element.closest('[aria-hidden="true"]'));
+
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    if (!first || !last) {
+      event.preventDefault();
+      return;
+    }
+
+    const active = document.activeElement;
+    // After a stage change the focused button can be gone, leaving focus nowhere.
+    if (!dialog.contains(active) || active === dialog) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === 'Escape' && dismissible) onClose();
@@ -58,20 +118,30 @@ export function Sheet({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-ink/50"
+        className={cn('fixed inset-0 z-50 bg-ink/50', placement === 'corner' && 'sm:bg-transparent')}
         onClick={dismissible ? onClose : undefined}
         aria-hidden
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
+        onKeyDown={keepFocusInside}
         className={cn(
-          'fixed z-50 flex flex-col overflow-hidden bg-surface-muted shadow-sheet',
+          'fixed z-50 flex flex-col overflow-hidden bg-surface-muted shadow-sheet outline-none',
           'inset-x-0 bottom-0 rounded-t-card',
           size === 'half' ? 'max-h-[62dvh]' : 'h-[94dvh]',
-          'sm:inset-0 sm:m-auto sm:w-[540px] sm:rounded-card',
-          size === 'half' ? 'sm:h-fit sm:max-h-[80vh]' : 'sm:h-[86vh]',
+          placement === 'center'
+            ? [
+                'sm:inset-0 sm:m-auto sm:w-[540px] sm:rounded-card',
+                size === 'half' ? 'sm:h-fit sm:max-h-[80vh]' : 'sm:h-[86vh]',
+              ]
+            : [
+                'sm:inset-x-auto sm:right-6 sm:bottom-24 sm:w-[380px] sm:rounded-card',
+                size === 'half' ? 'sm:h-fit sm:max-h-[70vh]' : 'sm:h-[min(560px,80vh)]',
+              ],
         )}
       >
         {/* The grab handle says "this slides" on a phone; a desktop dialog needs none. */}

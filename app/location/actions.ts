@@ -37,7 +37,6 @@ export type PincodeCheck = {
   serviced: boolean;
   areaName: string | null;
   city: string | null;
-  deliveryCharge: string;
   freeAbove: string | null;
   promiseHours: number | null;
 };

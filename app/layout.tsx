@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { cookies } from 'next/headers';
+import { whatsappHref } from '@StrikerStore/contract';
 import { announcementBar, api, storeSettings } from '@/lib/api/server';
 import { CONSENT_COOKIE, parseConsent } from '@/lib/consent';
 import { cartCount, currentCart } from '@/lib/cart';
@@ -13,6 +14,7 @@ import { BrandTagline } from '@/components/layout/brand-tagline';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
+import { AssistButton } from '@/components/assist/assist-button';
 import { CartBar } from '@/components/cart/cart-bar';
 import { LocationProvider } from '@/components/location/location-provider';
 import { MetaPixel } from '@/components/analytics/meta-pixel';
@@ -210,6 +212,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
            * gap mid-page while leaving the footer — the real end — uncovered.
            */}
           <CartBar count={cartCount(cart)} locale={locale} signedIn={customer !== null} />
+
+          <AssistButton
+            locale={locale}
+            supportPhone={settings.store.supportPhone || null}
+            whatsapp={whatsappHref(settings.store.whatsappNumber)}
+            customer={customer ? { name: customer.name, phone: customer.phone } : null}
+          />
         </LocationProvider>
 
         {/*

@@ -13,6 +13,7 @@ import { currentLocation, currentPoint } from '@/lib/location';
 import {
   CART_COOKIE,
   CART_MAX_AGE,
+  MAX_QTY_PER_LINE,
   parseCart,
   parsePromo,
   PROMO_COOKIE,
@@ -20,6 +21,50 @@ import {
   serialiseCart,
   withQuantity,
 } from '@/lib/cart-shared';
+
+/**
+ * A material list into the cart, on top of what is already there.
+ *
+ * Adds rather than sets, unlike `setCartQuantity`: a customer with five bags in
+ * the cart who works out they need forty more wants forty-five.
+ *
+ * Returns what did not fit. `withQuantity` clamps a line at the limit and ignores
+ * a new line past the last one, which is right for a stepper and wrong here: a
+ * customer told "added" must not find a line quietly short, so a line that would
+ * not fit whole is left out and named.
+ */
+export async function addQuoteToCart(
+  input: Array<{ variantId: string; qty: number }>,
+): Promise<{ count: number; skipped: string[] }> {
+  const store = await cookies();
+  let lines = parseCart(store.get(CART_COOKIE)?.value);
+  const skipped: string[] = [];
+
+  for (const { variantId, qty } of input.slice(0, 50)) {
+    if (typeof variantId !== 'string' || !Number.isInteger(qty) || qty < 1) continue;
+
+    const had = lines.find((line) => line.variantId === variantId)?.qty ?? 0;
+    const wanted = had + qty;
+    const next = wanted > MAX_QTY_PER_LINE ? lines : withQuantity(lines, variantId, wanted);
+
+    if (next.find((line) => line.variantId === variantId)?.qty !== wanted) {
+      skipped.push(variantId);
+      continue;
+    }
+    lines = next;
+  }
+
+  store.set(CART_COOKIE, serialiseCart(lines), {
+    maxAge: CART_MAX_AGE,
+    path: '/',
+    sameSite: 'lax',
+    // Readable by script, like `setCartQuantity`'s: no credential, no prices.
+    httpOnly: false,
+  });
+  revalidatePath('/', 'layout');
+
+  return { count: lines.reduce((sum, line) => sum + line.qty, 0), skipped };
+}
 
 /**
  * Setting a line's quantity — the one write the cart has.
