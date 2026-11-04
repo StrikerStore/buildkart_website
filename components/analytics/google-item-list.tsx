@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
 import type { StorefrontCardDto } from '@StrikerStore/contract';
 import { googleAnalyticsEvent } from '@/lib/google-tag';
 import { CURRENCY } from '@/lib/meta-pixel';
 import { gaItem } from '@/lib/google-ecommerce';
 import { productHandleFromHref } from '@/lib/search-hit';
+import { useReportOnYes } from './google-event';
 
 /**
  * GA4's `view_item_list` for a page of a listing, and `select_item` for the
@@ -39,17 +39,18 @@ export function GoogleItemList({
   }));
   const shown = items.map((item) => item.item_id).join(',');
 
-  useEffect(() => {
-    if (items.length === 0) return;
-    googleAnalyticsEvent('view_item_list', {
-      item_list_id: list.id,
-      item_list_name: list.name,
-      items,
-    });
-    // Once per page of results: a re-render with the same cards is not a
-    // second view of them.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.id, shown]);
+  // Once per page of results: a re-render with the same cards is not a
+  // second view of them.
+  useReportOnYes(
+    () =>
+      items.length === 0 ||
+      googleAnalyticsEvent('view_item_list', {
+        item_list_id: list.id,
+        item_list_name: list.name,
+        items,
+      }),
+    [list.id, shown],
+  );
 
   return (
     <div

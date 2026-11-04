@@ -147,20 +147,27 @@ function send(destination: Destination, name: string, params: Record<string, unk
 /**
  * Nothing without a yes that covers this destination: not even queued, so a
  * yes given later cannot release what was seen before it.
+ *
+ * Returns whether it was taken (sent, or queued for the tag); false means no
+ * yes, which a page reporting what is on screen can retry once one is given
+ * (`useReportOnYes`).
  */
-function report(destination: Destination, name: string, params: Record<string, unknown>) {
-  if (typeof window === 'undefined' || !allowedNow(destination)) return;
-  if (!ids || !window.gtag) {
+function report(destination: Destination, name: string, params: Record<string, unknown>): boolean {
+  if (typeof window === 'undefined' || !allowedNow(destination)) return false;
+  // Also while the yes is a moment old and the tag has not configured this
+  // destination yet: `configure` sends it straight after.
+  if (!ids || !window.gtag || !configured.has(destination)) {
     // Bounded: with the tag off, nothing ever drains this.
     if (pending.length < 50) pending.push([destination, name, params]);
-    return;
+    return true;
   }
   send(destination, name, params);
+  return true;
 }
 
 /** A GA4 event. The shop's ecommerce ones are built in `google-ecommerce.ts`. */
-export function googleAnalyticsEvent(name: string, params: Record<string, unknown> = {}) {
-  report('analytics', name, params);
+export function googleAnalyticsEvent(name: string, params: Record<string, unknown> = {}): boolean {
+  return report('analytics', name, params);
 }
 
 /**
@@ -170,8 +177,8 @@ export function googleAnalyticsEvent(name: string, params: Record<string, unknow
 export function googleConversion(
   sendTo: string,
   params: { value: number; currency: string; transaction_id: string },
-) {
-  report('ads', 'conversion', { ...params, send_to: sendTo });
+): boolean {
+  return report('ads', 'conversion', { ...params, send_to: sendTo });
 }
 
 /**
