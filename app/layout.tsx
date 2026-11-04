@@ -17,7 +17,9 @@ import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { AssistButton } from '@/components/assist/assist-button';
 import { CartBar } from '@/components/cart/cart-bar';
 import { LocationProvider } from '@/components/location/location-provider';
+import { GoogleTag } from '@/components/analytics/google-tag';
 import { MetaPixel } from '@/components/analytics/meta-pixel';
+import { googleAllowed } from '@/lib/google-tag';
 import { AttributionCapture } from '@/components/analytics/attribution-capture';
 import { PageViews } from '@/components/analytics/page-views';
 import { ConsentBanner } from '@/components/analytics/consent-banner';
@@ -168,7 +170,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const pixelId = process.env.META_PIXEL_ID?.trim() || settings.marketing?.metaPixelId || null;
   // For the pixel's first paint only; the banner and the pixel re-read the
   // cookie in the browser, and nothing loads from Meta without a yes.
-  const marketingGranted = parseConsent(cookieStore.get(CONSENT_COOKIE)?.value)?.marketing === true;
+  const consent = parseConsent(cookieStore.get(CONSENT_COOKIE)?.value);
+  const marketingGranted = consent?.marketing === true;
+  /*
+   * The Google tag (Google Ads), e.g. "AW-18554607980". Read per request like
+   * the pixel, and unset in local and preview builds, so they send nothing.
+   */
+  const googleTagId = process.env.GOOGLE_TAG_ID?.trim() || null;
 
   return (
     <html lang={htmlLang(locale)} className={notoDevanagari.variable}>
@@ -235,6 +243,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             externalId={customer ? createHash('sha256').update(customer.id).digest('hex') : null}
             initialGranted={marketingGranted}
           />
+        )}
+
+        {googleTagId && (
+          <GoogleTag tagId={googleTagId} initialGranted={googleAllowed(consent)} />
         )}
 
         {/* Always: the shop's own analytics need a yes as much as Meta does. */}

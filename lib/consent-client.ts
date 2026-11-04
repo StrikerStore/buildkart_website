@@ -14,8 +14,11 @@ import { SESSION_COOKIE_NAME, VISITOR_COOKIE } from './visit';
 
 /** What the shop's own analytics leave on a device. */
 const ANALYTICS_COOKIES = [VISITOR_COOKIE, SESSION_COOKIE_NAME, ATTRIBUTION_COOKIE];
-/** Meta's browser and click ids — `_fbc` the shop may have minted itself. */
-const MARKETING_COOKIES = ['_fbp', '_fbc'];
+/**
+ * Meta's browser and click ids (`_fbc` the shop may have minted itself), and
+ * Google Ads' conversion and click cookies.
+ */
+const MARKETING_COOKIES = ['_fbp', '_fbc', '_gcl_au', '_gcl_aw', '_gcl_dc', '_gcl_gb'];
 
 function newId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto

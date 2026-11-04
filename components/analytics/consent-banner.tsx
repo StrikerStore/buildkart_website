@@ -6,14 +6,16 @@ import { PRIVACY_NOTICE_PATH } from '@StrikerStore/contract';
 import { rememberConsent } from '@/app/consent-actions';
 import { saveChoices } from '@/lib/consent-client';
 import { CONSENT_OPEN, currentChoices } from '@/lib/consent-state';
+import { needsGoogleReconsent } from '@/lib/google-tag';
 import type { Locale } from '@/lib/i18n';
 
 /**
  * The cookie banner, always.
  *
  * Asks once for two separate permissions — the shop's own visit analytics, and
- * Meta ad measurement — and nothing optional runs until it is answered (no
- * answer is a no). The DPDP Act's conditions, as this screen meets them:
+ * ad measurement with Meta and Google — and nothing optional runs until it is
+ * answered (no answer is a no). The DPDP Act's conditions, as this screen meets
+ * them:
  *
  *   - **informed and itemised**: what each one is for, in plain words, with
  *     the Privacy Notice one tap away;
@@ -35,7 +37,13 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
   const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
-    if (!currentChoices()) setOpen(true);
+    /*
+     * Also when a marketing yes predates Google being named here: that yes was
+     * for Meta, and the notice promises to ask again before relying on it for
+     * something new. Meta keeps running until they answer.
+     */
+    const current = currentChoices();
+    if (!current || needsGoogleReconsent(current)) setOpen(true);
 
     const reopen = () => {
       const current = currentChoices();
@@ -70,8 +78,8 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
       </h2>
       <p className="mt-1 text-body3 text-ink-muted">
         {hi
-          ? 'आपका कार्ट, भाषा और लॉगिन याद रखने के लिए ज़रूरी कुकीज़ हमेशा चलती हैं। आपकी अनुमति हो तो हम यह भी देखेंगे कि लोग साइट कैसे इस्तेमाल करते हैं, और Meta (Facebook, Instagram) से यह मापेंगे कि हमारे विज्ञापन काम करते हैं या नहीं।'
-          : 'Cookies that keep your cart, language and sign-in always run. With your permission we also measure how the site is used, and use Meta (Facebook, Instagram) to see whether our ads work.'}{' '}
+          ? 'आपका कार्ट, भाषा और लॉगिन याद रखने के लिए ज़रूरी कुकीज़ हमेशा चलती हैं। आपकी अनुमति हो तो हम यह भी देखेंगे कि लोग साइट कैसे इस्तेमाल करते हैं, और Meta (Facebook, Instagram) व Google से यह मापेंगे कि हमारे विज्ञापन काम करते हैं या नहीं।'
+          : 'Cookies that keep your cart, language and sign-in always run. With your permission we also measure how the site is used, and use Meta (Facebook, Instagram) and Google to see whether our ads work.'}{' '}
         <Link href={PRIVACY_NOTICE_PATH} className="underline">
           {hi ? 'गोपनीयता सूचना' : 'Privacy Notice'}
         </Link>
@@ -104,11 +112,11 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
               className="mt-0.5 size-4 shrink-0 accent-current"
             />
             <span>
-              <span className="block text-heading6">{hi ? 'विज्ञापन माप (Meta)' : 'Ad measurement (Meta)'}</span>
+              <span className="block text-heading6">{hi ? 'विज्ञापन माप (Meta, Google)' : 'Ad measurement (Meta, Google)'}</span>
               <span className="block text-ink-muted">
                 {hi
-                  ? 'Meta को बताया जाता है कि हमारे विज्ञापन से कोई आया या खरीदा, ताकि विज्ञापन सही लोगों तक पहुँचें।'
-                  : 'Tells Meta when someone came or bought from one of our ads, so the ads reach the right people.'}
+                  ? 'Meta और Google को बताया जाता है कि हमारे विज्ञापन से कोई आया या खरीदा, ताकि विज्ञापन सही लोगों तक पहुँचें।'
+                  : 'Tells Meta and Google when someone came or bought from one of our ads, so the ads reach the right people.'}
               </span>
             </span>
           </label>

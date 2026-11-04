@@ -78,12 +78,12 @@ const nextConfig = {
   async headers() {
     const reportOnly = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://checkout.razorpay.com https://maps.googleapis.com https://maps.gstatic.com",
+      "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://checkout.razorpay.com https://maps.googleapis.com https://maps.gstatic.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.facebook.com https://connect.facebook.net https://*.razorpay.com https://maps.googleapis.com https://*.r2.cloudflarestorage.com",
-      "frame-src 'self' https://*.razorpay.com",
+      "connect-src 'self' https://*.facebook.com https://connect.facebook.net https://*.razorpay.com https://maps.googleapis.com https://*.r2.cloudflarestorage.com https://www.googletagmanager.com https://www.google.com https://www.googleadservices.com https://*.doubleclick.net https://*.google-analytics.com",
+      "frame-src 'self' https://*.razorpay.com https://td.doubleclick.net https://www.googletagmanager.com",
       "form-action 'self' https://secure.payu.in https://test.payu.in",
       "worker-src 'self' blob:",
       "object-src 'none'",

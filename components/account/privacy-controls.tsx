@@ -87,8 +87,8 @@ export function PrivacyControls({ initial, locale }: { initial: MyPrivacyDto; lo
             </span>
             <span className="block text-body4 text-ink-muted">
               {hi
-                ? 'साइट का इस्तेमाल और Meta विज्ञापन माप की अनुमति बदलें।'
-                : 'Change whether we measure site use and Meta ads.'}
+                ? 'साइट का इस्तेमाल और Meta व Google विज्ञापन माप की अनुमति बदलें।'
+                : 'Change whether we measure site use and Meta and Google ads.'}
             </span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-ink-faint" aria-hidden />
