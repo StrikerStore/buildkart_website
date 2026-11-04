@@ -15,6 +15,7 @@ import {
   type StorefrontVariantDto,
 } from '@StrikerStore/contract';
 import { setCartQuantity } from '@/app/cart/actions';
+import { gaCartChange } from '@/lib/google-ecommerce';
 import { trackAddToCart } from '@/lib/meta-pixel';
 import { loadQuickOptions, type QuickOptionsData } from '@/app/products/[handle]/actions';
 import { buttonClass } from '@/components/ui/button';
@@ -232,12 +233,13 @@ function Body({
   function submit(kind: 'cart' | 'buy') {
     if (!selected || qty < 1) return;
     setBusy(kind);
-    // Only the increase: "Update cart" on a line already holding 10 that now
-    // says 12 is two more added, and one that now says 8 is none.
-    trackAddToCart(
-      { handle: data.handle, name: data.nameEn, price: selected.price },
-      qty - (data.quantities[selected.id] ?? 0),
-    );
+    // Only the increase for Meta: "Update cart" on a line already holding 10
+    // that now says 12 is two more added, and one that now says 8 is none.
+    // GA4 also hears the 8, as two removed.
+    const product = { handle: data.handle, name: data.nameEn, price: selected.price };
+    const delta = qty - (data.quantities[selected.id] ?? 0);
+    trackAddToCart(product, delta);
+    gaCartChange(product, delta);
     startTransition(async () => {
       await setCartQuantity(selected.id, qty);
       if (kind === 'buy') {

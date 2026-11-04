@@ -193,6 +193,12 @@ export function MiniCart({ count, locale }: { count: number; locale: Locale }) {
                         quantity={line.quantity}
                         locale={locale}
                         onChanged={onQuantityChanged}
+                        product={{
+                          handle: line.handle,
+                          name: line.nameEn,
+                          price: line.unitPrice,
+                          variant: line.variantLabel,
+                        }}
                       />
                     </div>
                   </li>

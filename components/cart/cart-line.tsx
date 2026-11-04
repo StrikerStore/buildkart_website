@@ -23,12 +23,14 @@ export async function CartLine({ line, locale }: { line: CartLineDto; locale: Lo
   const src = await imageUrl(line.imageKey, IMAGE.thumb);
   const name = (locale === 'hi' && line.nameHi) || line.nameEn;
   const unit = (locale === 'hi' && line.unitLabelHi) || line.unitLabelEn;
+  // In English, like every id GA4 receives.
+  const product = { handle: line.handle, name: line.nameEn, price: line.unitPrice, variant: line.variantLabel };
 
   return (
     <li className="relative flex gap-3 py-3">
       {/* Top-right, out of the flow, so it never crowds the name on a
           360px screen. */}
-      <RemoveLine variantId={line.variantId} locale={locale}>
+      <RemoveLine variantId={line.variantId} locale={locale} product={product} quantity={line.quantity}>
         <X className="size-4" aria-hidden />
       </RemoveLine>
 
@@ -130,7 +132,13 @@ export async function CartLine({ line, locale }: { line: CartLineDto; locale: Lo
           * and stays level with it everywhere wider.
           */}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <CartQuantity variantId={line.variantId} quantity={line.quantity} locale={locale} jumps />
+          <CartQuantity
+            variantId={line.variantId}
+            quantity={line.quantity}
+            locale={locale}
+            jumps
+            product={product}
+          />
           <span className="ml-auto flex flex-col items-end gap-1">
             <span className="text-heading6 text-ink">{formatINR(line.lineTotal)}</span>
             {/* This line's share of the order's cashback — the pills add up to

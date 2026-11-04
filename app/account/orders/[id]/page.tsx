@@ -13,6 +13,7 @@ import { OrderDeliveries } from '@/components/orders/order-deliveries';
 import { LiveOrderRefresh } from '@/components/orders/live-order-refresh';
 import { ReorderButton } from '@/components/orders/reorder-button';
 import { ContactLink } from '@/components/analytics/contact-link';
+import { GooglePurchase } from '@/components/analytics/google-event';
 import { TrackEvent } from '@/components/analytics/track-event';
 import { CURRENCY, toValue } from '@/lib/meta-pixel';
 
@@ -55,6 +56,11 @@ export default async function OrderPage({ params, searchParams }: Props) {
 
   const hi = locale === 'hi';
   const justPlaced = search.placed === '1';
+  /*
+   * Google Ads' Purchase conversion, as Google gives it: "AW-…/label". Read per
+   * request like GOOGLE_TAG_ID; unset, no conversion is reported.
+   */
+  const googlePurchase = process.env.GOOGLE_PURCHASE_CONVERSION?.trim() || null;
 
   return (
     <div className="page-w page-x py-6">
@@ -105,6 +111,20 @@ export default async function OrderPage({ params, searchParams }: Props) {
               currency: CURRENCY,
               order_id: order.orderNumber,
             }}
+          />
+        )}
+
+        {/*
+          * The same sale for Google Ads and GA4, from the same place for the
+          * same reason. What it is worth, and whether it counts at all, come
+          * from the API (`measurement`), not from this URL; an API too old to
+          * send them reports nothing to Google.
+          */}
+        {justPlaced && order.measurement && (
+          <GooglePurchase
+            measurement={order.measurement}
+            adsSendTo={googlePurchase}
+            onceKey={`gt:purchase:${order.id}`}
           />
         )}
 

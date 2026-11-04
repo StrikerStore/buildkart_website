@@ -14,6 +14,14 @@ import { SESSION_COOKIE_NAME, VISITOR_COOKIE } from './visit';
 
 /** What the shop's own analytics leave on a device. */
 const ANALYTICS_COOKIES = [VISITOR_COOKIE, SESSION_COOKIE_NAME, ATTRIBUTION_COOKIE];
+
+/** Google Analytics' own: `_ga`, and a `_ga_<id>` for each measurement id. */
+function googleAnalyticsCookies(): string[] {
+  return document.cookie
+    .split(';')
+    .map((part) => part.split('=')[0]!.trim())
+    .filter((name) => name === '_ga' || name.startsWith('_ga_'));
+}
 /**
  * Meta's browser and click ids (`_fbc` the shop may have minted itself), and
  * Google Ads' conversion and click cookies.
@@ -42,7 +50,7 @@ export function saveChoices(answer: { analytics: boolean; marketing: boolean }):
 
   try {
     writeCookie(CONSENT_COOKIE, serializeConsentCookie(choices), CONSENT_MAX_AGE);
-    if (!choices.analytics) ANALYTICS_COOKIES.forEach(deleteCookie);
+    if (!choices.analytics) [...ANALYTICS_COOKIES, ...googleAnalyticsCookies()].forEach(deleteCookie);
     if (!choices.marketing) MARKETING_COOKIES.forEach(deleteCookie);
   } catch {
     // Blocked cookies: the answer still governs this page through the event.

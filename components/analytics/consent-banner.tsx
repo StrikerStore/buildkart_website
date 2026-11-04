@@ -6,16 +6,16 @@ import { PRIVACY_NOTICE_PATH } from '@StrikerStore/contract';
 import { rememberConsent } from '@/app/consent-actions';
 import { saveChoices } from '@/lib/consent-client';
 import { CONSENT_OPEN, currentChoices } from '@/lib/consent-state';
-import { needsGoogleReconsent } from '@/lib/google-tag';
+import { needsGoogleReconsent, type GoogleAllowed } from '@/lib/google-tag';
 import type { Locale } from '@/lib/i18n';
 
 /**
  * The cookie banner, always.
  *
- * Asks once for two separate permissions — the shop's own visit analytics, and
- * ad measurement with Meta and Google — and nothing optional runs until it is
- * answered (no answer is a no). The DPDP Act's conditions, as this screen meets
- * them:
+ * Asks once for two separate permissions — visit analytics (the shop's own,
+ * and Google Analytics), and ad measurement with Meta and Google Ads — and
+ * nothing optional runs until it is answered (no answer is a no). The DPDP
+ * Act's conditions, as this screen meets them:
  *
  *   - **informed and itemised**: what each one is for, in plain words, with
  *     the Privacy Notice one tap away;
@@ -29,7 +29,14 @@ import type { Locale } from '@/lib/i18n';
  * never shows the banner to someone who already answered, or hides it from
  * someone who has not.
  */
-export function ConsentBanner({ locale }: { locale: Locale }) {
+export function ConsentBanner({
+  locale,
+  google,
+}: {
+  locale: Locale;
+  /** Which Google products this site runs, so only those re-ask an older yes. */
+  google: GoogleAllowed;
+}) {
   const hi = locale === 'hi';
   const [open, setOpen] = useState(false);
   const [choosing, setChoosing] = useState(false);
@@ -38,12 +45,14 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     /*
-     * Also when a marketing yes predates Google being named here: that yes was
-     * for Meta, and the notice promises to ask again before relying on it for
-     * something new. Meta keeps running until they answer.
+     * Also when a yes predates the Google product it would now cover being
+     * named here: a marketing yes given for Meta alone, an analytics yes for
+     * the shop's own counting alone. The notice promises to ask again before
+     * relying on it for something new; what it did cover keeps running until
+     * they answer.
      */
     const current = currentChoices();
-    if (!current || needsGoogleReconsent(current)) setOpen(true);
+    if (!current || needsGoogleReconsent(current, google)) setOpen(true);
 
     const reopen = () => {
       const current = currentChoices();
@@ -54,6 +63,7 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
     };
     window.addEventListener(CONSENT_OPEN, reopen);
     return () => window.removeEventListener(CONSENT_OPEN, reopen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!open) return null;
@@ -78,8 +88,8 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
       </h2>
       <p className="mt-1 text-body3 text-ink-muted">
         {hi
-          ? 'आपका कार्ट, भाषा और लॉगिन याद रखने के लिए ज़रूरी कुकीज़ हमेशा चलती हैं। आपकी अनुमति हो तो हम यह भी देखेंगे कि लोग साइट कैसे इस्तेमाल करते हैं, और Meta (Facebook, Instagram) व Google से यह मापेंगे कि हमारे विज्ञापन काम करते हैं या नहीं।'
-          : 'Cookies that keep your cart, language and sign-in always run. With your permission we also measure how the site is used, and use Meta (Facebook, Instagram) and Google to see whether our ads work.'}{' '}
+          ? 'आपका कार्ट, भाषा और लॉगिन याद रखने के लिए ज़रूरी कुकीज़ हमेशा चलती हैं। आपकी अनुमति हो तो हम अपनी गिनती और Google Analytics से यह भी देखेंगे कि लोग साइट कैसे इस्तेमाल करते हैं, और Meta (Facebook, Instagram) व Google Ads से यह मापेंगे कि हमारे विज्ञापन काम करते हैं या नहीं।'
+          : 'Cookies that keep your cart, language and sign-in always run. With your permission we also measure how the site is used, ourselves and with Google Analytics, and use Meta (Facebook, Instagram) and Google Ads to see whether our ads work.'}{' '}
         <Link href={PRIVACY_NOTICE_PATH} className="underline">
           {hi ? 'गोपनीयता सूचना' : 'Privacy Notice'}
         </Link>
@@ -96,11 +106,11 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
               className="mt-0.5 size-4 shrink-0 accent-current"
             />
             <span>
-              <span className="block text-heading6">{hi ? 'साइट का इस्तेमाल' : 'Site analytics'}</span>
+              <span className="block text-heading6">{hi ? 'साइट का इस्तेमाल (हमारी गिनती, Google Analytics)' : 'Site analytics (ours, Google Analytics)'}</span>
               <span className="block text-ink-muted">
                 {hi
-                  ? 'हमारी अपनी गिनती: कितने लोग आए, कहाँ से आए, और क्या खरीदा। किसी और को नहीं भेजी जाती।'
-                  : 'Our own count of visits, where they came from and what was bought. Not shared with anyone.'}
+                  ? 'कितने लोग आए, कहाँ से आए, कौन-से सामान देखे और क्या खरीदा: हमारी अपनी गिनती में, और Google Analytics में, जिसे Google हमारे लिए चलाता है।'
+                  : 'How many people visit, where they came from, which products they look at and what was bought: in our own count, and in Google Analytics, which Google runs for us.'}
               </span>
             </span>
           </label>
@@ -112,11 +122,11 @@ export function ConsentBanner({ locale }: { locale: Locale }) {
               className="mt-0.5 size-4 shrink-0 accent-current"
             />
             <span>
-              <span className="block text-heading6">{hi ? 'विज्ञापन माप (Meta, Google)' : 'Ad measurement (Meta, Google)'}</span>
+              <span className="block text-heading6">{hi ? 'विज्ञापन माप (Meta, Google Ads)' : 'Ad measurement (Meta, Google Ads)'}</span>
               <span className="block text-ink-muted">
                 {hi
-                  ? 'Meta और Google को बताया जाता है कि हमारे विज्ञापन से कोई आया या खरीदा, ताकि विज्ञापन सही लोगों तक पहुँचें।'
-                  : 'Tells Meta and Google when someone came or bought from one of our ads, so the ads reach the right people.'}
+                  ? 'Meta और Google Ads को बताया जाता है कि हमारे विज्ञापन से कोई आया या खरीदा, ताकि विज्ञापन सही लोगों तक पहुँचें।'
+                  : 'Tells Meta and Google Ads when someone came or bought from one of our ads, so the ads reach the right people.'}
               </span>
             </span>
           </label>

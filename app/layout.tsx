@@ -173,10 +173,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const consent = parseConsent(cookieStore.get(CONSENT_COOKIE)?.value);
   const marketingGranted = consent?.marketing === true;
   /*
-   * The Google tag (Google Ads), e.g. "AW-18554607980". Read per request like
-   * the pixel, and unset in local and preview builds, so they send nothing.
+   * The Google tag's two destinations: Google Ads ("AW-…") and GA4 ("G-…").
+   * Read per request like the pixel, and unset in local and preview builds,
+   * so they send nothing. Each is also the switch for its own destination.
    */
-  const googleTagId = process.env.GOOGLE_TAG_ID?.trim() || null;
+  const googleIds = {
+    ads: process.env.GOOGLE_TAG_ID?.trim() || null,
+    analytics: process.env.GA4_MEASUREMENT_ID?.trim() || null,
+  };
+  const googleRunning = { ads: googleIds.ads !== null, analytics: googleIds.analytics !== null };
 
   return (
     <html lang={htmlLang(locale)} className={notoDevanagari.variable}>
@@ -245,12 +250,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         )}
 
-        {googleTagId && (
-          <GoogleTag tagId={googleTagId} initialGranted={googleAllowed(consent)} />
+        {(googleRunning.ads || googleRunning.analytics) && (
+          <GoogleTag ids={googleIds} initialAllowed={googleAllowed(consent, googleIds)} />
         )}
 
         {/* Always: the shop's own analytics need a yes as much as Meta does. */}
-        <ConsentBanner locale={locale} />
+        <ConsentBanner locale={locale} google={googleRunning} />
 
         {/* Meta's CompleteRegistration, the first page after a new sign-up. */}
         <RegistrationEvent />

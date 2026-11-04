@@ -31,10 +31,19 @@ import {
 } from '@/app/cart/checkout-actions';
 import { openRazorpay, submitToPayu } from '@/app/cart/gateway';
 import { CURRENCY, eventId, toValue, track } from '@/lib/meta-pixel';
+import { gaCart } from '@/lib/google-ecommerce';
+import { googleAnalyticsEvent } from '@/lib/google-tag';
 import { AddressSheet, addressLine } from './address-sheet';
 import { CodOtpSheet } from './cod-otp-sheet';
 
 type PayMode = 'ONLINE' | 'COD' | 'ADVANCE';
+
+/** How GA4 reports each, in English. */
+const PAYMENT_TYPE: Record<PayMode, string> = {
+  ONLINE: 'Online',
+  COD: 'Cash on delivery',
+  ADVANCE: 'Part advance, rest on delivery',
+};
 
 /**
  * The cart's checkout: where it goes, how it is paid, and the one button.
@@ -139,6 +148,8 @@ export function CartCheckout({
    * sheet rather than committing to anything.
    */
   const checkoutTracked = useRef(false);
+  /** The way to pay GA4 last heard; a change of mind is a new choice. */
+  const paymentTracked = useRef<PayMode | null>(null);
 
   function trackCheckout() {
     const pixelCart = {
@@ -153,9 +164,19 @@ export function CartCheckout({
       value: toValue(toPay),
       currency: CURRENCY,
     };
+    const gaParams = gaCart(cart.lines);
     if (!checkoutTracked.current) {
       checkoutTracked.current = true;
       track('InitiateCheckout', pixelCart, eventId('checkout'));
+      // The delivery address is chosen on this same screen, so reaching Pay
+      // with one is both the start of checkout and the delivery details given.
+      googleAnalyticsEvent('begin_checkout', gaParams);
+      googleAnalyticsEvent('add_shipping_info', { ...gaParams, shipping_tier: 'Delivery' });
+    }
+    // Every way to pay, COD included: GA4 reads it as the method chosen.
+    if (paymentTracked.current !== effectiveMode) {
+      paymentTracked.current = effectiveMode;
+      googleAnalyticsEvent('add_payment_info', { ...gaParams, payment_type: PAYMENT_TYPE[effectiveMode] });
     }
     // Online only: COD has no payment details to add, and Meta's funnel reads
     // AddPaymentInfo as "reached the payment step".

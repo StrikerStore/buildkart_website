@@ -11,7 +11,9 @@ import { ProductCard } from '@/components/catalog/product-card';
 import { RateStamp } from '@/components/catalog/rate-stamp';
 import { Gallery } from '@/components/product/gallery';
 import { RecordView } from '@/components/product/record-view';
+import { GoogleEvent } from '@/components/analytics/google-event';
 import { TrackEvent } from '@/components/analytics/track-event';
+import { gaItem } from '@/lib/google-ecommerce';
 import { CURRENCY, toValue } from '@/lib/meta-pixel';
 import { RecentlyViewed } from '@/components/catalog/recently-viewed';
 import { recentlyViewed } from '@/lib/recently-viewed';
@@ -84,6 +86,10 @@ export default async function ProductPage({ params }: Props) {
     .filter((value): value is string => value !== null)
     .sort()
     .at(-1);
+
+  // The "from" price a shopper sees first, since no variant is chosen yet.
+  const fromPrice =
+    product.variants.length > 0 ? Math.min(...product.variants.map((variant) => toValue(variant.price))) : null;
 
   return (
     /*
@@ -257,12 +263,26 @@ export default async function ProductPage({ params }: Props) {
           content_name: product.nameEn,
           content_type: 'product',
           ...(product.category ? { content_category: product.category.nameEn } : {}),
-          ...(product.variants.length > 0
-            ? {
-                value: Math.min(...product.variants.map((variant) => toValue(variant.price))),
-                currency: CURRENCY,
-              }
-            : {}),
+          ...(fromPrice !== null ? { value: fromPrice, currency: CURRENCY } : {}),
+        }}
+      />
+
+      {/* GA4's view_item, from the same figures. */}
+      <GoogleEvent
+        name="view_item"
+        id={product.handle}
+        params={{
+          currency: CURRENCY,
+          ...(fromPrice !== null ? { value: fromPrice } : {}),
+          items: [
+            gaItem({
+              handle: product.handle,
+              name: product.nameEn,
+              price: String(fromPrice ?? 0),
+              category: product.category?.nameEn,
+              brand: product.brandName,
+            }),
+          ],
         }}
       />
 

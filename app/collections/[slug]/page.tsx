@@ -61,6 +61,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
       params={search}
       result={page}
       locale={locale}
+      list={{ id: `collection_${slug}`, name: page.collection.nameEn }}
       description={page.collection.description}
       emptyAction={{
         href: '/collections',

@@ -7,6 +7,8 @@ import { currentAddressId, currentLocation, mapDefaultFrom } from '@/lib/locatio
 import { currentCustomer } from '@/lib/session';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CartLine } from '@/components/cart/cart-line';
+import { GoogleEvent } from '@/components/analytics/google-event';
+import { gaCart } from '@/lib/google-ecommerce';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { CartCheckout } from '@/components/cart/cart-checkout';
 import { CouponList } from '@/components/cart/coupon-list';
@@ -160,6 +162,8 @@ export default async function CartPage({
         </div>
       ) : (
         <div className="mt-5 gap-8 lg:flex lg:items-start">
+          {/* GA4's view_cart, once per visit to this page. */}
+          <GoogleEvent name="view_cart" id="cart" params={gaCart(cart.lines)} />
           <div className="min-w-0 flex-1">
             <CashbackBanner cart={cart} locale={locale} className="mb-4" />
 

@@ -89,6 +89,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       params={search}
       result={page}
       locale={locale}
+      list={{ id: `category_${slug}`, name: page.category.nameEn }}
       description={description}
       emptyAction={{ href: '/', label: locale === 'hi' ? 'होम' : 'Back to home' }}
       heading={

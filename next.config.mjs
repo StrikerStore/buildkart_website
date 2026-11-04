@@ -82,7 +82,7 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.facebook.com https://connect.facebook.net https://*.razorpay.com https://maps.googleapis.com https://*.r2.cloudflarestorage.com https://www.googletagmanager.com https://www.google.com https://www.googleadservices.com https://*.doubleclick.net https://*.google-analytics.com",
+      "connect-src 'self' https://*.facebook.com https://connect.facebook.net https://*.razorpay.com https://maps.googleapis.com https://*.r2.cloudflarestorage.com https://www.googletagmanager.com https://www.google.com https://www.googleadservices.com https://*.doubleclick.net https://*.google-analytics.com https://*.analytics.google.com",
       "frame-src 'self' https://*.razorpay.com https://td.doubleclick.net https://www.googletagmanager.com",
       "form-action 'self' https://secure.payu.in https://test.payu.in",
       "worker-src 'self' blob:",

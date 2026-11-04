@@ -37,16 +37,17 @@ export function TrackEvent({
   const signature = JSON.stringify([name, params, eventId, onceKey]);
 
   useEffect(() => {
-    if (onceKey && seen(onceKey)) return;
+    if (onceKey && onceSeen(onceKey)) return;
     track(name, params, eventId ?? freshEventId(name.toLowerCase()));
-    if (onceKey) remember(onceKey);
+    if (onceKey) rememberOnce(onceKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
   return null;
 }
 
-function seen(key: string) {
+/** Whether `onceKey` already fired in this browser. Also `<GooglePurchase>`'s. */
+export function onceSeen(key: string) {
   try {
     return window.localStorage.getItem(key) !== null;
   } catch {
@@ -54,10 +55,11 @@ function seen(key: string) {
   }
 }
 
-function remember(key: string) {
+export function rememberOnce(key: string) {
   try {
     window.localStorage.setItem(key, String(Date.now()));
   } catch {
-    // Nothing to do: the eventId still deduplicates on Meta's side.
+    // Nothing to do: the eventId (or Google's transaction_id) still
+    // deduplicates on the receiving side.
   }
 }

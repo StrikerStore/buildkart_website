@@ -1,5 +1,6 @@
 import { SlidersHorizontal } from 'lucide-react';
-import type { StorefrontListResultDto } from '@StrikerStore/contract';
+import { STOREFRONT_PAGE_SIZE, type StorefrontListResultDto } from '@StrikerStore/contract';
+import { GoogleItemList } from '@/components/analytics/google-item-list';
 import { activeFilterCount, buildHref, type SearchParams } from '@/lib/list-query';
 import type { Locale } from '@/lib/i18n';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -29,6 +30,7 @@ export function Listing({
   heading,
   description,
   emptyAction,
+  list,
 }: {
   pathname: string;
   params: SearchParams;
@@ -38,6 +40,8 @@ export function Listing({
   description?: string | null;
   /** Where "nothing here" should send someone when no filters are on. */
   emptyAction?: { href: string; label: string };
+  /** The list GA4 reports its views and picks under, in English. */
+  list?: { id: string; name: string };
 }) {
   const active = activeFilterCount(params);
   const filtered = active > 0 || Boolean(params.q);
@@ -112,7 +116,17 @@ export function Listing({
 
           {result.products.length > 0 ? (
             <>
-              <ProductGrid products={result.products} locale={locale} />
+              {list ? (
+                <GoogleItemList
+                  list={list}
+                  products={result.products}
+                  firstIndex={(result.page - 1) * STOREFRONT_PAGE_SIZE}
+                >
+                  <ProductGrid products={result.products} locale={locale} />
+                </GoogleItemList>
+              ) : (
+                <ProductGrid products={result.products} locale={locale} />
+              )}
               <Pagination
                 pathname={pathname}
                 params={params}

@@ -3,6 +3,7 @@
 import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
 import { ChevronsLeft, ChevronsRight, Minus, Plus, Trash2 } from 'lucide-react';
 import { setCartQuantity } from '@/app/cart/actions';
+import { gaCartChange, type GaProduct } from '@/lib/google-ecommerce';
 import { MAX_QTY_PER_LINE } from '@/lib/cart-shared';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
@@ -36,6 +37,7 @@ export function CartQuantity({
   locale,
   onChanged,
   jumps = false,
+  product,
 }: {
   variantId: string;
   quantity: number;
@@ -43,6 +45,8 @@ export function CartQuantity({
   onChanged?: () => void;
   /** Adds `«` and `»`, stepping by `JUMP`. */
   jumps?: boolean;
+  /** What GA4 hears added or removed; without it, nothing is reported. */
+  product?: GaProduct;
 }) {
   const [pending, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(quantity);
@@ -60,6 +64,7 @@ export function CartQuantity({
     const clamped = Math.max(0, Math.min(Math.trunc(next), MAX_QTY_PER_LINE));
     setDraft(String(clamped));
     if (clamped === quantity) return;
+    if (product) gaCartChange(product, clamped - quantity);
 
     startTransition(async () => {
       setShown(clamped);
