@@ -21,6 +21,15 @@ export const LOCATION_COOKIE = 'bk_area';
 export const LOCATION_MAX_AGE = 60 * 60 * 24 * 90;
 
 /**
+ * Set when a visitor outside the delivery area chose to look around.
+ *
+ * Lifts the location gate without pretending there is a delivery area, so
+ * nothing can be ordered. A week, so they are asked again as the shop expands.
+ */
+export const BROWSE_COOKIE = 'bk_browse';
+export const BROWSE_MAX_AGE = 60 * 60 * 24 * 7;
+
+/**
  * The saved address the order goes to — an id, nothing more.
  *
  * Set only when the delivery area was taken *from* that address, and cleared

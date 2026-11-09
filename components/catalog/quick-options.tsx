@@ -15,6 +15,7 @@ import {
   type StorefrontVariantDto,
 } from '@StrikerStore/contract';
 import { setCartQuantity } from '@/app/cart/actions';
+import { useLocationSheet } from '@/components/location/location-provider';
 import { gaCartChange } from '@/lib/google-ecommerce';
 import { trackAddToCart } from '@/lib/meta-pixel';
 import { loadQuickOptions, type QuickOptionsData } from '@/app/products/[handle]/actions';
@@ -203,6 +204,7 @@ function Body({
   const selection = useVariantSelection(data.options, data.variants);
   const { selected } = selection;
   const [pending, startTransition] = useTransition();
+  const { browsing, open: openLocation } = useLocationSheet();
   const [busy, setBusy] = useState<'cart' | 'buy' | null>(null);
 
   /*
@@ -232,6 +234,11 @@ function Body({
    */
   function submit(kind: 'cart' | 'buy') {
     if (!selected || qty < 1) return;
+    if (browsing) {
+      onClose();
+      openLocation();
+      return;
+    }
     setBusy(kind);
     // Only the increase for Meta: "Update cart" on a line already holding 10
     // that now says 12 is two more added, and one that now says 8 is none.

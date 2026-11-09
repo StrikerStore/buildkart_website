@@ -20,9 +20,11 @@ import type { Locale } from '@/lib/i18n';
 type LocationContextValue = {
   /** Opens the sheet. Safe to call from any client component under the layout. */
   open: () => void;
+  /** Looking around from outside the delivery area: ADD asks for a location. */
+  browsing: boolean;
 };
 
-const LocationContext = createContext<LocationContextValue>({ open: () => {} });
+const LocationContext = createContext<LocationContextValue>({ open: () => {}, browsing: false });
 
 export function useLocationSheet(): LocationContextValue {
   return useContext(LocationContext);
@@ -31,11 +33,14 @@ export function useLocationSheet(): LocationContextValue {
 export function LocationProvider({
   locale,
   hasLocation,
+  browsing,
   children,
 }: {
   locale: Locale;
   /** Whether a delivery area is already set, read from the cookie on the server. */
   hasLocation: boolean;
+  /** Outside the delivery area and chose to look around; see `BROWSE_COOKIE`. */
+  browsing: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -51,8 +56,11 @@ export function LocationProvider({
    * whether an item can be bought at all. A catalogue browsed without one is a
    * catalogue of numbers the shop would not honour, and the disappointment
    * lands at checkout instead of in the first five seconds.
+   *
+   * Someone outside the delivery area can never answer it, so they may choose
+   * to look around instead, with ordering off.
    */
-  const blocking = !hasLocation;
+  const blocking = !hasLocation && !browsing;
 
   /*
    * `/location` asks the same question on its own page, so the gate would sit
@@ -98,7 +106,7 @@ export function LocationProvider({
   const settled = useCallback(() => setOpen(false), []);
 
   return (
-    <LocationContext.Provider value={{ open: openSheet }}>
+    <LocationContext.Provider value={{ open: openSheet, browsing }}>
       {children}
       {open && (
         <LocationSheet

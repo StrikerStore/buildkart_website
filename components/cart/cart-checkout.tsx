@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { Briefcase, Home, Loader2, MapPin, Moon, User, Wallet } from 'lucide-react';
 import {
   compareMoney,
@@ -94,6 +94,28 @@ export function CartCheckout({
   const hi = locale === 'hi';
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [priceChange, setPriceChange] = useState<{ from: string; to: string } | null>(null);
+  /*
+   * What the cart cost when the address sheet opened. The price so far was for
+   * the area chosen at the door; the exact address can land in another
+   * distance block, and the customer must see that before paying.
+   */
+  const beforeAddress = useRef<{ total: string; addressId: string | null } | null>(null);
+
+  function openAddressSheet() {
+    beforeAddress.current = { total: cart.grandTotal, addressId: selectedAddress?.id ?? null };
+    setPriceChange(null);
+    setSheetOpen(true);
+  }
+
+  const selectedAddressId = selectedAddress?.id ?? null;
+  useEffect(() => {
+    const before = beforeAddress.current;
+    if (!before || selectedAddressId === null || selectedAddressId === before.addressId) return;
+    beforeAddress.current = null;
+    if (cart.grandTotal !== before.total) setPriceChange({ from: before.total, to: cart.grandTotal });
+  }, [selectedAddressId, cart.grandTotal]);
+
   const [pending, startTransition] = useTransition();
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(notice);
@@ -192,9 +214,10 @@ export function CartCheckout({
   function proceed() {
     setError(null);
     if (!selectedAddress) {
-      setSheetOpen(true);
+      openAddressSheet();
       return;
     }
+    if (priceChange) return;
     trackCheckout();
     const details = {
       addressId: selectedAddress.id,
@@ -366,7 +389,7 @@ export function CartCheckout({
       variant="buy"
       size="lg"
       block
-      disabled={busy || (selectedAddress !== null && blocked)}
+      disabled={busy || (selectedAddress !== null && (blocked || priceChange !== null))}
       onClick={proceed}
     >
       {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
@@ -377,7 +400,7 @@ export function CartCheckout({
   const deliverRow = signedIn && selectedAddress && (
     <button
       type="button"
-      onClick={() => setSheetOpen(true)}
+      onClick={openAddressSheet}
       className="flex w-full items-center gap-3 text-left"
     >
       <AddressIcon label={selectedAddress.label} />
@@ -389,6 +412,24 @@ export function CartCheckout({
       </span>
       <span className="shrink-0 text-cta3 text-brand-text">{hi ? 'बदलें' : 'Change'}</span>
     </button>
+  );
+
+  const priceNotice = priceChange && (
+    <div role="status" className="flex items-center gap-3 rounded-box bg-warning-bg px-3 py-2">
+      <p className="min-w-0 flex-1 text-body3 text-ink">
+        {hi ? 'इस डिलीवरी पते के लिए कीमत अपडेट हुई' : 'Price updated for this delivery address'}
+        <span className="block text-heading6">
+          {formatINR(priceChange.from)} → {formatINR(priceChange.to)}
+        </span>
+      </p>
+      <button
+        type="button"
+        onClick={() => setPriceChange(null)}
+        className="h-9 shrink-0 rounded-box bg-ink px-4 text-cta3 text-ink-inverted"
+      >
+        {hi ? 'ठीक है' : 'OK'}
+      </button>
+    </div>
   );
 
   return (
@@ -561,6 +602,7 @@ export function CartCheckout({
           </p>
         )}
 
+        {priceNotice && <div className="hidden lg:block">{priceNotice}</div>}
         <div className="hidden lg:block">{action}</div>
       </div>
 
@@ -570,6 +612,7 @@ export function CartCheckout({
         */}
       <div className="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-hairline bg-surface px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 shadow-sheet lg:hidden">
         {deliverRow}
+        {priceNotice}
         {action}
       </div>
 

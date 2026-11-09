@@ -5,11 +5,14 @@ import { Loader2 } from 'lucide-react';
 import { loadLocationSheet } from '@/app/location/actions';
 import { AddressSheet } from '@/components/cart/address-sheet';
 import type { Locale } from '@/lib/i18n';
+import { LocationPrompt } from './location-prompt';
 
 /**
- * The header's location picker — the same sheet, stages and look as the cart's
- * "Add address to proceed", so choosing where to deliver works one way
- * everywhere: saved addresses first, then a map, then the house details.
+ * The header's location picker, and the question a first visit opens with.
+ *
+ * A signed-in customer with saved addresses gets them as a one-tap list.
+ * Everyone else gets `LocationPrompt`, which sets a delivery area without a
+ * map; the exact pin is taken at checkout.
  *
  * Its contents load **on open**, not with the page. The sheet is mounted in the
  * root layout so the header can reach it, and fetching a customer's address
@@ -49,6 +52,19 @@ export function LocationSheet({
       <div className="fixed inset-0 z-50 grid place-items-center bg-ink/50" aria-busy="true">
         <Loader2 className="size-7 animate-spin text-ink-inverted" aria-hidden />
       </div>
+    );
+  }
+
+  if (data.signedInPhone === null || data.addresses.length === 0) {
+    return (
+      <LocationPrompt
+        locale={locale}
+        signedInPhone={data.signedInPhone}
+        provider={data.mapDefault.provider}
+        onClose={onClose}
+        onSettled={onSettled}
+        dismissible={dismissible}
+      />
     );
   }
 

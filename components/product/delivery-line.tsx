@@ -57,7 +57,7 @@ export async function DeliveryLine({
 
   const condition = (() => {
     if (distancePriced) {
-      if (!located) return hi ? 'अपनी लोकेशन चुनें, अपना भाव देखें' : 'Set your location for your price';
+      if (!located) return hi ? 'डिलीवरी देखने के लिए अपनी लोकेशन चुनें' : 'Set your location to check delivery';
       return area
         ? hi
           ? `${area} तक डिलीवरी भाव में शामिल`

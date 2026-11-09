@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { cache } from 'react';
 import {
   ADDRESS_COOKIE,
+  BROWSE_COOKIE,
   LOCATION_COOKIE,
   parseLocation,
   type StoredLocation,
@@ -20,6 +21,15 @@ export * from './location-shared';
  */
 export const currentLocation = cache(async (): Promise<StoredLocation | null> => {
   return parseLocation((await cookies()).get(LOCATION_COOKIE)?.value);
+});
+
+/** Looking around from outside the delivery area: nothing can be ordered. */
+export const isBrowseOnly = cache(async (): Promise<boolean> => {
+  const store = await cookies();
+  return (
+    store.get(BROWSE_COOKIE)?.value === '1' &&
+    parseLocation(store.get(LOCATION_COOKIE)?.value) === null
+  );
 });
 
 /**

@@ -39,8 +39,12 @@ export function Sheet({
   /** Shows a back chevron in place of the title's left edge, for staged sheets. */
   onBack?: () => void;
   size?: 'half' | 'full';
-  /** Where it sits from 640px up. A phone always gets the bottom sheet. */
-  placement?: 'center' | 'corner';
+  /**
+   * Where it sits from 640px up; a phone gets the bottom sheet. `popup` is the
+   * exception: a small card in the middle of every screen, with the page still
+   * visible around it, for a short question rather than a task.
+   */
+  placement?: 'center' | 'corner' | 'popup';
   closeLabel?: string;
   backLabel?: string;
   children: React.ReactNode;
@@ -131,21 +135,27 @@ export function Sheet({
         onKeyDown={keepFocusInside}
         className={cn(
           'fixed z-50 flex flex-col overflow-hidden bg-surface-muted shadow-sheet outline-none',
-          'inset-x-0 bottom-0 rounded-t-card',
-          size === 'half' ? 'max-h-[62dvh]' : 'h-[94dvh]',
-          placement === 'center'
-            ? [
-                'sm:inset-0 sm:m-auto sm:w-[540px] sm:rounded-card',
-                size === 'half' ? 'sm:h-fit sm:max-h-[80vh]' : 'sm:h-[86vh]',
-              ]
+          placement === 'popup'
+            ? 'inset-4 m-auto h-fit max-h-[80dvh] max-w-[440px] rounded-card'
             : [
-                'sm:inset-x-auto sm:right-6 sm:bottom-24 sm:w-[380px] sm:rounded-card',
-                size === 'half' ? 'sm:h-fit sm:max-h-[70vh]' : 'sm:h-[min(560px,80vh)]',
+                'inset-x-0 bottom-0 rounded-t-card',
+                size === 'half' ? 'max-h-[62dvh]' : 'h-[94dvh]',
+                placement === 'center'
+                  ? [
+                      'sm:inset-0 sm:m-auto sm:w-[540px] sm:rounded-card',
+                      size === 'half' ? 'sm:h-fit sm:max-h-[80vh]' : 'sm:h-[86vh]',
+                    ]
+                  : [
+                      'sm:inset-x-auto sm:right-6 sm:bottom-24 sm:w-[380px] sm:rounded-card',
+                      size === 'half' ? 'sm:h-fit sm:max-h-[70vh]' : 'sm:h-[min(560px,80vh)]',
+                    ],
               ],
         )}
       >
         {/* The grab handle says "this slides" on a phone; a desktop dialog needs none. */}
-        <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-pill bg-hairline-strong sm:hidden" aria-hidden />
+        {placement !== 'popup' && (
+          <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-pill bg-hairline-strong sm:hidden" aria-hidden />
+        )}
 
         <div className="flex shrink-0 items-center gap-2 border-b border-hairline bg-surface px-3 py-3">
           {onBack && (

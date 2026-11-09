@@ -7,7 +7,7 @@ import { announcementBar, api, storeSettings } from '@/lib/api/server';
 import { CONSENT_COOKIE, parseConsent } from '@/lib/consent';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentLocale, htmlLang } from '@/lib/locale';
-import { currentLocation } from '@/lib/location';
+import { currentLocation, isBrowseOnly } from '@/lib/location';
 import { currentCustomer } from '@/lib/session';
 import { siteUrl } from '@/lib/site';
 import { BrandTagline } from '@/components/layout/brand-tagline';
@@ -150,10 +150,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, cart, location, announcements, settings, customer, cookieStore] = await Promise.all([
+  const [locale, cart, location, browsing, announcements, settings, customer, cookieStore] = await Promise.all([
     currentLocale(),
     currentCart(),
     currentLocation(),
+    isBrowseOnly(),
     announcementBar(),
     // Per-request cached; the header and most pages read it anyway.
     storeSettings(),
@@ -204,7 +205,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
          * visit with no area set is asked once, up front, the way every quick
          * commerce app does it.
          */}
-        <LocationProvider locale={locale} hasLocation={location !== null}>
+        <LocationProvider locale={locale} hasLocation={location !== null} browsing={browsing}>
           {/* Above the header and outside it: the header is the sticky part,
               and the strip should scroll away once it has been read. */}
           <AnnouncementBar bar={announcements} locale={locale} />
@@ -255,7 +256,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
 
         {/* Always: the shop's own analytics need a yes as much as Meta does. */}
-        <ConsentBanner locale={locale} google={googleRunning} />
+        <ConsentBanner
+          locale={locale}
+          google={googleRunning}
+          locationPending={location === null && !browsing}
+        />
 
         {/* Meta's CompleteRegistration, the first page after a new sign-up. */}
         <RegistrationEvent />

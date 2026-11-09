@@ -257,16 +257,21 @@ export function AddressSheet({
 
 // --- search ------------------------------------------------------------------
 
-function PlaceSearch({
+export function PlaceSearch({
   hi,
   provider,
+  placeholder,
   onCurrentLocation,
   onPicked,
+  onLookupFailed,
 }: {
   hi: boolean;
   provider: MapDefault['provider'];
+  placeholder?: string;
   onCurrentLocation: () => void;
   onPicked: (lat: number, lng: number) => void;
+  /** A picked suggestion whose coordinate could not be fetched. */
+  onLookupFailed?: () => void;
 }) {
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<PlaceSuggestionDto[]>([]);
@@ -300,6 +305,7 @@ function PlaceSearch({
     startSearch(async () => {
       const found = await placeLocation(placeId, session.current);
       if (found) onPicked(found.latitude, found.longitude);
+      else onLookupFailed?.();
     });
   }
 
@@ -311,7 +317,7 @@ function PlaceSearch({
           value={query}
           onChange={(event) => setQuery(event.target.value.slice(0, 120))}
           autoFocus
-          placeholder={hi ? 'नया पता खोजें' : 'Search a new address'}
+          placeholder={placeholder ?? (hi ? 'नया पता खोजें' : 'Search a new address')}
           aria-label={hi ? 'पता खोजें' : 'Search a new address'}
           className="min-w-0 flex-1 bg-transparent text-body1 text-ink outline-none"
         />

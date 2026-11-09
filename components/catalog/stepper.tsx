@@ -3,6 +3,7 @@
 import { ChevronsLeft, ChevronsRight, Minus, Plus } from 'lucide-react';
 import { useOptimistic, useTransition } from 'react';
 import { setCartQuantity } from '@/app/cart/actions';
+import { useLocationSheet } from '@/components/location/location-provider';
 import { cn } from '@/lib/cn';
 import { gaCartChange } from '@/lib/google-ecommerce';
 import { trackAddToCart, type PixelProduct } from '@/lib/meta-pixel';
@@ -63,11 +64,17 @@ export function Stepper({
 }) {
   const [pending, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(quantity);
+  const { browsing, open: openLocation } = useLocationSheet();
 
   /** What `«` and `»` move by. Five is half a common pack order. */
   const JUMP = 5;
 
   function change(next: number) {
+    // Nothing can be delivered without an area, so ask rather than add.
+    if (browsing && next > shown) {
+      openLocation();
+      return;
+    }
     // On the tap, not after the write: an AddToCart is the shopper's intent,
     // and the pixel should not wait on (or depend on) the server round trip.
     if (pixel && next > shown) trackAddToCart(pixel, next - shown);

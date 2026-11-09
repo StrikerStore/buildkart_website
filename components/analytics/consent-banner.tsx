@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PRIVACY_NOTICE_PATH } from '@StrikerStore/contract';
 import { rememberConsent } from '@/app/consent-actions';
@@ -32,12 +33,16 @@ import type { Locale } from '@/lib/i18n';
 export function ConsentBanner({
   locale,
   google,
+  locationPending,
 }: {
   locale: Locale;
+  /** The location popup is up: one question at a time, so this waits. */
+  locationPending: boolean;
   /** Which Google products this site runs, so only those re-ask an older yes. */
   google: GoogleAllowed;
 }) {
   const hi = locale === 'hi';
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [choosing, setChoosing] = useState(false);
   const [analytics, setAnalytics] = useState(false);
@@ -66,7 +71,8 @@ export function ConsentBanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!open) return null;
+  // `/location` asks on its own page, with no popup to wait for.
+  if (!open || (locationPending && pathname !== '/location')) return null;
 
   const answer = (choice: { analytics: boolean; marketing: boolean }) => {
     const saved = saveChoices(choice);

@@ -9,7 +9,7 @@ import type { CartCouponDto, CartDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { allowsAnalytics, CONSENT_COOKIE } from '@/lib/consent';
 import { currentCart, currentPromo, currentUnloading, pricedCart } from '@/lib/cart';
-import { currentLocation, currentPoint } from '@/lib/location';
+import { currentLocation, currentPoint, isBrowseOnly } from '@/lib/location';
 import {
   CART_COOKIE,
   CART_MAX_AGE,
@@ -39,6 +39,13 @@ export async function addQuoteToCart(
   const store = await cookies();
   let lines = parseCart(store.get(CART_COOKIE)?.value);
   const skipped: string[] = [];
+
+  if (await isBrowseOnly()) {
+    return {
+      count: lines.reduce((sum, line) => sum + line.qty, 0),
+      skipped: input.slice(0, 50).map(({ variantId }) => variantId),
+    };
+  }
 
   for (const { variantId, qty } of input.slice(0, 50)) {
     if (typeof variantId !== 'string' || !Number.isInteger(qty) || qty < 1) continue;
@@ -92,6 +99,11 @@ export async function setCartQuantity(variantId: string, qty: number): Promise<{
    */
   const had = before.find((line) => line.variantId === variantId)?.qty ?? 0;
   const has = lines.find((line) => line.variantId === variantId)?.qty ?? 0;
+  // Enforced here as well as on the button: a browse-only visitor has no
+  // delivery area for this to be priced or delivered to.
+  if (has > had && (await isBrowseOnly())) {
+    return { count: before.reduce((sum, line) => sum + line.qty, 0) };
+  }
   // Counted only with a yes to analytics on the cookie banner, like every
   // other measure of what a shopper does.
   if (has > had && allowsAnalytics(store.get(CONSENT_COOKIE)?.value)) {

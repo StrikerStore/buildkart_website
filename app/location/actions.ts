@@ -13,6 +13,8 @@ import { NOTICE_VERSION } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import {
   ADDRESS_COOKIE,
+  BROWSE_COOKIE,
+  BROWSE_MAX_AGE,
   LOCATION_COOKIE,
   LOCATION_MAX_AGE,
   mapDefaultFrom,
@@ -311,8 +313,21 @@ async function rememberArea(
    * new place's price. `chooseSavedAddress` sets it again straight after.
    */
   (await cookies()).delete(ADDRESS_COOKIE);
+  // A real delivery area replaces looking around from outside it.
+  (await cookies()).delete(BROWSE_COOKIE);
 
   // The header pill and every delivery line render from this cookie.
+  revalidatePath('/', 'layout');
+}
+
+/** A visitor outside the delivery area chose to look around anyway. */
+export async function browseWithoutDelivery(): Promise<void> {
+  (await cookies()).set(BROWSE_COOKIE, '1', {
+    maxAge: BROWSE_MAX_AGE,
+    path: '/',
+    sameSite: 'lax',
+    httpOnly: true,
+  });
   revalidatePath('/', 'layout');
 }
 
