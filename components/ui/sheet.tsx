@@ -126,6 +126,10 @@ export function Sheet({
         onClick={dismissible ? onClose : undefined}
         aria-hidden
       />
+      {/* Points up at the header's location selector, on a phone. */}
+      {placement === 'popup' && (
+        <div className="fixed left-[104px] top-[81px] z-50 size-4 rotate-45 bg-surface sm:hidden" aria-hidden />
+      )}
       <div
         ref={dialogRef}
         role="dialog"
@@ -136,7 +140,7 @@ export function Sheet({
         className={cn(
           'fixed z-50 flex flex-col overflow-hidden bg-surface-muted shadow-sheet outline-none',
           placement === 'popup'
-            ? 'inset-4 m-auto h-fit max-h-[80dvh] max-w-[440px] rounded-card'
+            ? 'inset-x-4 top-[88px] mx-auto max-h-[80dvh] max-w-[440px] rounded-card'
             : [
                 'inset-x-0 bottom-0 rounded-t-card',
                 size === 'half' ? 'max-h-[62dvh]' : 'h-[94dvh]',
@@ -183,7 +187,10 @@ export function Sheet({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        {/* A popup is as tall as its content; `flex-1` would collapse it to nothing. */}
+        <div className={cn('min-h-0 overflow-y-auto', placement === 'popup' ? 'flex-initial' : 'flex-1')}>
+          {children}
+        </div>
 
         {footer && <div className="shrink-0 border-t border-hairline bg-surface p-3">{footer}</div>}
       </div>
