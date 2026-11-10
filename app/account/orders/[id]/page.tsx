@@ -15,6 +15,7 @@ import { ReorderButton } from '@/components/orders/reorder-button';
 import { ContactLink } from '@/components/analytics/contact-link';
 import { GooglePurchase } from '@/components/analytics/google-event';
 import { TrackEvent } from '@/components/analytics/track-event';
+import { googleAdsSendTo } from '@/lib/google-ads';
 import { CURRENCY, toValue } from '@/lib/meta-pixel';
 
 export const metadata: Metadata = {
@@ -57,10 +58,17 @@ export default async function OrderPage({ params, searchParams }: Props) {
   const hi = locale === 'hi';
   const justPlaced = search.placed === '1';
   /*
-   * Google Ads' Purchase conversion, as Google gives it: "AW-…/label". Read per
-   * request like GOOGLE_TAG_ID; unset, no conversion is reported.
+   * Google Ads' Purchase conversion, "AW-…/label", also taken without the
+   * "AW-" (see `googleAdsSendTo`). Read per request like GOOGLE_TAG_ID;
+   * unset, no conversion is reported.
    */
-  const googlePurchase = process.env.GOOGLE_PURCHASE_CONVERSION?.trim() || null;
+  const purchaseSetting = process.env.GOOGLE_PURCHASE_CONVERSION;
+  const googlePurchase = googleAdsSendTo(purchaseSetting, process.env.GOOGLE_TAG_ID);
+  if (justPlaced && purchaseSetting?.trim() && !googlePurchase) {
+    console.warn(
+      '[google-ads] GOOGLE_PURCHASE_CONVERSION is not "AW-<id>/<label>"; no Purchase conversion is reported.',
+    );
+  }
 
   return (
     <div className="page-w page-x py-6">
