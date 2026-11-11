@@ -31,7 +31,11 @@ export const SESSION_COOKIE_NAME = 'bk_sid';
 const VISITOR_MAX_AGE = 60 * 60 * 24 * 365;
 const SESSION_IDLE_SECONDS = 30 * 60;
 
-type VisitEvent = 'page_view' | 'product_view' | 'add_to_cart' | 'checkout_start';
+/**
+ * `heartbeat` is "still here", from `<Presence>`: it only keeps the session
+ * fresh for the admin's live count, and never starts one.
+ */
+type VisitEvent = 'page_view' | 'product_view' | 'add_to_cart' | 'checkout_start' | 'heartbeat';
 
 /** The funnel step a pixel event stands for, if any. */
 const FOR_PIXEL: Partial<Record<PixelEvent, VisitEvent>> = {
@@ -63,8 +67,10 @@ export function recordVisit(event: VisitEvent) {
 
     // Where this page load came from — only meaningful on the first event of
     // a document, when the URL is the landing URL and the referrer is real.
-    const touch = firstOfDocument ? touchFromLocation(location.href, document.referrer) : null;
-    firstOfDocument = false;
+    // A heartbeat never starts a session, so it must not use that up.
+    const counts = event !== 'heartbeat';
+    const touch = counts && firstOfDocument ? touchFromLocation(location.href, document.referrer) : null;
+    if (counts) firstOfDocument = false;
 
     const body = JSON.stringify({
       sessionId,
