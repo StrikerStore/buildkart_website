@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import {
   eventId as freshEventId,
   track,
+  trackWithConsent,
   type PixelEvent,
   type PixelParams,
 } from '@/lib/meta-pixel';
@@ -37,9 +38,12 @@ export function TrackEvent({
   const signature = JSON.stringify([name, params, eventId, onceKey]);
 
   useEffect(() => {
-    if (onceKey && onceSeen(onceKey)) return;
+    // A product view on the page someone landed on still counts if they say
+    // yes there. Not a once-only event: that is remembered as sent on mount.
+    if (!onceKey) return trackWithConsent(name, params, eventId ?? freshEventId(name.toLowerCase()));
+    if (onceSeen(onceKey)) return;
     track(name, params, eventId ?? freshEventId(name.toLowerCase()));
-    if (onceKey) rememberOnce(onceKey);
+    rememberOnce(onceKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 

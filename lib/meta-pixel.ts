@@ -22,7 +22,7 @@
  * match these events.
  */
 
-import { marketingAllowed } from './consent-state';
+import { analyticsAllowed, CONSENT_CHANGED, marketingAllowed } from './consent-state';
 import { recordVisitForPixel } from './visit';
 
 type Fbq = ((...args: unknown[]) => void) & {
@@ -125,8 +125,15 @@ export function track(event: PixelEvent, params?: PixelParams, eventId?: string)
   // views, product views, cart adds and checkouts are also session steps.
   // (That beacon asks for its own consent.)
   recordVisitForPixel(event);
+  trackMeta(event, params, eventId);
+}
+
+/** The Meta half of `track`, without the shop's own visit beacon. */
+export function trackMeta(event: PixelEvent, params?: PixelParams, eventId?: string) {
+  if (typeof window === 'undefined') return;
   // Nothing for Meta without a yes — not even queued, so a yes given later
-  // cannot release what was seen before it.
+  // cannot release what was seen before it. (`trackWithConsent` re-sends the
+  // page the shopper is still on when they say yes; nothing earlier.)
   if (!marketingAllowed()) return;
   if (!initialised || !window.fbq) {
     // Bounded: if the pixel is off, nothing ever drains this, and a long
@@ -135,6 +142,43 @@ export function track(event: PixelEvent, params?: PixelParams, eventId?: string)
     return;
   }
   send(window.fbq, event, params, eventId);
+}
+
+/**
+ * `track`, plus whatever a yes given later **on this page** opens up: the visit
+ * beacon on a yes to analytics, Meta on a yes to marketing, each once.
+ *
+ * Most shoppers answer the cookie banner on the page they landed on, after it
+ * has already reported its view. Without this that page — usually the one an
+ * ad sent them to — was never counted, so a shopper who said yes and left
+ * appeared nowhere in the shop's own sessions. What they are looking at when
+ * they say yes is reported, the way the Google tag reports the current page on
+ * a yes (`useReportOnYes`); pages seen before it and left are not.
+ *
+ * Returns the cleanup for the calling effect: leaving the page ends the offer.
+ */
+export function trackWithConsent(
+  event: PixelEvent,
+  params?: PixelParams,
+  eventId?: string,
+): () => void {
+  if (typeof window === 'undefined') return () => {};
+  track(event, params, eventId);
+  const sent = { visit: analyticsAllowed(), meta: marketingAllowed() };
+  if (sent.visit && sent.meta) return () => {};
+
+  const onChange = () => {
+    if (!sent.visit && analyticsAllowed()) {
+      sent.visit = true;
+      recordVisitForPixel(event);
+    }
+    if (!sent.meta && marketingAllowed()) {
+      sent.meta = true;
+      trackMeta(event, params, eventId);
+    }
+  };
+  window.addEventListener(CONSENT_CHANGED, onChange);
+  return () => window.removeEventListener(CONSENT_CHANGED, onChange);
 }
 
 /** A fresh id for an event that has no natural key (everything but Purchase). */

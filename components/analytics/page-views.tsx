@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
-import { track } from '@/lib/meta-pixel';
+import { trackWithConsent } from '@/lib/meta-pixel';
 
 /**
  * A page view for every page a shopper sees — to the storefront's own session
@@ -14,14 +14,16 @@ import { track } from '@/lib/meta-pixel';
  *
  * Mounted by the root layout whether or not the pixel is configured, because
  * sessions are the shop's own analytics and do not depend on Meta.
+ *
+ * A yes given on the cookie banner while a page is open reports that page's
+ * view then (`trackWithConsent`), so the landing page counts even for someone
+ * who answers and leaves.
  */
 function PageViewsInner() {
   const pathname = usePathname();
   const search = useSearchParams().toString();
 
-  useEffect(() => {
-    track('PageView');
-  }, [pathname, search]);
+  useEffect(() => trackWithConsent('PageView'), [pathname, search]);
 
   return null;
 }
