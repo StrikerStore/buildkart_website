@@ -12,6 +12,11 @@
  * Everything else the site stores (the cart, the language, the delivery area,
  * the sign-in) is needed for the shop to work at all and is not asked about.
  *
+ * Without a yes to analytics, a visit is still *counted* — one more on a daily
+ * tally per kind of device (`/api/v`). That count stores nothing on the device
+ * and keeps nothing about the visit or the person, so it is not tracking
+ * anyone; the Privacy Notice says so in its analytics section.
+ *
  * The cookie's format lives in the contract (`parseConsentCookie`), so the page
  * that writes it and the server action that reads it cannot disagree. No answer
  * is a no: nothing optional runs until the shopper has chosen.

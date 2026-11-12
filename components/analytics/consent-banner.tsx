@@ -15,7 +15,8 @@ import type { Locale } from '@/lib/i18n';
  *
  * Asks once for two separate permissions — visit analytics (the shop's own,
  * and Google Analytics), and ad measurement with Meta and Google Ads — and
- * nothing optional runs until it is answered (no answer is a no). The DPDP
+ * nothing optional runs until it is answered (no answer is a no) — beyond a
+ * bare count that a visit happened, which keeps nothing about anyone. The DPDP
  * Act's conditions, as this screen meets them:
  *
  *   - **informed and itemised**: what each one is for, in plain words, with
@@ -94,8 +95,8 @@ export function ConsentBanner({
       </h2>
       <p className="mt-1 text-body3 text-ink-muted">
         {hi
-          ? 'आपका कार्ट, भाषा और लॉगिन याद रखने के लिए ज़रूरी कुकीज़ हमेशा चलती हैं। आपकी अनुमति हो तो हम अपनी गिनती और Google Analytics से यह भी देखेंगे कि लोग साइट कैसे इस्तेमाल करते हैं, और Meta (Facebook, Instagram) व Google Ads से यह मापेंगे कि हमारे विज्ञापन काम करते हैं या नहीं।'
-          : 'Cookies that keep your cart, language and sign-in always run. With your permission we also measure how the site is used, ourselves and with Google Analytics, and use Meta (Facebook, Instagram) and Google Ads to see whether our ads work.'}{' '}
+          ? 'आपका कार्ट, भाषा और लॉगिन याद रखने के लिए ज़रूरी कुकीज़ हमेशा चलती हैं। आपकी अनुमति हो तो हम अपनी गिनती और Google Analytics से यह भी देखेंगे कि लोग साइट कैसे इस्तेमाल करते हैं, और Meta (Facebook, Instagram) व Google Ads से यह मापेंगे कि हमारे विज्ञापन काम करते हैं या नहीं। अनुमति न हो तो हम सिर्फ़ यह गिनते हैं कि एक विज़िट हुई, ऐसी किसी जानकारी के बिना जिससे आपकी पहचान हो।'
+          : 'Cookies that keep your cart, language and sign-in always run. With your permission we also measure how the site is used, ourselves and with Google Analytics, and use Meta (Facebook, Instagram) and Google Ads to see whether our ads work. Without it, we only count that a visit happened, with nothing that identifies you.'}{' '}
         <Link href={PRIVACY_NOTICE_PATH} className="underline">
           {hi ? 'गोपनीयता सूचना' : 'Privacy Notice'}
         </Link>

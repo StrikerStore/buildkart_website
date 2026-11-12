@@ -2,7 +2,10 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
+import type { ConsentChoices } from '@StrikerStore/contract';
+import { CONSENT_CHANGED } from '@/lib/consent-state';
 import { track } from '@/lib/meta-pixel';
+import { onConsentChanged } from '@/lib/visit';
 
 /**
  * A page view for every page a shopper sees — to the storefront's own session
@@ -14,6 +17,9 @@ import { track } from '@/lib/meta-pixel';
  *
  * Mounted by the root layout whether or not the pixel is configured, because
  * sessions are the shop's own analytics and do not depend on Meta.
+ *
+ * It also hears the banner: a yes to analytics part-way through a page turns
+ * that page's anonymous count into the start of a session (`onConsentChanged`).
  */
 function PageViewsInner() {
   const pathname = usePathname();
@@ -27,6 +33,12 @@ function PageViewsInner() {
 }
 
 export function PageViews() {
+  useEffect(() => {
+    const onChange = (event: Event) => onConsentChanged((event as CustomEvent<ConsentChoices>).detail);
+    window.addEventListener(CONSENT_CHANGED, onChange);
+    return () => window.removeEventListener(CONSENT_CHANGED, onChange);
+  }, []);
+
   // useSearchParams needs a Suspense boundary or it opts the whole route out
   // of static rendering.
   return (

@@ -45,6 +45,15 @@ export type StoredAttribution = { first?: Touch; last?: Touch };
 const PAYMENT_HOSTS =
   /(^|\.)(razorpay\.com|payu\.in|payumoney\.com|snapmint\.com|cashfree\.com|paytm\.(com|in)|phonepe\.com|billdesk\.com|ccavenue\.com)$/i;
 
+/** Whether a referrer is one of those payment pages, sending a shopper back mid-checkout. */
+export function isPaymentReferrer(referrer: string): boolean {
+  try {
+    return PAYMENT_HOSTS.test(new URL(referrer).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /** Caps every value so the cookie stays far under the 4 KB a browser allows. */
 const LIMITS: Record<keyof Touch, number> = {
   source: 100,

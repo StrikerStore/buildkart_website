@@ -19,7 +19,8 @@ export const dynamic = 'force-dynamic';
  * its pincode for the API to name. It is what the city reports count.
  *
  * Checked here too, not only in the page: an event from a browser that has
- * not said yes to analytics is dropped, whatever sent it.
+ * not said yes to analytics is dropped, whatever sent it. Such a browser's
+ * visit goes to `/api/v` instead, as a bare count.
  *
  * `api()` forwards the customer's session, so a signed-in shopper's visit is
  * tied to them.
