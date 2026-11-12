@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PRIVACY_NOTICE_PATH } from '@StrikerStore/contract';
 import { rememberConsent } from '@/app/consent-actions';
@@ -30,20 +29,22 @@ import type { Locale } from '@/lib/i18n';
  * Read from the cookie after mount rather than on the server, so a cached page
  * never shows the banner to someone who already answered, or hides it from
  * someone who has not.
+ *
+ * Shown at once, even while the location popup is up: the popup sits at the
+ * top of the screen and this at the bottom, and later in the page so it is
+ * above the popup's dimming and can be answered. It used to wait for the
+ * location to be chosen, which meant a visitor who left at the popup was never
+ * asked, and nothing about the entrance could be measured.
  */
 export function ConsentBanner({
   locale,
   google,
-  locationPending,
 }: {
   locale: Locale;
-  /** The location popup is up: one question at a time, so this waits. */
-  locationPending: boolean;
   /** Which Google products this site runs, so only those re-ask an older yes. */
   google: GoogleAllowed;
 }) {
   const hi = locale === 'hi';
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [choosing, setChoosing] = useState(false);
   const [analytics, setAnalytics] = useState(false);
@@ -72,8 +73,7 @@ export function ConsentBanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // `/location` asks on its own page, with no popup to wait for.
-  if (!open || (locationPending && pathname !== '/location')) return null;
+  if (!open) return null;
 
   const answer = (choice: { analytics: boolean; marketing: boolean }) => {
     const saved = saveChoices(choice);

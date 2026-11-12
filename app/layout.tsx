@@ -22,6 +22,7 @@ import { MetaPixel } from '@/components/analytics/meta-pixel';
 import { googleAllowed } from '@/lib/google-tag';
 import { AttributionCapture } from '@/components/analytics/attribution-capture';
 import { PageViews } from '@/components/analytics/page-views';
+import { Presence } from '@/components/analytics/presence';
 import { ConsentBanner } from '@/components/analytics/consent-banner';
 import { RegistrationEvent } from '@/components/analytics/registration-event';
 import './globals.css';
@@ -256,11 +257,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
 
         {/* Always: the shop's own analytics need a yes as much as Meta does. */}
-        <ConsentBanner
-          locale={locale}
-          google={googleRunning}
-          locationPending={location === null && !browsing}
-        />
+        <ConsentBanner locale={locale} google={googleRunning} />
 
         {/* Meta's CompleteRegistration, the first page after a new sign-up. */}
         <RegistrationEvent />
@@ -272,6 +269,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* A page view per navigation — to the shop's own sessions and to the
             pixel, each only with its own yes. */}
         <PageViews />
+
+        {/* "Still here" every 30 seconds while the tab is visible, for the
+            admin's live count. Same beacon, same yes to analytics. */}
+        <Presence />
       </body>
     </html>
   );

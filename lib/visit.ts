@@ -16,10 +16,11 @@
  *   - `bk_sid` — the session, rolled after thirty minutes with no event: the
  *     same idle rule Shopify and Google Analytics use. Every event renews it.
  *
- * While the tab is visible it also says "still here" every 30 seconds, so the
- * admin's live view counts a shopper reading a page between clicks. That only
- * touches a session already open; it never starts one, and never stretches
- * the thirty minutes, which only a real event renews.
+ * While the tab is visible and in use, `<Presence>` also says "still here"
+ * every 30 seconds (`recordVisit('heartbeat')`), so the admin's live view
+ * counts a shopper reading a page between clicks. That only touches a session
+ * already open: it never starts one, never stretches the thirty minutes (only
+ * a real event renews them), and is never a visit of its own.
  *
  * Neither is a credential or carries anything about the person. The beacon is
  * first-party, so an ad blocker that stops the Meta Pixel does not stop it —
@@ -44,10 +45,12 @@ export const VISITOR_COOKIE = 'bk_vid';
 export const SESSION_COOKIE_NAME = 'bk_sid';
 const VISITOR_MAX_AGE = 60 * 60 * 24 * 365;
 const SESSION_IDLE_SECONDS = 30 * 60;
-/** "Still here", while the tab is visible. The live view counts the last minute. */
-const HEARTBEAT_MS = 30_000;
 
-type VisitEvent = 'page_view' | 'product_view' | 'add_to_cart' | 'checkout_start';
+/**
+ * `heartbeat` is "still here", from `<Presence>`: it only keeps the session
+ * fresh for the admin's live count, and never starts one.
+ */
+type VisitEvent = 'page_view' | 'product_view' | 'add_to_cart' | 'checkout_start' | 'heartbeat';
 
 /** The funnel step a pixel event stands for, if any. */
 const FOR_PIXEL: Partial<Record<PixelEvent, VisitEvent>> = {
@@ -70,8 +73,6 @@ let landing: { href: string; referrer: string } | null = null;
 let anonymousChecked = false;
 /** When this document's visit was counted anonymously; null when it was not. */
 let anonymousAt: number | null = null;
-/** Whether this document's heartbeat is running. */
-let heartbeatOn = false;
 
 function newId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -119,29 +120,6 @@ function countAnonymously(referrer: string) {
   send('/api/v', { event: 'visit', at: anonymousAt });
 }
 
-/** Still here — for a session that is still open, from a tab someone can see. */
-function heartbeat() {
-  try {
-    if (document.visibilityState !== 'visible' || !analyticsAllowed()) return;
-    const sessionId = readCookie(SESSION_COOKIE_NAME);
-    const visitorId = readCookie(VISITOR_COOKIE);
-    // The session lapsed (thirty minutes without a real event): the next real
-    // event starts a new one. Not this.
-    if (!sessionId || !visitorId) return;
-    send('/api/t', { sessionId, visitorId, event: 'heartbeat', path: location.pathname });
-  } catch {
-    // Blocked cookies: the live view misses one tab.
-  }
-}
-
-function startHeartbeat() {
-  if (heartbeatOn) return;
-  heartbeatOn = true;
-  window.setInterval(heartbeat, HEARTBEAT_MS);
-  // Back on the tab: say so now rather than up to 30 seconds later.
-  document.addEventListener('visibilitychange', heartbeat);
-}
-
 export function recordVisit(event: VisitEvent) {
   if (typeof window === 'undefined') return;
   try {
@@ -149,7 +127,19 @@ export function recordVisit(event: VisitEvent) {
     // Nothing — not even the two ids — until the shopper has said yes to
     // analytics on the banner. See `lib/consent.ts`.
     if (!analyticsAllowed()) {
-      countAnonymously(landing.referrer);
+      // A heartbeat is not a visit.
+      if (event !== 'heartbeat') countAnonymously(landing.referrer);
+      return;
+    }
+
+    if (event === 'heartbeat') {
+      // Still here — for a session that is still open. One that lapsed
+      // (thirty minutes without a real event) is started again by the next
+      // real event, not by this: no ids minted, none renewed, and the landing
+      // touch left for that event.
+      const sessionId = readCookie(SESSION_COOKIE_NAME);
+      const visitorId = readCookie(VISITOR_COOKIE);
+      if (sessionId && visitorId) send('/api/t', { sessionId, visitorId, event, path: location.pathname });
       return;
     }
 
@@ -170,25 +160,22 @@ export function recordVisit(event: VisitEvent) {
       path: location.pathname,
       ...(touch ? { touch } : {}),
     });
-    startHeartbeat();
   } catch {
     // Blocked cookies or storage: a lost count is not worth a broken page.
   }
 }
 
 /**
- * The banner's answer changed. On a yes to analytics, this visit is taken off
- * the anonymous count and starts as a session from the page the shopper is
- * on — without it, a shopper who said yes and left from that page would be
- * counted nowhere.
+ * The banner's answer changed. On a yes to analytics, this visit comes off the
+ * anonymous count: the same yes makes `trackWithConsent` report the page the
+ * shopper is on as the session's first event (from the landing URL, above),
+ * so the visit is counted once, as a session.
  */
 export function onConsentChanged(choices: ConsentChoices | null) {
   if (typeof window === 'undefined' || choices?.analytics !== true) return;
-  if (anonymousAt !== null) {
-    send('/api/v', { event: 'retract', at: anonymousAt });
-    anonymousAt = null;
-  }
-  if (firstOfDocument) recordVisit('page_view');
+  if (anonymousAt === null) return;
+  send('/api/v', { event: 'retract', at: anonymousAt });
+  anonymousAt = null;
 }
 
 /** Called by `track()` so every pixel call site also feeds the funnel. */

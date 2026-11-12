@@ -4,7 +4,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import type { ConsentChoices } from '@StrikerStore/contract';
 import { CONSENT_CHANGED } from '@/lib/consent-state';
-import { track } from '@/lib/meta-pixel';
+import { trackWithConsent } from '@/lib/meta-pixel';
 import { onConsentChanged } from '@/lib/visit';
 
 /**
@@ -18,16 +18,16 @@ import { onConsentChanged } from '@/lib/visit';
  * Mounted by the root layout whether or not the pixel is configured, because
  * sessions are the shop's own analytics and do not depend on Meta.
  *
- * It also hears the banner: a yes to analytics part-way through a page turns
- * that page's anonymous count into the start of a session (`onConsentChanged`).
+ * A yes given on the cookie banner while a page is open reports that page's
+ * view then (`trackWithConsent`), so the landing page counts even for someone
+ * who answers and leaves. The same yes takes that visit back off the anonymous
+ * count (`onConsentChanged`), so it is not counted twice.
  */
 function PageViewsInner() {
   const pathname = usePathname();
   const search = useSearchParams().toString();
 
-  useEffect(() => {
-    track('PageView');
-  }, [pathname, search]);
+  useEffect(() => trackWithConsent('PageView'), [pathname, search]);
 
   return null;
 }
