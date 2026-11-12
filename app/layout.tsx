@@ -257,11 +257,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
 
         {/* Always: the shop's own analytics need a yes as much as Meta does. */}
-        <ConsentBanner
-          locale={locale}
-          google={googleRunning}
-          locationPending={location === null && !browsing}
-        />
+        <ConsentBanner locale={locale} google={googleRunning} />
 
         {/* Meta's CompleteRegistration, the first page after a new sign-up. */}
         <RegistrationEvent />
