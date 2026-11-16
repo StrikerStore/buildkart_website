@@ -1,6 +1,7 @@
 import { formatINR, type StorefrontCardDto } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
+import { PriceFromLabel } from './price-from-label';
 
 /**
  * Price, MRP and the unit it is per.
@@ -41,9 +42,10 @@ export function PriceBlock({
   return (
     <span className="flex flex-wrap items-baseline gap-x-1.5">
       {priceIsFrom && (
-        <span className={cn('text-ink-muted', size === 'page' ? 'text-body2' : 'text-body5')}>
-          {locale === 'hi' ? 'से शुरू' : 'from'}
-        </span>
+        <PriceFromLabel
+          locale={locale}
+          className={cn('text-ink-muted', size === 'page' ? 'text-body2' : 'text-body5')}
+        />
       )}
       <span className={cn('text-ink', size === 'page' ? 'text-heading2' : 'text-heading5')}>
         {formatINR(price)}

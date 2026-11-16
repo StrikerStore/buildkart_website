@@ -204,7 +204,7 @@ function Body({
   const selection = useVariantSelection(data.options, data.variants);
   const { selected } = selection;
   const [pending, startTransition] = useTransition();
-  const { browsing, open: openLocation } = useLocationSheet();
+  const { canOrder, open: openLocation } = useLocationSheet();
   const [busy, setBusy] = useState<'cart' | 'buy' | null>(null);
 
   /*
@@ -234,7 +234,8 @@ function Body({
    */
   function submit(kind: 'cart' | 'buy') {
     if (!selected || qty < 1) return;
-    if (browsing) {
+    // No delivery area: ask, or say we do not deliver there — see `Stepper`.
+    if (!canOrder) {
       onClose();
       openLocation();
       return;

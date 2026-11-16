@@ -13,6 +13,7 @@ import { api } from '@/lib/api/server';
 import { currentCart, currentPromo, currentUnloading } from '@/lib/cart';
 import { CART_COOKIE, PROMO_COOKIE, UNLOADING_COOKIE } from '@/lib/cart-shared';
 import { chooseSavedAddress } from '@/app/location/actions';
+import { canOrderHere } from '@/lib/location';
 import { orderAttribution } from '@/lib/attribution-server';
 
 /**
@@ -181,6 +182,9 @@ export async function placeOrder(
  * whose rates move daily is the only honest way to repeat an order.
  */
 export async function reorder(orderId: string): Promise<{ lines: number }> {
+  // Like every other way into the cart: only with a serviced delivery area.
+  if (!(await canOrderHere())) return { lines: 0 };
+
   const lines = await (await api()).storefront.reorder.query({ id: orderId });
 
   (await cookies()).set(

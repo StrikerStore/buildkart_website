@@ -5,6 +5,7 @@ import { ChevronRight, TrendingDown } from 'lucide-react';
 import { formatINR, type BulkTierBasis, type StorefrontVariantDto } from '@StrikerStore/contract';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
+import { PriceFromLabel } from '@/components/catalog/price-from-label';
 import { Stepper } from '@/components/catalog/stepper';
 import { PriceLadderSheet } from './price-ladder-sheet';
 import { useVariantSelection, VariantAxes, type Axis } from './variant-axes';
@@ -29,6 +30,7 @@ export function VariantPicker({
   handle,
   pixelName,
   bulkTierBasis,
+  atWarehouse = false,
   offer,
   details,
 }: {
@@ -44,6 +46,12 @@ export function VariantPicker({
   pixelName: string;
   /** How this product's rungs read, so the ladder is worded once. */
   bulkTierBasis: BulkTierBasis;
+  /**
+   * A distance-priced product quoted at the warehouse, not for the shopper's
+   * spot — no location yet, or one we do not deliver to. The price then says
+   * so, the way a card's does.
+   */
+  atWarehouse?: boolean;
   /**
    * The cashback strip, built on the page from the store's wallet rules.
    * Under the price card on every screen size — on a phone the card itself can
@@ -114,6 +122,9 @@ export function VariantPicker({
            * and the copy that scrolls away is the one that gets tapped least.
            */}
           <div className="hidden flex-wrap items-baseline gap-x-2 md:flex">
+            {atWarehouse && (
+              <PriceFromLabel locale={locale} className="text-body2 text-ink-muted" />
+            )}
             <span className="text-heading2 text-ink">{formatINR(selected.price)}</span>
             {unit && <span className="text-body2 text-ink-muted">{unit}</span>}
             {showCompare && selected.compareAtPrice && (
@@ -248,6 +259,9 @@ export function VariantPicker({
             <div className="min-w-0 flex-1">
               {unit && <p className="truncate text-body3 text-ink-muted">{unit}</p>}
               <p className="flex items-baseline gap-1.5">
+                {atWarehouse && (
+                  <PriceFromLabel locale={locale} className="text-body4 text-ink-muted" />
+                )}
                 <span className="text-heading3 text-ink">{formatINR(selected.price)}</span>
                 {showCompare && selected.compareAtPrice && (
                   <span className="text-body3 text-ink-faint line-through">

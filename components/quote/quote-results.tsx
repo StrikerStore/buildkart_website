@@ -17,6 +17,7 @@ import {
 } from '@StrikerStore/contract';
 import { addQuoteToCart } from '@/app/cart/actions';
 import { repriceQuote } from '@/app/quote/actions';
+import { useLocationSheet } from '@/components/location/location-provider';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
 import { RateRequest } from './rate-request';
@@ -83,6 +84,7 @@ export function QuoteResults({
   customer: { name: string | null; phone: string } | null;
 }) {
   const hi = locale === 'hi';
+  const { canOrder, open: openLocation } = useLocationSheet();
   const [estimate, setEstimate] = useState(initial);
   const [selections, setSelections] = useState<QuoteSelection[]>([]);
   const [repricing, startRepricing] = useTransition();
@@ -138,6 +140,11 @@ export function QuoteResults({
 
   function addToCart() {
     setAddError(null);
+    // No delivery area: ask, or say we do not deliver there — see `Stepper`.
+    if (!canOrder) {
+      openLocation();
+      return;
+    }
     startAdding(async () => {
       try {
         const result = await addQuoteToCart(

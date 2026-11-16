@@ -8,12 +8,16 @@ import {
   type QuoteSelection,
 } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
-import { currentLocation, currentPoint } from '@/lib/location';
+import { currentPoint, currentPricingPincode } from '@/lib/location';
 
-/** The customer's area, off their cookie: the API re-checks it against the owner's list. */
+/**
+ * The customer's area, off their cookie: the API re-checks it against the
+ * owner's list. Out of area, the spot's pincode, so delivery reads "Not in
+ * this area" rather than "Set your area".
+ */
 async function where() {
-  const [location, point] = await Promise.all([currentLocation(), currentPoint()]);
-  return { ...(location ? { pincode: location.pincode } : {}), ...point };
+  const [pincode, point] = await Promise.all([currentPricingPincode(), currentPoint()]);
+  return { ...(pincode ? { pincode } : {}), ...point };
 }
 
 /** Prices the list again after the customer changes a brand or a quantity. */

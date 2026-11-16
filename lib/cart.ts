@@ -2,7 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
 import { api } from './api/server';
-import { currentLocation } from './location';
+import { currentLocation, currentPricingPincode } from './location';
 import {
   CART_COOKIE,
   parseCart,
@@ -54,16 +54,22 @@ export const currentUnloading = cache(async (): Promise<boolean> => {
  * what is being priced.
  */
 export const pricedCart = cache(async () => {
-  const [lines, location, promo, unloading] = await Promise.all([
+  const [lines, location, pincode, promo, unloading] = await Promise.all([
     currentCart(),
     currentLocation(),
+    currentPricingPincode(),
     currentPromo(),
     currentUnloading(),
   ]);
 
   return (await api()).storefront.priceCart.query({
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
-    ...(location ? { pincode: location.pincode } : {}),
+    /*
+     * The delivery area's pincode — or, out of area, the spot's. The API
+     * answers that one `serviced: false`, and the cart then says where it
+     * cannot deliver and holds checkout back.
+     */
+    ...(pincode ? { pincode } : {}),
     /*
      * The pin, when the shopper has dropped one, so a shop charging by distance
      * can quote a real figure rather than a placeholder.

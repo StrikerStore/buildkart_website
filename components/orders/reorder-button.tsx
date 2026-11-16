@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { Loader2, RotateCw } from 'lucide-react';
+import { useLocationSheet } from '@/components/location/location-provider';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/lib/i18n';
 import { reorder } from '@/app/cart/checkout-actions';
@@ -18,18 +19,24 @@ import { reorder } from '@/app/cart/checkout-actions';
 export function ReorderButton({ orderId, locale }: { orderId: string; locale: Locale }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { canOrder, open: openLocation } = useLocationSheet();
 
   return (
     <Button
       type="button"
       variant="quiet"
       disabled={pending}
-      onClick={() =>
+      onClick={() => {
+        // No delivery area: ask, or say we do not deliver there — see `Stepper`.
+        if (!canOrder) {
+          openLocation();
+          return;
+        }
         startTransition(async () => {
           await reorder(orderId);
           router.push('/cart');
-        })
-      }
+        });
+      }}
     >
       {pending ? (
         <Loader2 className="size-4 animate-spin" aria-hidden />

@@ -3,8 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Crosshair, Loader2 } from 'lucide-react';
-import type { DeviceLocationDto } from '@StrikerStore/contract';
-import { browseWithoutDelivery, confirmLocation } from '@/app/location/actions';
+import { confirmLocation, skipLocation, type ConfirmedLocation } from '@/app/location/actions';
 import { NotifyForm } from '@/app/location/notify-form';
 import { PlaceSearch } from '@/components/cart/address-sheet';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ import type { MapDefault } from '@/lib/location-shared';
 type Stage =
   | { name: 'choice' }
   | { name: 'manual'; note: string | null }
-  | { name: 'unserved'; result: DeviceLocationDto };
+  | { name: 'unserved'; result: ConfirmedLocation };
 
 /**
  * Where to deliver, asked lightly: a small popup over the page the shopper
@@ -25,6 +24,10 @@ type Stage =
  * Deliberately no map. Most people arriving here are looking around, and the
  * exact spot only matters once there is something to deliver, so the pin and
  * the house details are taken at checkout (`AddressSheet`).
+ *
+ * Never a gate: it closes, it can be skipped, and an out-of-area answer lets
+ * the visitor go on exploring from there — with warehouse rates and ordering
+ * off — rather than stopping them at the door.
  *
  * The browser's permission prompt fires from the tap on "Use my location",
  * never on load: one that appears before anyone has asked for anything is the
@@ -36,17 +39,14 @@ export function LocationPrompt({
   provider,
   onClose,
   onSettled,
-  dismissible,
 }: {
   locale: Locale;
   /** So a signed-in shopper is not asked to type the number again. */
   signedInPhone: string | null;
   provider: MapDefault['provider'];
   onClose: () => void;
-  /** Fired once a serviced area is committed, or the shopper chose to browse. */
+  /** Fired once a place is committed, or the shopper chose to skip. */
   onSettled: () => void;
-  /** False while the site has no delivery area: the popup is then a gate. */
-  dismissible: boolean;
 }) {
   const hi = locale === 'hi';
   const router = useRouter();
@@ -75,7 +75,12 @@ export function LocationPrompt({
     setError(null);
     startTransition(async () => {
       try {
-        const result = await confirmLocation(latitude, longitude);
+        /*
+         * `rememberOutside`: an out-of-area answer is where this visitor is,
+         * and they go on looking around from it — the server has already saved
+         * it by the time the "we do not deliver here yet" panel shows.
+         */
+        const result = await confirmLocation(latitude, longitude, { rememberOutside: true });
         if (result.serviced && result.area) {
           settle();
         } else if (result.resolved) {
@@ -109,15 +114,16 @@ export function LocationPrompt({
     );
   }
 
-  function browse() {
+  /** "Skip, just browse": remembered, so the popup is not pushed at them again. */
+  function skip() {
     setError(null);
     startTransition(async () => {
       try {
-        await browseWithoutDelivery();
-        settle();
+        await skipLocation();
       } catch {
-        setError(somethingWrong);
+        // Not worth stopping anyone over: the worst case is being asked again.
       }
+      onSettled();
     });
   }
 
@@ -147,7 +153,6 @@ export function LocationPrompt({
       placement={stage.name === 'choice' ? 'popup' : 'center'}
       closeLabel={hi ? 'बंद करें' : 'Close'}
       backLabel={hi ? 'वापस' : 'Back'}
-      dismissible={dismissible}
     >
       {stage.name === 'choice' && (
         <div className="space-y-4 bg-surface p-4">
@@ -171,6 +176,18 @@ export function LocationPrompt({
               {hi ? 'खुद चुनें' : 'Select manually'}
             </button>
           </div>
+          {/*
+           * Quiet on purpose: most visitors are in the area and should answer,
+           * but nobody should have to in order to look around.
+           */}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={skip}
+            className="mx-auto block text-body3 text-ink-muted underline underline-offset-2 hover:text-ink disabled:opacity-60"
+          >
+            {hi ? 'अभी नहीं, बस सामान देखें' : 'Skip, just browse'}
+          </button>
         </div>
       )}
 
@@ -195,6 +212,15 @@ export function LocationPrompt({
       {stage.name === 'unserved' && (
         <div className="space-y-3 bg-surface p-4">
           {stage.result.formatted && <p className="text-body3 text-ink-muted">{stage.result.formatted}</p>}
+          <p className="text-body3 text-ink">
+            {stage.result.abroad
+              ? hi
+                ? 'अभी हम भारत के कुछ ही इलाक़ों में डिलीवरी करते हैं। सामान और भाव आप देख सकते हैं।'
+                : 'We deliver only in parts of India for now. You can still look around and see our rates.'
+              : hi
+                ? 'सामान और गोदाम भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
+                : 'You can still look around and see our warehouse rates — ordering is off here.'}
+          </p>
           {stage.result.nearby.length > 0 && (
             <p className="text-body4 text-ink-muted">
               {hi ? 'फ़िलहाल हम यहाँ पहुँचते हैं: ' : 'Right now we reach: '}
@@ -204,30 +230,21 @@ export function LocationPrompt({
                 .join(' · ')}
             </p>
           )}
-          <Button
+          {/* The place is already remembered; this only shows the shop for it. */}
+          <Button type="button" variant="buy" size="lg" block disabled={busy} onClick={settle}>
+            {hi ? 'सामान देखें' : 'Explore products'}
+          </Button>
+          <button
             type="button"
-            variant="buy"
-            size="lg"
-            block
             disabled={busy}
             onClick={() => setStage({ name: 'manual', note: null })}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-box border border-hairline-strong text-cta2 text-ink hover:bg-surface-muted disabled:opacity-60"
           >
             <Crosshair className="size-4" aria-hidden />
             {hi ? 'दूसरी लोकेशन आज़माएँ' : 'Try another location'}
-          </Button>
+          </button>
           {stage.result.pincode && (
             <NotifyForm pincode={stage.result.pincode} locale={locale} signedInPhone={signedInPhone} />
-          )}
-          {!dismissible && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={browse}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-box border border-hairline-strong text-cta2 text-ink disabled:opacity-60"
-            >
-              {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-              {hi ? 'सामान देखें' : 'Browse products'}
-            </button>
           )}
           {error && (
             <p role="alert" className="rounded-box bg-error-bg px-3 py-2 text-body3 text-error">

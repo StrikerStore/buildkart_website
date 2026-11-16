@@ -1,16 +1,17 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Check, ChevronRight, Crosshair, Loader2, MapPin, Search, Settings } from 'lucide-react';
-import { formatINR, type DeviceLocationDto, type MyAddressDto } from '@StrikerStore/contract';
+import { formatINR, type MyAddressDto } from '@StrikerStore/contract';
 import { Button } from '@/components/ui/button';
 import { MapPicker, type ConfirmedPin } from '@/components/location/map-picker';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import type { MapDefault, StoredLocation } from '@/lib/location-shared';
 import { NotifyForm } from './notify-form';
-import { chooseSavedAddress, confirmLocation, type PincodeCheck } from './actions';
+import { chooseSavedAddress, confirmLocation, type ConfirmedLocation, type PincodeCheck } from './actions';
 
 /**
  * Where to deliver — a coordinate, or nothing.
@@ -34,7 +35,7 @@ type Stage =
   | { kind: 'idle' }
   | { kind: 'locating' }
   | { kind: 'map'; centre: { lat: number; lng: number }; zoom: number; denied: boolean }
-  | { kind: 'confirmed'; result: DeviceLocationDto }
+  | { kind: 'confirmed'; result: ConfirmedLocation }
   | { kind: 'saved'; result: PincodeCheck };
 
 export function LocationPicker({
@@ -110,10 +111,12 @@ export function LocationPicker({
   function confirm(pin: ConfirmedPin) {
     setError(null);
     startTransition(async () => {
-      const result = await confirmLocation(pin.latitude, pin.longitude);
+      // An out-of-area pin is remembered too: the visitor looks around from there.
+      const result = await confirmLocation(pin.latitude, pin.longitude, { rememberOutside: true });
       setStage({ kind: 'confirmed', result });
+      // An out-of-area answer was remembered as well, so the header changes either way.
+      if (result.resolved) router.refresh();
       if (result.serviced) {
-        router.refresh();
         /* Let the confirmation land before the sheet goes; closing on the same
            frame reads as the tap having done nothing. */
         setTimeout(() => onSettled?.(), 900);
@@ -137,16 +140,14 @@ export function LocationPicker({
     }
 
     startTransition(async () => {
-      const answer = await chooseSavedAddress(address.id);
+      const answer = await chooseSavedAddress(address.id, { rememberOutside: true });
       if ('error' in answer) {
         setError(answer.error);
         return;
       }
       setStage({ kind: 'saved', result: answer });
-      if (answer.serviced) {
-        router.refresh();
-        setTimeout(() => onSettled?.(), 900);
-      }
+      router.refresh();
+      if (answer.serviced) setTimeout(() => onSettled?.(), 900);
     });
   }
 
@@ -214,12 +215,12 @@ export function LocationPicker({
                   <button
                     type="button"
                     onClick={() => pickSaved(address)}
-                    disabled={pending || !address.serviced}
+                    disabled={pending}
                     className={cn(
                       'flex w-full items-start gap-3 rounded-card border p-3 text-left',
                       address.serviced
                         ? 'border-hairline bg-surface hover:border-ink'
-                        : 'cursor-not-allowed border-hairline bg-surface-muted opacity-60',
+                        : 'border-hairline bg-surface-muted opacity-75 hover:border-ink',
                     )}
                   >
                     <MapPin className="mt-0.5 size-4 shrink-0 text-ink-muted" aria-hidden />
@@ -249,9 +250,7 @@ export function LocationPicker({
                         </span>
                       )}
                     </span>
-                    {address.serviced && (
-                      <ChevronRight className="mt-0.5 size-4 shrink-0 text-ink-faint" aria-hidden />
-                    )}
+                    <ChevronRight className="mt-0.5 size-4 shrink-0 text-ink-faint" aria-hidden />
                   </button>
                 </li>
               );
@@ -314,7 +313,7 @@ function ConfirmedPanel({
   locale,
   signedInPhone,
 }: {
-  result: DeviceLocationDto;
+  result: ConfirmedLocation;
   locale: Locale;
   signedInPhone: string | null;
 }) {
@@ -347,8 +346,26 @@ function ConfirmedPanel({
     );
   }
 
+  if (result.abroad) {
+    return (
+      <div className="rounded-card border border-brand bg-brand-tint p-4">
+        <p className="flex items-center gap-2 text-heading5 text-ink">
+          <MapPin className="size-5 shrink-0 text-brand-text" aria-hidden />
+          {hi ? 'अभी हम भारत के कुछ ही इलाक़ों में हैं' : 'We deliver only in parts of India for now'}
+        </p>
+        <p className="mt-1.5 text-body2 text-ink-muted">
+          {hi
+            ? 'सामान और भाव आप देख सकते हैं, पर ऑर्डर नहीं हो सकता।'
+            : 'You can still look around and see our rates, but orders cannot be delivered there.'}
+        </p>
+        <ExploreLink hi={hi} />
+      </div>
+    );
+  }
+
   if (result.resolved) {
-    const where = [result.areaName, result.city].filter(Boolean).join(', ') || result.pincode;
+    const where =
+      [result.areaName, result.city].filter(Boolean).join(', ') || result.pincode || (hi ? 'यहाँ' : 'there');
 
     return (
       <div className="rounded-card border border-brand bg-brand-tint p-4">
@@ -389,6 +406,8 @@ function ConfirmedPanel({
         {result.pincode && (
           <NotifyForm pincode={result.pincode} locale={locale} signedInPhone={signedInPhone} />
         )}
+
+        <ExploreLink hi={hi} />
       </div>
     );
   }
@@ -410,7 +429,22 @@ function ConfirmedPanel({
 /** The answer to picking a saved address. */
 function SavedPanel({ result, locale }: { result: PincodeCheck; locale: Locale }) {
   const hi = locale === 'hi';
-  if (!result.serviced) return null;
+  if (!result.serviced) {
+    return (
+      <div className="rounded-card border border-brand bg-brand-tint p-4">
+        <p className="flex items-center gap-2 text-heading5 text-ink">
+          <MapPin className="size-5 shrink-0 text-brand-text" aria-hidden />
+          {hi ? `${result.pincode} पर अभी डिलीवरी नहीं है` : `We do not deliver to ${result.pincode} yet`}
+        </p>
+        <p className="mt-1.5 text-body2 text-ink-muted">
+          {hi
+            ? 'सामान और गोदाम भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
+            : 'You can still look around and see our warehouse rates, but orders cannot be delivered here.'}
+        </p>
+        <ExploreLink hi={hi} />
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-card border border-success/20 bg-success-bg p-4">
@@ -431,5 +465,17 @@ function SavedPanel({ result, locale }: { result: PincodeCheck; locale: Locale }
         </p>
       )}
     </div>
+  );
+}
+
+/** Back to the shop from an out-of-area answer, which has already been remembered. */
+function ExploreLink({ hi }: { hi: boolean }) {
+  return (
+    <Link
+      href="/"
+      className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-box bg-buy px-4 text-cta2 text-buy-foreground hover:bg-buy-dark"
+    >
+      {hi ? 'सामान देखें' : 'Explore products'}
+    </Link>
   );
 }

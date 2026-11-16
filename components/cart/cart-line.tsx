@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle, X } from 'lucide-react';
 import { formatINR, type CartLineDto } from '@StrikerStore/contract';
+import { currentOutside } from '@/lib/location';
 import { imageUrl, IMAGE } from '@/lib/media';
 import type { Locale } from '@/lib/i18n';
 import { CartQuantity } from './cart-quantity';
@@ -20,7 +21,7 @@ import { RemoveLine } from './remove-line';
  * nobody asked for.
  */
 export async function CartLine({ line, locale }: { line: CartLineDto; locale: Locale }) {
-  const src = await imageUrl(line.imageKey, IMAGE.thumb);
+  const [src, outside] = await Promise.all([imageUrl(line.imageKey, IMAGE.thumb), currentOutside()]);
   const name = (locale === 'hi' && line.nameHi) || line.nameEn;
   const unit = (locale === 'hi' && line.unitLabelHi) || line.unitLabelEn;
   // In English, like every id GA4 receives.
@@ -73,9 +74,9 @@ export async function CartLine({ line, locale }: { line: CartLineDto; locale: Lo
         {/*
           * Delivery is in this line's price, so it is not part of the delivery
           * charge below — said on the row, where a shopper comparing it with
-          * the charge will look.
+          * the charge will look. Not out of area: nothing is delivered there.
           */}
-        {line.pricingKind === 'DISTANCE' && (
+        {line.pricingKind === 'DISTANCE' && !outside && (
           <p className="mt-1">
             <span className="inline-flex items-center rounded-pill bg-success-bg px-2 py-0.5 text-heading9 text-success-fg">
               {locale === 'hi' ? 'फ़्री डिलीवरी' : 'Free delivery'}

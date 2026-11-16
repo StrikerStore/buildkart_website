@@ -24,7 +24,8 @@ export function LocationTrigger({
   return (
     <button
       type="button"
-      onClick={open}
+      // On the picker: tapping "where you are" is asking to change it.
+      onClick={() => open({ change: true })}
       aria-label={label}
       aria-haspopup="dialog"
       className="flex h-[var(--tap)] min-w-0 items-center gap-2 rounded-box px-2 text-left hover:bg-surface-muted"

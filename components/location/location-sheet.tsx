@@ -6,13 +6,17 @@ import { loadLocationSheet } from '@/app/location/actions';
 import { AddressSheet } from '@/components/cart/address-sheet';
 import type { Locale } from '@/lib/i18n';
 import { LocationPrompt } from './location-prompt';
+import { OutsideNotice } from './outside-notice';
 
 /**
- * The header's location picker, and the question a first visit opens with.
+ * The header's location picker, the question a first visit opens with, and
+ * what ADD opens for anyone without a delivery area.
  *
- * A signed-in customer with saved addresses gets them as a one-tap list.
- * Everyone else gets `LocationPrompt`, which sets a delivery area without a
- * map; the exact pin is taken at checkout.
+ * - Out of the delivery area: `OutsideNotice` first — where we do not deliver,
+ *   where we do, and "tell me when you start" — with the picker one tap away.
+ * - A signed-in customer with saved addresses: them, as a one-tap list.
+ * - Everyone else: `LocationPrompt`, which sets a delivery area without a map;
+ *   the exact pin is taken at checkout.
  *
  * Its contents load **on open**, not with the page. The sheet is mounted in the
  * root layout so the header can reach it, and fetching a customer's address
@@ -21,23 +25,20 @@ import { LocationPrompt } from './location-prompt';
  */
 export function LocationSheet({
   locale,
+  startChanging = false,
   onClose,
   onSettled,
-  dismissible,
 }: {
   locale: Locale;
+  /** Skip the out-of-area notice and open on the picker. */
+  startChanging?: boolean;
   onClose: () => void;
-  /** Fired when a serviced area is committed. Lifts the gate; see the provider. */
+  /** Fired when a place is committed: a serviced area, or a spot to look around from. */
   onSettled: () => void;
-  /**
-   * False until a delivery area exists, and then the sheet is a **gate**: no
-   * close button, no backdrop dismiss, no Escape. Without an area nothing on
-   * this site is true — prices move with the delivery charge, and whether an
-   * item can be bought at all depends on it.
-   */
-  dismissible: boolean;
 }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof loadLocationSheet>> | null>(null);
+  // "Change location" on the notice swaps to the picker in the same sheet.
+  const [changing, setChanging] = useState(startChanging);
 
   useEffect(() => {
     let live = true;
@@ -55,6 +56,19 @@ export function LocationSheet({
     );
   }
 
+  if (data.outside && !changing) {
+    return (
+      <OutsideNotice
+        locale={locale}
+        spot={data.outside}
+        servedAreas={data.servedAreas}
+        signedInPhone={data.signedInPhone}
+        onChange={() => setChanging(true)}
+        onClose={onClose}
+      />
+    );
+  }
+
   if (data.signedInPhone === null || data.addresses.length === 0) {
     return (
       <LocationPrompt
@@ -63,7 +77,6 @@ export function LocationSheet({
         provider={data.mapDefault.provider}
         onClose={onClose}
         onSettled={onSettled}
-        dismissible={dismissible}
       />
     );
   }
@@ -84,7 +97,7 @@ export function LocationSheet({
       receiver={{ name: data.signedInName ?? '', phone: data.signedInPhone ?? '' }}
       onClose={onClose}
       onSettled={onSettled}
-      dismissible={dismissible}
+      rememberOutside
     />
   );
 }

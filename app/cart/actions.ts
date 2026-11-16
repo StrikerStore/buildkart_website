@@ -9,7 +9,7 @@ import type { CartCouponDto, CartDto } from '@StrikerStore/contract';
 import { api } from '@/lib/api/server';
 import { allowsAnalytics, CONSENT_COOKIE } from '@/lib/consent';
 import { currentCart, currentPromo, currentUnloading, pricedCart } from '@/lib/cart';
-import { currentLocation, currentPoint, isBrowseOnly } from '@/lib/location';
+import { canOrderHere, currentPoint, currentPricingPincode } from '@/lib/location';
 import {
   CART_COOKIE,
   CART_MAX_AGE,
@@ -40,7 +40,8 @@ export async function addQuoteToCart(
   let lines = parseCart(store.get(CART_COOKIE)?.value);
   const skipped: string[] = [];
 
-  if (await isBrowseOnly()) {
+  // No serviced delivery area: nothing is added. See `canOrderHere`.
+  if (!(await canOrderHere())) {
     return {
       count: lines.reduce((sum, line) => sum + line.qty, 0),
       skipped: input.slice(0, 50).map(({ variantId }) => variantId),
@@ -99,9 +100,9 @@ export async function setCartQuantity(variantId: string, qty: number): Promise<{
    */
   const had = before.find((line) => line.variantId === variantId)?.qty ?? 0;
   const has = lines.find((line) => line.variantId === variantId)?.qty ?? 0;
-  // Enforced here as well as on the button: a browse-only visitor has no
-  // delivery area for this to be priced or delivered to.
-  if (has > had && (await isBrowseOnly())) {
+  // Enforced here as well as on the button: without a serviced delivery area
+  // there is nowhere for this to be delivered to. Fewer is always allowed.
+  if (has > had && !(await canOrderHere())) {
     return { count: before.reduce((sum, line) => sum + line.qty, 0) };
   }
   // Counted only with a yes to analytics on the cookie banner, like every
@@ -231,9 +232,9 @@ export async function loadCartThumbs(): Promise<CartThumb[]> {
  * needs.
  */
 export async function loadCoupons(): Promise<CartCouponDto[]> {
-  const [lines, location, promo, point, unloading] = await Promise.all([
+  const [lines, pincode, promo, point, unloading] = await Promise.all([
     currentCart(),
-    currentLocation(),
+    currentPricingPincode(),
     currentPromo(),
     currentPoint(),
     currentUnloading(),
@@ -243,7 +244,7 @@ export async function loadCoupons(): Promise<CartCouponDto[]> {
   // is judged against the delivery charge the shopper is looking at.
   return (await api()).storefront.coupons.query({
     lines: lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })),
-    ...(location ? { pincode: location.pincode } : {}),
+    ...(pincode ? { pincode } : {}),
     ...point,
     unloading,
     ...(promo ? { appliedCode: promo } : {}),

@@ -9,7 +9,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/i18n';
 import type { MapDefault } from '@/lib/location-shared';
-import { confirmLocation, placeLocation, searchPlaces } from '@/app/location/actions';
+import { chooseSavedAddress, confirmLocation, placeLocation, searchPlaces } from '@/app/location/actions';
 import { saveAddress } from '@/app/account/actions';
 import { selectDeliveryAddress } from '@/app/cart/checkout-actions';
 import { PinMap, type PinChoice } from './pin-map';
@@ -44,7 +44,7 @@ export function AddressSheet({
   receiver,
   onClose,
   onSettled,
-  dismissible = true,
+  rememberOutside = false,
 }: {
   locale: Locale;
   signedIn?: boolean;
@@ -58,8 +58,13 @@ export function AddressSheet({
   onClose: () => void;
   /** Fired once a place is committed; defaults to closing. */
   onSettled?: () => void;
-  /** False while the site has no delivery area at all — see `LocationProvider`. */
-  dismissible?: boolean;
+  /**
+   * Opened from the header rather than checkout: a place we do not deliver to
+   * may still be picked, and becomes where the customer looks around from —
+   * the same as `LocationPrompt` does. At checkout it stays refused, so a
+   * mis-tap there cannot throw away a serviced delivery area.
+   */
+  rememberOutside?: boolean;
 }) {
   const hi = locale === 'hi';
   const router = useRouter();
@@ -92,6 +97,17 @@ export function AddressSheet({
     setError(null);
     setBusyId(address.id);
     startTransition(async () => {
+      // Not served, picked from the header: look around from there.
+      if (!address.serviced && rememberOutside) {
+        const answer = await chooseSavedAddress(address.id, { rememberOutside: true });
+        setBusyId(null);
+        if ('error' in answer) {
+          setError(answer.error);
+          return;
+        }
+        settle();
+        return;
+      }
       const result = await selectDeliveryAddress(address.id);
       setBusyId(null);
       if (!result.ok) {
@@ -106,7 +122,12 @@ export function AddressSheet({
   function commitGuestPin(pin: PinChoice) {
     setGuestError(null);
     startTransition(async () => {
-      const result = await confirmLocation(pin.latitude, pin.longitude);
+      const result = await confirmLocation(pin.latitude, pin.longitude, { rememberOutside });
+      // Remembered as an out-of-area spot by the server; nothing more to ask.
+      if (!result.serviced && rememberOutside && result.resolved) {
+        settle();
+        return;
+      }
       if (!result.serviced) {
         setGuestError(hi ? 'यहाँ अभी डिलीवरी नहीं है।' : 'We do not deliver here yet.');
         return;
@@ -141,7 +162,6 @@ export function AddressSheet({
       size={stage.name === 'list' ? 'half' : 'full'}
       closeLabel={hi ? 'बंद करें' : 'Close'}
       backLabel={hi ? 'वापस' : 'Back'}
-      dismissible={dismissible}
     >
       {stage.name === 'list' && (
         <div className="space-y-4 p-4">
@@ -175,7 +195,7 @@ export function AddressSheet({
                     <button
                       type="button"
                       onClick={() => choose(address)}
-                      disabled={!address.serviced || busyId !== null}
+                      disabled={(!address.serviced && !rememberOutside) || busyId !== null}
                       className={cn(
                         'flex w-full items-start gap-3 px-4 py-3.5 text-left',
                         address.serviced ? 'hover:bg-surface-muted' : 'opacity-55',

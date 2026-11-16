@@ -64,14 +64,18 @@ export function Stepper({
 }) {
   const [pending, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(quantity);
-  const { browsing, open: openLocation } = useLocationSheet();
+  const { canOrder, open: openLocation } = useLocationSheet();
 
   /** What `«` and `»` move by. Five is half a common pack order. */
   const JUMP = 5;
 
   function change(next: number) {
-    // Nothing can be delivered without an area, so ask rather than add.
-    if (browsing && next > shown) {
+    /*
+     * Nothing can be delivered without a delivery area, so ask rather than
+     * add: the location prompt, or — out of area — "we don't deliver here
+     * yet". Fewer is always allowed, so a cart from before can be emptied.
+     */
+    if (!canOrder && next > shown) {
       openLocation();
       return;
     }

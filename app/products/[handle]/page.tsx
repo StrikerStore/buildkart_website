@@ -163,6 +163,7 @@ export default async function ProductPage({ params }: Props) {
               handle={product.handle}
               pixelName={product.nameEn}
               bulkTierBasis={product.bulkTierBasis}
+              atWarehouse={product.pricingKind === 'DISTANCE' && !product.located}
               offer={<CashbackOffer rules={settings.wallet} locale={locale} />}
               details={
                 /*

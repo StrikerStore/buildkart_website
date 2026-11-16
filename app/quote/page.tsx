@@ -15,7 +15,7 @@ import { JobPicker } from '@/components/quote/job-picker';
 import { QuoteResults } from '@/components/quote/quote-results';
 import { api } from '@/lib/api/server';
 import { currentLocale } from '@/lib/locale';
-import { currentLocation, currentPoint } from '@/lib/location';
+import { currentPoint, currentPricingPincode } from '@/lib/location';
 import { currentCustomer } from '@/lib/session';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -76,9 +76,10 @@ export default async function QuotePage({ searchParams }: { searchParams: Search
 
   const adding = paramOf(raw.add) !== null && jobs.length < MAX_QUOTE_JOBS;
 
-  const [locale, location, point, customer] = await Promise.all([
+  const [locale, pincode, point, customer] = await Promise.all([
     currentLocale(),
-    currentLocation(),
+    // Out of area, the spot's pincode: delivery then reads "Not in this area".
+    currentPricingPincode(),
     currentPoint(),
     currentCustomer(),
   ]);
@@ -88,7 +89,7 @@ export default async function QuotePage({ searchParams }: { searchParams: Search
     jobs.length > 0
       ? await (await api()).storefront.quoteEstimate.query({
           jobs,
-          ...(location ? { pincode: location.pincode } : {}),
+          ...(pincode ? { pincode } : {}),
           ...point,
         })
       : null;

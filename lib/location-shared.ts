@@ -21,13 +21,45 @@ export const LOCATION_COOKIE = 'bk_area';
 export const LOCATION_MAX_AGE = 60 * 60 * 24 * 90;
 
 /**
- * Set when a visitor outside the delivery area chose to look around.
+ * Looking around without a delivery area — and never instead of one.
  *
- * Lifts the location gate without pretending there is a delivery area, so
- * nothing can be ordered. A week, so they are asked again as the shop expands.
+ * Holds one of two things:
+ *
+ * - `'1'`: the visitor closed or skipped the location popup. Nothing is known
+ *   about where they are, so the popup is not pushed at them again on every
+ *   page; ADD asks instead.
+ * - an `OutsideSpot` as JSON: they told us where they are and we do not
+ *   deliver there. Kept so the header, the product page and ADD can say
+ *   *where* we do not deliver, rather than a vague "not available".
+ *
+ * Either way it sits beside `bk_area`, never inside it: `bk_area` means "a
+ * serviced area" everywhere it is read, and an unserviced spot slipped into it
+ * would make every one of those readers wrong. Setting either deletes the
+ * other.
+ *
+ * Thirty days, so a visitor is asked again as the shop expands toward them.
  */
 export const BROWSE_COOKIE = 'bk_browse';
-export const BROWSE_MAX_AGE = 60 * 60 * 24 * 7;
+export const BROWSE_MAX_AGE = 60 * 60 * 24 * 30;
+
+/**
+ * Where an out-of-area visitor said they are.
+ *
+ * The same shape as `StoredLocation` except the pincode may be missing: a
+ * visitor outside India has none we could look up, and they are just as
+ * welcome to look around.
+ */
+export type OutsideSpot = Omit<StoredLocation, 'pincode'> & { pincode: string | null };
+
+/**
+ * The rectangle the API accepts a coordinate in — `storefrontPointShape` and
+ * `deviceLocationSchema`, lat 6–38 and lng 68–98. A point outside it is
+ * refused as invalid input, so it must never be sent: a visitor abroad is
+ * outside the delivery area, not an error.
+ */
+export function insideIndiaBox(latitude: number, longitude: number): boolean {
+  return latitude >= 6 && latitude <= 38 && longitude >= 68 && longitude <= 98;
+}
 
 /**
  * The saved address the order goes to — an id, nothing more.
@@ -79,49 +111,85 @@ export type StoredLocation = {
  * but a bad value should not reach it in the first place.
  */
 export function parseLocation(raw: string | undefined): StoredLocation | null {
-  if (!raw) return null;
+  const value = parseObject(raw);
+  if (!value) return null;
 
+  const pincode = value.pincode;
+  if (typeof pincode !== 'string' || !/^\d{6}$/.test(pincode)) return null;
+
+  return { pincode, ...placeFields(value) };
+}
+
+/**
+ * Parses `bk_browse` when it holds a spot, returning null for `'1'` (skipped)
+ * and for anything malformed. Validated like `parseLocation`, except that the
+ * pincode may be absent — but when present it must still be six digits.
+ */
+export function parseOutside(raw: string | undefined): OutsideSpot | null {
+  if (!raw || raw === '1') return null;
+  const value = parseObject(raw);
+  if (!value) return null;
+
+  const pincode = value.pincode;
+  if (
+    pincode !== null &&
+    pincode !== undefined &&
+    (typeof pincode !== 'string' || !/^\d{6}$/.test(pincode))
+  ) {
+    return null;
+  }
+
+  return { pincode: typeof pincode === 'string' ? pincode : null, ...placeFields(value) };
+}
+
+/** The short label for where an out-of-area visitor is: "Bhopal", or the pincode. */
+export function outsideLabel(spot: OutsideSpot): string | null {
+  return spot.areaName ?? spot.city ?? spot.pincode;
+}
+
+function parseObject(raw: string | undefined): Record<string, unknown> | null {
+  if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-
-    const value = parsed as Record<string, unknown>;
-    const pincode = value.pincode;
-    if (typeof pincode !== 'string' || !/^\d{6}$/.test(pincode)) return null;
-
-    /*
-     * Validated as a **number**, not by matching the string.
-     *
-     * An earlier version used a regex capped at ten decimal places, which quietly
-     * broke the whole feature: a real browser geolocation fix is a float like
-     * 22.69551234567891 — fourteen decimals — so every genuine pin failed to
-     * parse and was dropped. The cookie still carried the formatted address, so
-     * checkout looked right while insisting "exact location needed" for a
-     * location the customer had already given.
-     *
-     * The generous ±180 bound is deliberate: this is a display and prefill
-     * convenience, and the India box is enforced server-side by
-     * `placeOrderSchema`, which is the only place it can actually be trusted.
-     */
-    const coordinate = (raw: unknown): string | null => {
-      if (typeof raw !== 'string') return null;
-      const value = Number(raw);
-      if (!Number.isFinite(value) || Math.abs(value) > 180) return null;
-      return raw;
-    };
-
-    return {
-      pincode,
-      areaName: typeof value.areaName === 'string' ? value.areaName.slice(0, 80) : null,
-      city: typeof value.city === 'string' ? value.city.slice(0, 80) : null,
-      state: typeof value.state === 'string' ? value.state.slice(0, 80) : null,
-      latitude: coordinate(value.latitude),
-      longitude: coordinate(value.longitude),
-      formatted: typeof value.formatted === 'string' ? value.formatted.slice(0, 200) : null,
-    };
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
+}
+
+/** Everything in a stored place except the pincode, each field checked on its own. */
+function placeFields(value: Record<string, unknown>): Omit<StoredLocation, 'pincode'> {
+  /*
+   * Validated as a **number**, not by matching the string.
+   *
+   * An earlier version used a regex capped at ten decimal places, which quietly
+   * broke the whole feature: a real browser geolocation fix is a float like
+   * 22.69551234567891 — fourteen decimals — so every genuine pin failed to
+   * parse and was dropped. The cookie still carried the formatted address, so
+   * checkout looked right while insisting "exact location needed" for a
+   * location the customer had already given.
+   *
+   * The generous ±180 bound is deliberate: this is a display and prefill
+   * convenience, and the India box is enforced server-side by
+   * `placeOrderSchema`, which is the only place it can actually be trusted.
+   */
+  const coordinate = (raw: unknown): string | null => {
+    if (typeof raw !== 'string') return null;
+    const number = Number(raw);
+    if (!Number.isFinite(number) || Math.abs(number) > 180) return null;
+    return raw;
+  };
+
+  return {
+    areaName: typeof value.areaName === 'string' ? value.areaName.slice(0, 80) : null,
+    city: typeof value.city === 'string' ? value.city.slice(0, 80) : null,
+    state: typeof value.state === 'string' ? value.state.slice(0, 80) : null,
+    latitude: coordinate(value.latitude),
+    longitude: coordinate(value.longitude),
+    formatted: typeof value.formatted === 'string' ? value.formatted.slice(0, 200) : null,
+  };
 }
 
 /**

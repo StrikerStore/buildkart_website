@@ -63,16 +63,26 @@ export function CartSummary({
           />
         )}
 
+        {/*
+          * Not "Free" where we do not deliver: the API charges nothing there
+          * because there is no delivery, and a green "Free" would say the
+          * opposite.
+          */}
         <Row
           label={locale === 'hi' ? 'डिलीवरी' : 'Delivery'}
           value={
-            cart.deliveryCharge === '0.00'
+            cart.delivery?.serviced === false
               ? locale === 'hi'
-                ? 'मुफ़्त'
-                : 'Free'
-              : formatINR(cart.deliveryCharge)
+                ? 'उपलब्ध नहीं'
+                : 'Not available'
+              : cart.deliveryCharge === '0.00'
+                ? locale === 'hi'
+                  ? 'मुफ़्त'
+                  : 'Free'
+                : formatINR(cart.deliveryCharge)
           }
-          tone={cart.deliveryCharge === '0.00' ? 'success' : undefined}
+          tone={cart.delivery?.serviced !== false && cart.deliveryCharge === '0.00' ? 'success' : undefined}
+          muted={cart.delivery?.serviced === false}
         />
 
         {/* Every line is distance-priced: there is nothing to deliver for. */}

@@ -1,5 +1,6 @@
+import { MapPinOff } from 'lucide-react';
 import { formatINR, type PricingKind } from '@StrikerStore/contract';
-import { currentDeliveryTerms, currentLocation } from '@/lib/location';
+import { currentDeliveryTerms, currentLocation, currentOutside, outsideLabel } from '@/lib/location';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -49,7 +50,33 @@ export async function DeliveryLine({
   locale: Locale;
 }) {
   const hi = locale === 'hi';
-  const [terms, location] = await Promise.all([currentDeliveryTerms(), currentLocation()]);
+  const [terms, location, outside] = await Promise.all([
+    currentDeliveryTerms(),
+    currentLocation(),
+    currentOutside(),
+  ]);
+
+  /*
+   * Out of area, the promise is replaced rather than qualified. "Free delivery
+   * · Delivery in 4 hours" above a product we cannot bring to them would be
+   * the one line on the page that is not true.
+   */
+  if (outside) {
+    const place = outsideLabel(outside);
+    return (
+      <p className="flex items-center gap-2 text-body3 text-error">
+        <MapPinOff className="size-4 shrink-0" aria-hidden />
+        {place
+          ? hi
+            ? `${place} में अभी डिलीवरी नहीं है`
+            : `We don't deliver to ${place} yet`
+          : hi
+            ? 'यहाँ अभी डिलीवरी नहीं है'
+            : 'We do not deliver here yet'}
+      </p>
+    );
+  }
+
   const serviced = terms?.serviced === true;
   const hours = (serviced ? terms.promiseHours : null) ?? fallbackHours;
   const distancePriced = pricingKind === 'DISTANCE';

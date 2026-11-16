@@ -3,6 +3,7 @@
 import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
 import { ChevronsLeft, ChevronsRight, Minus, Plus, Trash2 } from 'lucide-react';
 import { setCartQuantity } from '@/app/cart/actions';
+import { useLocationSheet } from '@/components/location/location-provider';
 import { gaCartChange, type GaProduct } from '@/lib/google-ecommerce';
 import { MAX_QTY_PER_LINE } from '@/lib/cart-shared';
 import { cn } from '@/lib/cn';
@@ -52,6 +53,7 @@ export function CartQuantity({
   const [shown, setShown] = useOptimistic(quantity);
   const [draft, setDraft] = useState(String(quantity));
   const inputRef = useRef<HTMLInputElement>(null);
+  const { canOrder, open: openLocation } = useLocationSheet();
 
   // The server is the source of truth; re-sync when it disagrees, unless the
   // shopper is mid-edit — overwriting what someone is typing is worse than
@@ -64,6 +66,15 @@ export function CartQuantity({
     const clamped = Math.max(0, Math.min(Math.trunc(next), MAX_QTY_PER_LINE));
     setDraft(String(clamped));
     if (clamped === quantity) return;
+    /*
+     * A cart carried into an area we do not deliver to can be emptied, not
+     * grown. The server refuses the increase anyway; asking here says why.
+     */
+    if (!canOrder && clamped > quantity) {
+      setDraft(String(quantity));
+      openLocation();
+      return;
+    }
     if (product) gaCartChange(product, clamped - quantity);
 
     startTransition(async () => {

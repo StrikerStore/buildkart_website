@@ -15,14 +15,16 @@ import {
   ADDRESS_COOKIE,
   BROWSE_COOKIE,
   BROWSE_MAX_AGE,
+  insideIndiaBox,
   LOCATION_COOKIE,
   LOCATION_MAX_AGE,
   mapDefaultFrom,
   normalizeCoordinate,
   type MapDefault,
+  type OutsideSpot,
   type StoredLocation,
 } from '@/lib/location-shared';
-import { currentAddressId, currentLocation } from '@/lib/location';
+import { currentAddressId, currentLocation, currentOutside } from '@/lib/location';
 import { currentCustomer } from '@/lib/session';
 
 /**
@@ -42,6 +44,28 @@ export type PincodeCheck = {
   freeAbove: string | null;
   promiseHours: number | null;
 };
+
+/**
+ * What a committed pin turned out to be.
+ *
+ * The API's answer, plus `abroad` for a coordinate outside India: that one is
+ * never sent to the API at all (see `insideIndiaBox`), so it is answered here
+ * as resolved, unserved and without a pincode.
+ */
+export type ConfirmedLocation = DeviceLocationDto & { abroad: boolean };
+
+/** A served area, for "Right now we reach: …". */
+export type ServedArea = { pincode: string; areaName: string; city: string; promiseHours: number | null };
+
+/**
+ * Options for the two commit actions.
+ *
+ * `rememberOutside` is passed by the header's location popup and `/location`:
+ * there, an out-of-area answer is where the visitor is, and they go on looking
+ * around from it. Checkout's address sheet does not pass it — a mis-searched
+ * address at the till must not throw away a serviced delivery area.
+ */
+type CommitOptions = { rememberOutside?: boolean };
 
 /**
  * What is at this coordinate, and do we deliver to it?
@@ -64,7 +88,26 @@ export async function resolveDeviceLocation(
   latitude: number,
   longitude: number,
 ): Promise<DeviceLocationDto> {
+  if (!insideIndiaBox(latitude, longitude)) return abroad(latitude, longitude);
   return (await api()).storefront.resolveLocation.query({ latitude, longitude });
+}
+
+/** The answer for a coordinate outside India, without asking the API. */
+function abroad(latitude: number, longitude: number): ConfirmedLocation {
+  return {
+    latitude: String(latitude),
+    longitude: String(longitude),
+    resolved: true,
+    serviced: false,
+    pincode: null,
+    areaName: null,
+    city: null,
+    state: null,
+    formatted: null,
+    area: null,
+    nearby: [],
+    abroad: true,
+  };
 }
 
 /**
@@ -78,8 +121,45 @@ export async function resolveDeviceLocation(
 export async function confirmLocation(
   latitude: number,
   longitude: number,
-): Promise<DeviceLocationDto> {
-  const result = await (await api()).storefront.resolveLocation.query({ latitude, longitude });
+  options: CommitOptions = {},
+): Promise<ConfirmedLocation> {
+  if (!insideIndiaBox(latitude, longitude)) {
+    const result = abroad(latitude, longitude);
+    if (options.rememberOutside) {
+      await rememberOutside({
+        pincode: null,
+        areaName: null,
+        city: null,
+        state: null,
+        latitude: normalizeCoordinate(latitude),
+        longitude: normalizeCoordinate(longitude),
+        formatted: null,
+      });
+    }
+    return result;
+  }
+
+  const result = {
+    ...(await (await api()).storefront.resolveLocation.query({ latitude, longitude })),
+    abroad: false,
+  };
+
+  /*
+   * Out of area, but we know where: that is where the visitor is looking
+   * around from. A spot the geocoder could not name is not remembered — the
+   * prompt asks them to try another place instead.
+   */
+  if (options.rememberOutside && result.resolved && !(result.serviced && result.area)) {
+    await rememberOutside({
+      pincode: result.pincode,
+      areaName: result.areaName,
+      city: result.city,
+      state: result.state,
+      latitude: normalizeCoordinate(result.latitude),
+      longitude: normalizeCoordinate(result.longitude),
+      formatted: result.formatted,
+    });
+  }
 
   if (result.serviced && result.area) {
     /*
@@ -141,6 +221,7 @@ export async function checkPincode(raw: string): Promise<PincodeCheck | { error:
  */
 export async function chooseSavedAddress(
   addressId: string,
+  options: CommitOptions = {},
 ): Promise<PincodeCheck | { error: string }> {
   const customer = await currentCustomer();
   if (!customer) return { error: 'Sign in to use a saved address.' };
@@ -150,6 +231,19 @@ export async function chooseSavedAddress(
   if (!address) return { error: 'That address is not yours.' };
 
   const result = await (await api()).content.checkPincode.query({ pincode: address.pincode });
+
+  // A saved place we do not deliver to yet: look around from there.
+  if (!result.serviced && options.rememberOutside) {
+    await rememberOutside({
+      pincode: address.pincode,
+      areaName: address.label || address.line1 || null,
+      city: address.city,
+      state: address.state,
+      latitude: normalizeCoordinate(address.latitude),
+      longitude: normalizeCoordinate(address.longitude),
+      formatted: [address.line1, address.city].filter(Boolean).join(', '),
+    });
+  }
 
   if (result.serviced) {
     /*
@@ -191,27 +285,46 @@ export async function chooseSavedAddress(
 export async function loadLocationSheet(): Promise<{
   addresses: MyAddressDto[];
   current: StoredLocation | null;
+  /** Where an out-of-area visitor is looking around from, if anywhere. */
+  outside: OutsideSpot | null;
+  /** What we do cover, for the out-of-area notice. Empty unless `outside` is set. */
+  servedAreas: ServedArea[];
   signedInPhone: string | null;
   signedInName: string | null;
   selectedAddressId: string | null;
   mapDefault: MapDefault;
 }> {
-  const [customer, current, selectedAddressId] = await Promise.all([
+  const [customer, current, outside, selectedAddressId] = await Promise.all([
     currentCustomer(),
     currentLocation(),
+    currentOutside(),
     currentAddressId(),
   ]);
   const client = await api();
 
-  const [checkout, addresses] = await Promise.all([
+  const [checkout, addresses, areas] = await Promise.all([
     client.content.storefrontCheckout.query(),
     customer ? client.storefront.myAddresses.query() : Promise.resolve([]),
+    /*
+     * Only for the out-of-area notice. A fresh lookup carries its own
+     * `nearby`, but a notice opened from a remembered spot has nothing to
+     * ask — and the list is the same either way: the owner's areas, in the
+     * owner's order, with no distance (see `device-location.ts`).
+     */
+    outside ? client.storefront.areas.query().catch(() => []) : Promise.resolve([]),
   ]);
 
   return {
     addresses,
     // So the map reopens on the last pin rather than the middle of India.
     current,
+    outside,
+    servedAreas: areas.slice(0, 3).map((area) => ({
+      pincode: area.pincode,
+      areaName: area.areaName,
+      city: area.city,
+      promiseHours: area.promiseHours,
+    })),
     // So an out-of-area answer offers one tap rather than asking for a number
     // the shop has already verified.
     signedInPhone: customer?.phone ?? null,
@@ -320,15 +433,43 @@ async function rememberArea(
   revalidatePath('/', 'layout');
 }
 
-/** A visitor outside the delivery area chose to look around anyway. */
-export async function browseWithoutDelivery(): Promise<void> {
+/**
+ * An out-of-area spot becomes where the visitor looks around from.
+ *
+ * Clears the delivery area and the chosen address: the visitor has just said
+ * they are somewhere we do not deliver, and a cart left priced for the old
+ * area — with its old address one tap from checkout — would contradict them.
+ * Cart lines are kept; the cart says it cannot be delivered here and holds
+ * checkout back.
+ */
+async function rememberOutside(spot: OutsideSpot) {
+  const store = await cookies();
+  store.set(BROWSE_COOKIE, JSON.stringify(spot), {
+    maxAge: BROWSE_MAX_AGE,
+    path: '/',
+    sameSite: 'lax',
+    httpOnly: true,
+  });
+  store.delete(LOCATION_COOKIE);
+  store.delete(ADDRESS_COOKIE);
+  revalidatePath('/', 'layout');
+}
+
+/**
+ * The visitor closed or skipped the location popup.
+ *
+ * Remembered so it is not pushed at them again on the next page; ADD asks
+ * instead. Never overwrites a real answer — a delivery area, or a remembered
+ * out-of-area spot — since closing the sheet after choosing is not skipping.
+ */
+export async function skipLocation(): Promise<void> {
+  if ((await currentLocation()) || (await currentOutside())) return;
   (await cookies()).set(BROWSE_COOKIE, '1', {
     maxAge: BROWSE_MAX_AGE,
     path: '/',
     sameSite: 'lax',
     httpOnly: true,
   });
-  revalidatePath('/', 'layout');
 }
 
 /**

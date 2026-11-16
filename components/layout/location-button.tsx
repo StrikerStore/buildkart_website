@@ -1,5 +1,5 @@
-import { ChevronDown, MapPin, Zap } from 'lucide-react';
-import { currentLocation, locationLabel } from '@/lib/location';
+import { ChevronDown, MapPin, MapPinOff, Zap } from 'lucide-react';
+import { currentLocation, currentOutside, locationLabel, outsideLabel } from '@/lib/location';
 import { tr, type Locale } from '@/lib/i18n';
 import { LocationTrigger } from './location-trigger';
 
@@ -29,20 +29,38 @@ export async function LocationButton({
   locale: Locale;
   promiseHours: number;
 }) {
-  const location = await currentLocation();
+  const [location, outside] = await Promise.all([currentLocation(), currentOutside()]);
+  const hi = locale === 'hi';
+  const notHere = hi ? 'यहाँ अभी डिलीवरी नहीं' : 'Not delivering here yet';
+  const outsidePlace = outside ? (outsideLabel(outside) ?? (hi ? 'भारत से बाहर' : 'Outside India')) : null;
 
   return (
     <LocationTrigger
       label={
         location
           ? `${tr(locale, 'header.deliverTo')}: ${locationLabel(location)}`
-          : tr(locale, 'header.setLocation')
+          : outsidePlace
+            ? `${notHere}: ${outsidePlace}`
+            : tr(locale, 'header.setLocation')
       }
     >
-      <MapPin className="size-5 shrink-0 text-ink-muted" aria-hidden />
+      {outsidePlace ? (
+        <MapPinOff className="size-5 shrink-0 text-warning" aria-hidden />
+      ) : (
+        <MapPin className="size-5 shrink-0 text-ink-muted" aria-hidden />
+      )}
 
       <span className="min-w-0">
-        {location ? (
+        {/*
+         * Out of area: where they are, and that we do not deliver there — in
+         * place of the hours promise, which would be a promise we cannot keep.
+         */}
+        {!location && outsidePlace ? (
+          <>
+            <span className="block text-heading9 text-warning">{notHere}</span>
+            <span className="clamp-1 block text-heading7 text-ink">{outsidePlace}</span>
+          </>
+        ) : location ? (
           <>
             <span className="flex items-center gap-1 text-heading9 text-success">
               <Zap className="size-3 fill-current" aria-hidden />

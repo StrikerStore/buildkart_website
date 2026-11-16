@@ -1,9 +1,11 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { skipLocation } from '@/app/location/actions';
 import { LocationSheet } from './location-sheet';
 import type { Locale } from '@/lib/i18n';
+import type { OutsideSpot } from '@/lib/location-shared';
 
 /**
  * The delivery location, asked for once and reachable from anywhere.
@@ -17,14 +19,32 @@ import type { Locale } from '@/lib/i18n';
  * send each other, and a link has to land somewhere; it renders the same picker
  * on its own page.
  */
-type LocationContextValue = {
-  /** Opens the sheet. Safe to call from any client component under the layout. */
-  open: () => void;
-  /** Looking around from outside the delivery area: ADD asks for a location. */
-  browsing: boolean;
+type OpenOptions = {
+  /**
+   * Straight to the picker, past the out-of-area notice — for "Change" and the
+   * header pill, where the visitor has already said what they want.
+   */
+  change?: boolean;
 };
 
-const LocationContext = createContext<LocationContextValue>({ open: () => {}, browsing: false });
+type LocationContextValue = {
+  /** Opens the sheet. Safe to call from any client component under the layout. */
+  open: (options?: OpenOptions) => void;
+  /**
+   * Whether anything can be added to the cart: only with a serviced delivery
+   * area. Without one, ADD opens the sheet instead — the "not available"
+   * notice for an out-of-area visitor, the location prompt for everyone else.
+   */
+  canOrder: boolean;
+  /** Where an out-of-area visitor is looking around from, or null. */
+  outside: OutsideSpot | null;
+};
+
+const LocationContext = createContext<LocationContextValue>({
+  open: () => {},
+  canOrder: true,
+  outside: null,
+});
 
 export function useLocationSheet(): LocationContextValue {
   return useContext(LocationContext);
@@ -33,87 +53,97 @@ export function useLocationSheet(): LocationContextValue {
 export function LocationProvider({
   locale,
   hasLocation,
-  browsing,
+  outside,
+  skipped,
   children,
 }: {
   locale: Locale;
-  /** Whether a delivery area is already set, read from the cookie on the server. */
+  /** Whether a serviced delivery area is set, read from the cookie on the server. */
   hasLocation: boolean;
-  /** Outside the delivery area and chose to look around; see `BROWSE_COOKIE`. */
-  browsing: boolean;
+  /** Outside the delivery area, and where; see `BROWSE_COOKIE`. */
+  outside: OutsideSpot | null;
+  /** Closed or skipped the popup without saying where they are. */
+  skipped: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
 
   /*
-   * Without an area, the sheet is a **gate**: no close button, no backdrop
-   * dismiss, no Escape. With one, it is an ordinary dialog they opened to
-   * change something, and it closes normally.
+   * Never a gate. Anyone, from anywhere, can look around the whole shop: the
+   * catalogue, the prices, the calculators. What needs a delivery area is the
+   * *cart*, so that is where the question is asked — ADD opens this sheet
+   * rather than adding — and the order itself is refused again by the API for
+   * an address we do not serve.
    *
-   * Blocking is the right call for this shop rather than a dark pattern.
-   * Nothing on the site is true without a delivery area — not the price, which
-   * moves with the delivery charge; not the promise, which is per-area; not
-   * whether an item can be bought at all. A catalogue browsed without one is a
-   * catalogue of numbers the shop would not honour, and the disappointment
-   * lands at checkout instead of in the first five seconds.
-   *
-   * Someone outside the delivery area can never answer it, so they may choose
-   * to look around instead, with ordering off.
+   * A first visit is still asked once, up front, because most visitors are in
+   * the area and the answer is what makes the prices theirs. It closes like
+   * any other dialog, and closing it is remembered (`skipLocation`) so it is
+   * not pushed at them again on every page.
    */
-  const blocking = !hasLocation && !browsing;
+  const firstVisit = !hasLocation && outside === null && !skipped;
 
   /*
-   * `/location` asks the same question on its own page, so the gate would sit
+   * `/location` asks the same question on its own page, so the popup would sit
    * on top of a screen that already does its job. Suppressed there, and only
    * there.
    */
   const suppressed = pathname === '/location';
 
-  const [open, setOpen] = useState(false);
-
-  const openSheet = useCallback(() => setOpen(true), []);
+  /** Null while shut; otherwise how it was opened. */
+  const [sheet, setSheet] = useState<OpenOptions | null>(null);
 
   /*
-   * Auto-open when there is no area, on every page until one is set.
-   *
+   * Auto-opened once per visit, not once per page. The layout stays mounted
+   * across client navigations, and without this a visitor who closed the popup
+   * would see it again on the next page until the server's answer caught up.
+   */
+  const asked = useRef(false);
+
+  const openSheet = useCallback(
+    (options?: OpenOptions) => setSheet({ change: options?.change === true }),
+    [],
+  );
+
+  /*
    * Note what this does *not* do: request geolocation permission. The sheet
-   * appears, and the customer's tap on "Use my current location" is what asks
-   * the browser. A permission dialog that fires on page load, before anyone has
+   * appears, and the customer's tap on "Use my location" is what asks the
+   * browser. A permission dialog that fires on page load, before anyone has
    * said what they want, is the one people reflexively deny — and a denial is
    * sticky, so getting it wrong once costs the shop that customer's location
    * for good.
    */
   useEffect(() => {
-    if (blocking && !suppressed) setOpen(true);
-  }, [blocking, suppressed]);
+    if (firstVisit && !suppressed && !asked.current) {
+      asked.current = true;
+      setSheet({});
+    }
+  }, [firstVisit, suppressed]);
 
-  /** Closing by hand is only possible once an area exists. */
+  /**
+   * Closed without choosing. On a first visit that is a skip, and it is
+   * remembered; otherwise it is only a dialog closing.
+   */
   const close = useCallback(() => {
-    if (blocking) return;
-    setOpen(false);
-  }, [blocking]);
+    setSheet(null);
+    if (firstVisit) void skipLocation().catch(() => {});
+  }, [firstVisit]);
 
   /*
-   * A serviced area was just committed, so the gate lifts — **without**
-   * consulting `blocking`.
-   *
-   * That check would still be true here: it is derived from a server prop, and
-   * the `router.refresh()` that flips it is in flight. Routing success through
-   * `close` would leave the sheet shut behind its own gate whenever the refresh
-   * was slower than the confirmation, which on a site connection is most of the
-   * time.
+   * A place was just committed — a serviced area, or an out-of-area spot to
+   * look around from — so the sheet closes without the skip `close` records.
+   * The `router.refresh()` that brings the new prices is already in flight.
    */
-  const settled = useCallback(() => setOpen(false), []);
+  const settled = useCallback(() => setSheet(null), []);
 
   return (
-    <LocationContext.Provider value={{ open: openSheet, browsing }}>
+    <LocationContext.Provider value={{ open: openSheet, canOrder: hasLocation, outside }}>
       {children}
-      {open && (
+      {sheet && (
         <LocationSheet
           locale={locale}
+          startChanging={sheet.change === true}
           onClose={close}
           onSettled={settled}
-          dismissible={!blocking}
         />
       )}
     </LocationContext.Provider>

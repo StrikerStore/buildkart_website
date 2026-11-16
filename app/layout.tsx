@@ -7,7 +7,7 @@ import { announcementBar, api, storeSettings } from '@/lib/api/server';
 import { CONSENT_COOKIE, parseConsent } from '@/lib/consent';
 import { cartCount, currentCart } from '@/lib/cart';
 import { currentLocale, htmlLang } from '@/lib/locale';
-import { currentLocation, isBrowseOnly } from '@/lib/location';
+import { currentLocation, currentOutside, locationSkipped } from '@/lib/location';
 import { currentCustomer } from '@/lib/session';
 import { siteUrl } from '@/lib/site';
 import { BrandTagline } from '@/components/layout/brand-tagline';
@@ -17,6 +17,7 @@ import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { AssistButton } from '@/components/assist/assist-button';
 import { CartBar } from '@/components/cart/cart-bar';
 import { LocationProvider } from '@/components/location/location-provider';
+import { OutsideBar } from '@/components/location/outside-bar';
 import { GoogleTag } from '@/components/analytics/google-tag';
 import { MetaPixel } from '@/components/analytics/meta-pixel';
 import { googleAllowed } from '@/lib/google-tag';
@@ -151,11 +152,12 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, cart, location, browsing, announcements, settings, customer, cookieStore] = await Promise.all([
+  const [locale, cart, location, outside, skipped, announcements, settings, customer, cookieStore] = await Promise.all([
     currentLocale(),
     currentCart(),
     currentLocation(),
-    isBrowseOnly(),
+    currentOutside(),
+    locationSkipped(),
     announcementBar(),
     // Per-request cached; the header and most pages read it anyway.
     storeSettings(),
@@ -206,12 +208,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
          * visit with no area set is asked once, up front, the way every quick
          * commerce app does it.
          */}
-        <LocationProvider locale={locale} hasLocation={location !== null} browsing={browsing}>
+        <LocationProvider locale={locale} hasLocation={location !== null} outside={outside} skipped={skipped}>
           {/* Above the header and outside it: the header is the sticky part,
               and the strip should scroll away once it has been read. */}
           <AnnouncementBar bar={announcements} locale={locale} />
 
           <SiteHeader locale={locale} />
+
+          {/* Under the header, on every page, for as long as it is true. */}
+          {outside && <OutsideBar spot={outside} locale={locale} />}
 
           <main id="main">{children}</main>
 
