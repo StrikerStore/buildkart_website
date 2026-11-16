@@ -8,11 +8,9 @@ import { OpenLocationButton } from './open-location-button';
  * for a visitor looking around from outside the delivery area.
  *
  * Said up front and kept said, so nobody browses for ten minutes believing a
- * cart is on its way. It also explains the prices: distance-priced products
- * show their warehouse rate here, because a delivered price for somewhere we
- * do not deliver is not a price anyone can pay.
+ * cart is on its way.
  *
- * One line on a phone: the place, the reason, and "Change".
+ * One line on a phone: the place, and "Change".
  */
 export function OutsideBar({ spot, locale }: { spot: OutsideSpot; locale: Locale }) {
   const hi = locale === 'hi';
@@ -31,9 +29,6 @@ export function OutsideBar({ spot, locale }: { spot: OutsideSpot; locale: Locale
               : hi
                 ? 'यहाँ अभी डिलीवरी नहीं है।'
                 : 'We do not deliver here yet.'}
-          </span>{' '}
-          <span className="text-ink-muted">
-            {hi ? 'आप गोदाम भाव देख रहे हैं।' : 'You are seeing warehouse rates.'}
           </span>
         </p>
         <OpenLocationButton className="shrink-0 rounded-box px-2 py-1 text-cta3 text-brand-text underline underline-offset-2 hover:bg-surface/60">
