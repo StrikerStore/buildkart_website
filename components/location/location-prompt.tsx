@@ -26,7 +26,7 @@ type Stage =
  * the house details are taken at checkout (`AddressSheet`).
  *
  * Never a gate: it closes, it can be skipped, and an out-of-area answer lets
- * the visitor go on exploring from there — with warehouse rates and ordering
+ * the visitor go on exploring from there — with prices shown and ordering
  * off — rather than stopping them at the door.
  *
  * The browser's permission prompt fires from the tap on "Use my location",
@@ -218,8 +218,8 @@ export function LocationPrompt({
                 ? 'अभी हम भारत के कुछ ही इलाक़ों में डिलीवरी करते हैं। सामान और भाव आप देख सकते हैं।'
                 : 'We deliver only in parts of India for now. You can still look around and see our rates.'
               : hi
-                ? 'सामान और गोदाम भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
-                : 'You can still look around and see our warehouse rates — ordering is off here.'}
+                ? 'सामान और भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
+                : 'You can still look around and see our prices — ordering is off here.'}
           </p>
           {stage.result.nearby.length > 0 && (
             <p className="text-body4 text-ink-muted">

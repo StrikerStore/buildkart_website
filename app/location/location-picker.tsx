@@ -438,8 +438,8 @@ function SavedPanel({ result, locale }: { result: PincodeCheck; locale: Locale }
         </p>
         <p className="mt-1.5 text-body2 text-ink-muted">
           {hi
-            ? 'सामान और गोदाम भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
-            : 'You can still look around and see our warehouse rates, but orders cannot be delivered here.'}
+            ? 'सामान और भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
+            : 'You can still look around and see our prices, but orders cannot be delivered here.'}
         </p>
         <ExploreLink hi={hi} />
       </div>

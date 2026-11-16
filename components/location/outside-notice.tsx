@@ -62,8 +62,8 @@ export function OutsideNotice({
                   ? 'अभी हम भारत के कुछ ही इलाक़ों में डिलीवरी करते हैं। सामान और भाव आप देख सकते हैं, ऑर्डर नहीं।'
                   : 'We deliver only in parts of India for now. You can look around and see our rates, but not order.'
                 : hi
-                  ? 'सामान और गोदाम भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
-                  : 'You can look around and see our warehouse rates, but orders cannot be delivered here.'}
+                  ? 'सामान और भाव आप देख सकते हैं, पर यहाँ ऑर्डर नहीं हो सकता।'
+                  : 'You can look around and see our prices, but orders cannot be delivered here.'}
             </p>
           </div>
         </div>

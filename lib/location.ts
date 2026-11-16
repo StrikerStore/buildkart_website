@@ -78,7 +78,7 @@ export const currentPricingPincode = cache(async (): Promise<string | null> => {
  * Empty for an out-of-area visitor too, on purpose. Their spot is never sent:
  * the distance addition has no ceiling, and a price for somewhere we do not
  * deliver is a number nobody can buy at. They see the warehouse rate instead,
- * labelled as such (`PriceFromLabel`).
+ * with no "from" before it (`PriceFromLabel`).
  *
  * Read off the cookie, which a shopper can edit — and harmless for it: this
  * only moves a preview. What is charged is priced again from the address the
